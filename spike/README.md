@@ -38,7 +38,7 @@ what a user does by hand.
 Measured on the reference machine on 2026-09-19. Anything not recorded here has
 not been measured.
 
-### OQ-1, display identity: half answered
+### OQ-1, display identity: answered
 
 The four displays report these monitor identifiers:
 
@@ -57,8 +57,9 @@ Two findings:
   alone cannot tell them apart. Their UID differs, `UID4356` against `UID4354`,
   which does tell them apart.
 
-What remains: whether the monitor id holds after a reboot. Run `displays`
-again after the next restart and compare.
+Re-read after a reboot on 2026-09-19: every monitor id is unchanged; each still
+sits on the same GDI name. A profile can therefore store a display by its
+monitor id. Assumption A-1 holds.
 
 ### OQ-2, application identity: answered
 
@@ -122,7 +123,23 @@ FR-036 as drafted is withdrawn. What remains to test is asking the application
 to show its own window, by running a second copy of it, which is what a user
 does from the tray.
 
-### OQ-4, closing a window: not settled; the first attempt was wrong
+### OQ-4, closing a window: answered for NordVPN and GameGlass
+
+Measured after a reboot, from the owner closing both windows by hand as he
+normally does. Both windows still exist and are hidden, with their rectangles
+preserved; both processes are alive: NordVPN pid 23672, GameGlass Hub pid
+32248. Closing leaves the application running. Assumption A-3 holds for both.
+Postal Gambit was not running, so it is untested.
+
+### A window class is not an identity
+
+NordVPN's main window class was
+`HwndWrapper[NordVPNApp;Hosted Main;3bcafb52-...]` before the reboot and
+`HwndWrapper[NordVPNApp;Hosted Main;0e6920e5-...]` after it. The class carries
+a GUID that changes each session, so a profile cannot match a window by its
+class. The process image path can.
+
+### The earlier close attempt, which was wrong
 
 NordVPN ignored both the plain close message and the system menu close. That is
 not a verdict: the window was hidden and partly torn down at the time, which is
@@ -132,10 +149,29 @@ window the application has just shown by itself.
 This is a lesson about the spike as much as the product. A measurement taken
 against the wrong state answers a question nobody asked.
 
+### OQ-5, startup timings: bounded, not finished
+
+Measured from a sign-in run on 2026-09-19 that began 2 minutes 9 seconds after
+boot, because a Startup entry only fires once the shell is up:
+
+- The last window to appear was Claude, 5 minutes 34 seconds after boot.
+- The longest gap between appearances was 3 minutes 25 seconds, before Claude.
+- No window moved during the run, so OQ-7 has no evidence either way.
+
+From those two numbers the ceiling moved from 5 minutes to 15 and the quiet
+period from 15 seconds to 60.
+
+### A defect in this spike, found the hard way
+
+The first sign-in run wrote its events to the console and the log through one
+writer that took the console first. When the console went away, its write
+failed and the log write never happened, so the summary was lost and any event
+after that point was lost in silence. The log is now written first and the
+console is allowed to fail. A measurement tool that depends on someone
+watching it is not a measurement tool.
+
 ### Still to measure
 
-- **OQ-4**: at sign-in, run `close` against the NordVPN, GameGlass and Postal
-  Gambit windows while each is live.
-- **OQ-5 and OQ-7**: run `watch 10` immediately after signing in, twice, on
-  separate reboots.
+- **OQ-4**: Postal Gambit only, whenever it is next running.
+- **OQ-5 and OQ-7**: one more sign-in run, hidden, for 25 minutes.
 - **OQ-6**: run `launch` against a tray application while it is running, to see whether it shows its own window.

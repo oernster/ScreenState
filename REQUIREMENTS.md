@@ -131,7 +131,7 @@ on an assumption without naming it.
 | A-3 | Closing the main window of NordVPN, GameGlass and Postal Gambit leaves each application running in the tray. | Oliver | 2026-09-26 |
 | A-4 | An application that starts with no visible window can be made to show one from outside the application. | Oliver | 2026-09-26 |
 | A-5 | A window can be moved to a target display and maximised there by a process without administrator rights, across displays with different scaling. | Oliver | 2026-09-26 |
-| A-6 | The span between sign-in and the last startup window appearing on the reference machine is under the proposed ceiling. | Oliver | 2026-09-26 |
+| A-6 | Confirmed in part on 2026-09-19: the last startup window appeared 5 minutes 34 seconds after boot, under the 15 minute ceiling. A second run is needed to confirm that nothing appears later. | Oliver | 2026-09-26 |
 
 ---
 
@@ -501,16 +501,26 @@ placement.
 
 **NFR-PERF-002 Quiet period**
 Priority: Must
-Requirement: The ScreenState agent shall treat 15 seconds with no new top-level
-window as the quiet period, configurable by the user between 5 and 120 seconds.
+Requirement: The ScreenState agent shall treat 60 seconds with no new top-level
+window as the quiet period, configurable by the user between 5 and 600 seconds.
 Method: the value is read from configuration and asserted in a test over a fake
-clock. The default is provisional until A-6 is confirmed (OQ-5).
+clock.
+Rationale: measured on the reference machine on 2026-09-19, the longest gap
+between windows appearing during startup was 3 minutes 25 seconds, before
+Claude's window. A quiet period alone cannot cover that. It does not need to:
+FR-020 waits for every application the profile names; the quiet period only
+catches stragglers the profile does not name. The first draft of 15 seconds was
+replaced by this measurement.
 
 **NFR-PERF-003 Ceiling**
 Priority: Must
-Requirement: The ScreenState agent shall treat 5 minutes after sign-in as the
-ceiling, configurable by the user between 1 and 30 minutes.
-Method: as NFR-PERF-002. The default is provisional until A-6 is confirmed.
+Requirement: The ScreenState agent shall treat 15 minutes after sign-in as the
+ceiling, configurable by the user between 1 and 60 minutes.
+Method: as NFR-PERF-002.
+Rationale: measured on the reference machine on 2026-09-19, the last startup
+window appeared 5 minutes 34 seconds after boot; the owner reports roughly 10
+minutes before the machine is usable. The first draft of 5 minutes would
+have given up while startup was still running.
 
 **NFR-PERF-004 Settle-check delay**
 Priority: Must

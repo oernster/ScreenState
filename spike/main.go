@@ -131,7 +131,22 @@ func openLog(command string) (*os.File, io.Writer) {
 		return nil, os.Stdout
 	}
 	fmt.Printf("Log: %s\n\n", name)
-	return file, io.MultiWriter(os.Stdout, file)
+	return file, logWriter{file: file}
+}
+
+// logWriter writes to the log file first, then to the console, reporting only
+// the file's outcome. A multi writer over the console and the file loses
+// the file when the console goes away, which is exactly what happened to the
+// first sign-in measurement: the console closed, its write failed and the
+// summary never reached the log.
+type logWriter struct {
+	file *os.File
+}
+
+func (writer logWriter) Write(data []byte) (int, error) {
+	written, err := writer.file.Write(data)
+	os.Stdout.Write(data)
+	return written, err
 }
 
 func usage(out io.Writer) {
