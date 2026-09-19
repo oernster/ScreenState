@@ -77,9 +77,42 @@ The candidate rule proposed in FR-012, a visible window that is not cloaked,
 not owned by another window, not a tool window and not without a title, reduced
 523 enumerated windows to the 8 a user would call windows.
 
-### OQ-3 to OQ-7: not yet measured
+### OQ-3, placing a window on a chosen display: answered
 
-- **OQ-3**: run `move` against a window for each of the four display indexes.
+Measured against a Notepad window launched for the purpose, moved to each of
+the four displays in turn, from a process holding no administrator rights:
+
+| Target | Landed on | State | Rectangle |
+|---|---|---|---|
+| index 0, `\\.\DISPLAY1`, 96 dpi | `\\.\DISPLAY1` | maximised | x=-8 y=-8 w=3456 h=1408 |
+| index 1, `\\.\DISPLAY2`, 240 dpi | `\\.\DISPLAY2` | maximised | x=-239 y=1424 w=3872 h=2312 |
+| index 2, `\\.\DISPLAY3`, 240 dpi | `\\.\DISPLAY3` | maximised | x=-4079 y=1407 w=3872 h=2312 |
+| index 3, `\\.\DISPLAY4`, 240 dpi | `\\.\DISPLAY4` | maximised | x=3601 y=1407 w=3872 h=2312 |
+
+Every move landed where it was told, including the move from the 96 dpi display
+to a 240 dpi one. Assumption A-5 holds. A maximised window overhangs its
+display by the border width, which is why each rectangle is 16 pixels wider
+than the display.
+
+The sequence that works: restore the window, set its rectangle to the target
+display's work area, then maximise it.
+
+### A finding that was not being looked for
+
+Notepad runs several windows in one process. The window launched for this
+measurement joined an existing Notepad process that already held another
+window. Two consequences for the product:
+
+- A profile entry cannot assume one window per application, which is what
+  FR-037 exists for.
+- Whether a process is still running does not tell you whether closing one of
+  its windows was harmless. The `close` command reports the process as running
+  because another window of it was open. For NordVPN, GameGlass and Postal
+  Gambit the report is still meaningful, since each holds one window.
+
+### OQ-4 to OQ-7: not yet measured
+
+- **OQ-4**: run `close` against NordVPN, GameGlass and Postal Gambit.
 - **OQ-4**: run `close` against NordVPN, GameGlass and Postal Gambit.
 - **OQ-5 and OQ-7**: run `watch 10` immediately after signing in, twice, on
   separate reboots.
