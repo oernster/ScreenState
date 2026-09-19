@@ -110,11 +110,32 @@ window. Two consequences for the product:
   because another window of it was open. For NordVPN, GameGlass and Postal
   Gambit the report is still meaningful, since each holds one window.
 
-### OQ-4 to OQ-7: not yet measured
+### OQ-6, showing a hidden window: answered; the answer kills FR-036
 
-- **OQ-4**: run `close` against NordVPN, GameGlass and Postal Gambit.
-- **OQ-4**: run `close` against NordVPN, GameGlass and Postal Gambit.
+Measured against NordVPN's own window, which the application had hidden rather
+than destroyed. Showing it from outside worked in the narrow sense: the window
+became visible. It was useless: the application was no longer drawing it, so it
+appeared as an empty black frame.
+
+So a window a tray application has hidden cannot be brought back by showing it.
+FR-036 as drafted is withdrawn. What remains to test is asking the application
+to show its own window, by running a second copy of it, which is what a user
+does from the tray.
+
+### OQ-4, closing a window: not settled; the first attempt was wrong
+
+NordVPN ignored both the plain close message and the system menu close. That is
+not a verdict: the window was hidden and partly torn down at the time, which is
+not the state it is in at sign-in. The measurement has to be taken against a
+window the application has just shown by itself.
+
+This is a lesson about the spike as much as the product. A measurement taken
+against the wrong state answers a question nobody asked.
+
+### Still to measure
+
+- **OQ-4**: at sign-in, run `close` against the NordVPN, GameGlass and Postal
+  Gambit windows while each is live.
 - **OQ-5 and OQ-7**: run `watch 10` immediately after signing in, twice, on
   separate reboots.
-- **OQ-6**: run `show` against a tray-only application's window if it has one,
-  then `launch` its executable while it is already running.
+- **OQ-6**: run `launch` against a tray application while it is running, to see whether it shows its own window.

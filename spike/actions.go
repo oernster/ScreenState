@@ -104,6 +104,54 @@ func closeWindow(out io.Writer, handle uintptr) {
 	}
 }
 
+// sysCloseWindow asks a window to close through the system menu command, which
+// is the message Windows itself posts when the user presses the close button.
+// Some applications act on this while ignoring a plain close message.
+func sysCloseWindow(out io.Writer, handle uintptr) {
+	record, found := findWindow(handle)
+	if !found {
+		fmt.Fprintf(out, "No window with handle 0x%X.\n", handle)
+		return
+	}
+	fmt.Fprintf(out, "Closing \"%s\" through the system menu (pid %d)\n", record.Title, record.ProcessID)
+	procPostMessageW.Call(handle, uintptr(wmSysCommand), uintptr(scClose), 0)
+
+	deadline := time.Now().Add(closeWaitLimit)
+	for time.Now().Before(deadline) {
+		if !windowExists(handle) || !windowIsVisible(handle) {
+			break
+		}
+		time.Sleep(closePollInterval)
+	}
+	gone := !windowExists(handle)
+	hidden := !gone && !windowIsVisible(handle)
+	alive := processIsRunning(record.ProcessID)
+	fmt.Fprintf(out, "Window destroyed: %t\n", gone)
+	fmt.Fprintf(out, "Window hidden but alive: %t\n", hidden)
+	fmt.Fprintf(out, "Process still running: %t\n", alive)
+	switch {
+	case (gone || hidden) && alive:
+		fmt.Fprintf(out, "RESULT: the system menu close left the application running.\n")
+	case !alive:
+		fmt.Fprintf(out, "RESULT: the system menu close ended the application.\n")
+	default:
+		fmt.Fprintf(out, "RESULT: the window refused the system menu close too.\n")
+	}
+}
+
+// hideWindow hides a window without asking the application. It exists to put a
+// window back the way it was found during a measurement, never as a way the
+// product would dismiss a window.
+func hideWindow(out io.Writer, handle uintptr) {
+	if !windowExists(handle) {
+		fmt.Fprintf(out, "No window with handle 0x%X.\n", handle)
+		return
+	}
+	procShowWindow.Call(handle, uintptr(swHide))
+	time.Sleep(actionSettleDelay)
+	fmt.Fprintf(out, "Visible after hiding: %t\n", windowIsVisible(handle))
+}
+
 // showWindow settles the first half of OQ-6: can a window that is hidden be
 // made visible from outside its application?
 func showWindow(out io.Writer, handle uintptr) {

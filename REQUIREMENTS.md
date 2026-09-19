@@ -363,8 +363,13 @@ Requirement: When an entry has a placement and the application is running with
 no visible window, the ScreenState agent shall attempt to make the window
 visible before applying the placement.
 Rationale: an application that starts into the tray has no window to move.
-Depends on A-4, which is unconfirmed. If A-4 is false, this requirement is
-withdrawn and the report states that the application cannot be shown.
+Measured on 2026-09-19 against NordVPN: making its hidden window visible from
+outside produced an empty frame the application was not drawing, so A-4 is
+false in that form and the mechanism is withdrawn. What is left to measure is
+whether running a second copy of the application makes it show its own window,
+which is what a user does from the tray. Until that is measured, this
+requirement is unsatisfied and the report states that the application cannot be
+shown.
 
 **FR-037 Several windows of one application**
 Priority: Should

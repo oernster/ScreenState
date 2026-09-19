@@ -45,6 +45,10 @@ func main() {
 		runMove(out, arguments)
 	case "close":
 		runHandleCommand(out, arguments, "close", closeWindow)
+	case "sysclose":
+		runHandleCommand(out, arguments, "sysclose", sysCloseWindow)
+	case "hide":
+		runHandleCommand(out, arguments, "hide", hideWindow)
 	case "show":
 		runHandleCommand(out, arguments, "show", showWindow)
 	case "launch":

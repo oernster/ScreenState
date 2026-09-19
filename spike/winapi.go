@@ -61,7 +61,10 @@ const (
 	swShowNormal            = 1
 	swpNoZOrder             = 0x0004
 	swpNoActivate           = 0x0010
+	swHide                  = 0
 	wmClose                 = 0x0010
+	wmSysCommand            = 0x0112
+	scClose                 = 0xF060
 	dwmwaCloaked            = 14
 	mdtEffectiveDpi         = 0
 	maxTextLength           = 512
