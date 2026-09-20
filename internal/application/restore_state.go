@@ -15,8 +15,11 @@ import (
 // inferred from the state of the restore as a whole.
 type pendingEntry struct {
 	entry domain.Entry
-	// launched records that a launch was attempted for this entry (FR-024).
-	launched bool
+	// launched records that this restore started the application (FR-024);
+	// launchedAt is when. A launch that has not had time to settle is never
+	// taken for an application holding a window hidden (FR-025).
+	launched   bool
+	launchedAt time.Time
 	// applied counts the placements already applied, so a placement is never
 	// applied twice as later windows of the same application appear.
 	applied int

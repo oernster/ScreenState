@@ -56,6 +56,7 @@ func (service *RestoreService) launchMissing(ctx context.Context, state *restore
 			continue
 		}
 		pending.launched = true
+		pending.launchedAt = service.clock.Now()
 		state.report.NoteEntry(pending.entry.Application, "was not running, so it was launched")
 	}
 }
@@ -171,6 +172,15 @@ func (service *RestoreService) askToShow(
 	if len(shown) > 0 {
 		// Some windows are open and placed; the entry is waiting for the rest
 		// to appear. The ceiling decides how long that waiting lasts.
+		return
+	}
+	if pending.launched && service.clock.Now().Sub(pending.launchedAt) < service.policy.SettleCheck {
+		// This restore has just started it, so it is still starting rather than
+		// holding a window hidden: running it again now would be the second
+		// copy FR-025 forbids. Measured on 2026-09-21, when every launched
+		// application was started twice in the same second. Once it has had the
+		// time any window is given to settle, an application that started into
+		// the notification area is asked like any other (FR-036).
 		return
 	}
 	running, err := service.processes.Running(ctx, pending.entry.Application)
