@@ -468,6 +468,17 @@ Requirement: If no profile is marked as default, then the ScreenState agent
 shall apply no profile at sign-in and shall state in the manager that no default
 is set.
 
+**FR-062 The first profile is the default**
+Priority: Must
+Requirement: When a capture is saved while no stored profile is marked as
+default, the ScreenState agent shall mark the saved profile as the default.
+Rationale: reported 2026-09-20. The only profile stored was unmarked, so a
+restart arranged nothing and the user had to open the manager and press Apply.
+A capture is the user saying this is how the desktop should look; a marking
+they were never told was owed is not a decision they made. It fills an empty
+marking only: a later capture never moves the marking off the profile the user
+chose, which FR-040 and FR-042 leave to them.
+
 #### Profile management
 
 **FR-040 Exactly one default**
@@ -915,12 +926,12 @@ Counted from this document rather than carried forward, because the previous
 figures had drifted about ten below the requirements actually written. Recounted
 on 2026-09-20 by scanning every `Priority:` line: the Must figure had been
 written as 56 against 65 actually present, a transposition that the earlier
-recount did not catch. FR-061 takes it to 66. Withdrawn requirements carry no
+recount did not catch. FR-061 took it to 66 and FR-062 to 67. Withdrawn requirements carry no
 `Priority:` line, so they are not in the Must or Should figures.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 66 | The product does not work without any one of them. |
+| Must | 67 | The product does not work without any one of them. |
 | Should | 11 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |

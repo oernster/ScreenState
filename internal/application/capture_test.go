@@ -222,6 +222,64 @@ func TestSavingWritesTheConfirmedEntries(t *testing.T) {
 	}
 }
 
+// The first profile a user makes is the one applied at sign-in. Leaving it
+// unmarked is the product appearing not to work: the desktop is captured, the
+// machine is restarted and nothing is arranged, with no clue that a marking was
+// owed. A second capture leaves the marking where the user put it.
+func TestTheFirstProfileBecomesTheDefault(t *testing.T) {
+	t.Parallel()
+	store := newFakeStore()
+	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
+		newFakeProcesses(), store)
+	entries := []domain.Entry{{Application: claude, Running: true}}
+
+	first, err := service.Save(context.Background(), "Desk", entries, false)
+	if err != nil {
+		t.Fatalf("saving the first: %v", err)
+	}
+	if !first.Default {
+		t.Fatal("the only profile there is was not marked as the default")
+	}
+	stored, _, err := store.Default(context.Background())
+	if err != nil || stored.Name != "Desk" {
+		t.Fatalf("the store answers %q as the default, %v", stored.Name, err)
+	}
+
+	second, err := service.Save(context.Background(), "Away", entries, false)
+	if err != nil {
+		t.Fatalf("saving the second: %v", err)
+	}
+	if second.Default {
+		t.Fatal("a second profile took the marking from the first")
+	}
+	stored, _, err = store.Default(context.Background())
+	if err != nil || stored.Name != "Desk" {
+		t.Fatalf("the marking moved to %q, %v", stored.Name, err)
+	}
+}
+
+// A store that cannot say whether anything is marked still writes the profile:
+// the marking is a convenience and the capture is the work.
+func TestAProfileIsStillWrittenWhenTheMarkingCannotBeRead(t *testing.T) {
+	t.Parallel()
+	store := newFakeStore()
+	store.defaultErr = errors.New("the store would not answer")
+	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
+		newFakeProcesses(), store)
+
+	profile, err := service.Save(context.Background(), "Desk",
+		[]domain.Entry{{Application: claude, Running: true}}, false)
+	if err != nil {
+		t.Fatalf("saving: %v", err)
+	}
+	if profile.Default {
+		t.Fatal("a profile was marked although the store could not be asked")
+	}
+	if _, err := store.Load(context.Background(), "Desk"); err != nil {
+		t.Fatalf("the profile was not stored: %v", err)
+	}
+}
+
 // An invalid review is refused by the domain before anything is written, which
 // is what keeps the store free of profiles that cannot be restored.
 func TestAnInvalidReviewIsNotWritten(t *testing.T) {

@@ -215,7 +215,44 @@ func (service *CaptureService) Save(
 	}
 	service.log.Step(fmt.Sprintf("capture wrote profile %q with %d entries",
 		profile.Name, len(profile.Entries)))
-	return profile, nil
+	return service.markFirstAsDefault(ctx, profile)
+}
+
+// markFirstAsDefault marks a profile as the one applied at sign-in when no
+// profile is marked at all (FR-039, FR-040).
+//
+// Capturing a desktop and signing in to find nothing arranged is the product
+// appearing not to work: measured on 2026-09-20, where the only profile stored
+// was unmarked, so every start said nothing was restored and the user had to
+// press Apply by hand. A profile the user has just made is the only candidate
+// there is, so it is marked rather than left for a step nobody knew about. It
+// only ever fills an empty marking: a second capture never takes the marking
+// off the profile the user chose.
+func (service *CaptureService) markFirstAsDefault(
+	ctx context.Context,
+	profile domain.Profile,
+) (domain.Profile, error) {
+	if profile.Default {
+		return profile, nil
+	}
+	if _, marked, err := service.store.Default(ctx); err != nil || marked {
+		// A store that cannot say leaves the marking alone: the profile is
+		// written, which is what was asked for; the report says the rest.
+		if err != nil {
+			service.log.Step(fmt.Sprintf(
+				"could not tell whether a profile is marked as the default: %v", err))
+		}
+		return profile, nil
+	}
+	marked := profile.WithDefault(true)
+	if err := service.store.Save(ctx, marked); err != nil {
+		service.log.Step(fmt.Sprintf("could not mark %q as the default: %v", profile.Name, err))
+		return profile, nil
+	}
+	service.log.Step(fmt.Sprintf(
+		"%q is the only profile, so it is marked as the default and is applied at sign-in",
+		marked.Name))
+	return marked, nil
 }
 
 // nameTaken reports whether the store already holds a profile of that name,
