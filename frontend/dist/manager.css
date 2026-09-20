@@ -259,6 +259,13 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 /* The house dialog: a backdrop over the whole window, a card centred on it, a
    cross in its corner, a body that scrolls and a row of actions pinned under
    the body rather than scrolling away with it. */
+/* The hidden attribute has to be said here as well. A page's own display rule
+   beats the browser's rule for [hidden], so a backdrop given display: flex is
+   shown whatever the attribute says: the window came up with an empty card over
+   it, blocking everything, while a check reading the .hidden PROPERTY saw
+   nothing wrong. Measured on the built application, 2026-09-20. */
+.modal-backdrop[hidden] { display: none; }
+
 .modal-backdrop {
     position: fixed;
     inset: 0;
