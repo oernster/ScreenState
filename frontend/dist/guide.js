@@ -22,8 +22,12 @@
 const guideSections = [
     {
         heading: 'The bar along the top',
-        intro: 'The mark and the name sit at the left. The other two are held at the far end. Hover either of them to see its name.',
+        intro: 'The mark and the name sit at the left, with the applications of the selected profile beside them. The other two are held at the far end. Hover any of them to see its name.',
         entries: [
+            {
+                art: 'profile.png', name: 'The applications in this profile',
+                text: 'opens what the selected profile arranges in a window of its own, where a long path can be read in full rather than cut off in the column. Take an application out from either place. It is ringed in red until you select a profile, since there is nothing for it to show until then.',
+            },
             {
                 art: 'dark-mode.png', name: 'Light or dark',
                 text: 'the toggle shows the mode it will switch INTO, so the moon appears while the window is light.',

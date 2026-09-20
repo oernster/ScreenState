@@ -16,6 +16,9 @@
 <div class="shell">
     <div class="head">
         <img class="mark" id="mark" src="icon.png" alt=""/>
+        <button class="themebtn" id="entries" title="The applications in this profile" disabled>
+            <img id="entries-icon" src="profile.png" alt="" aria-hidden="true"/>
+        </button>
         <div class="who">
             <div class="title" id="brand"></div>
             <div class="sub" id="tagline"></div>
@@ -126,6 +129,12 @@
                     <h1>Licence</h1>
                     <p class="lead" id="licence-words"></p>
                     <pre class="licencetext" id="licence-text"></pre>
+                </section>
+
+                <section class="sheet" id="sheet-entries">
+                    <h1 id="entries-title">The applications in this profile</h1>
+                    <p class="lead" id="entries-summary"></p>
+                    <div class="rows tall" id="entries-rows"></div>
                 </section>
 
                 <section class="sheet" id="sheet-report">

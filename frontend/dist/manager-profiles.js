@@ -134,6 +134,9 @@ async function drawEntries() {
     rows.innerHTML = ''
     $('detail-title').textContent = selected || 'Nothing selected'
     $('entry-count').textContent = ''
+    // The button that opens them in full can do nothing until there is a
+    // profile to open, so it says so (FR-068).
+    $('entries').disabled = selected === ''
     if (!selected) {
         rows.appendChild(emptyLine('Select a profile to see what it arranges.'))
         return
@@ -146,8 +149,24 @@ async function drawEntries() {
         return
     }
     $('entry-count').textContent = entries.length === 1 ? '1 application' : entries.length + ' applications'
+    entryRows(rows, entries, false)
+}
+
+// entryRows fills a container with one row per entry.
+//
+// It is one renderer for two places: the column in the profiles panel and the
+// dialog that shows the same list with room around it. A second copy is how the
+// two would come to disagree about what an entry says.
+//
+// wrapping is true for the dialog, where an application's whole path can be
+// read. The column clips it to one line instead, because a row grown tall
+// enough for a long path pushes the next one off the bottom of a space that is
+// already short.
+function entryRows(container, entries, wrapping) {
+    container.innerHTML = ''
     if (!entries.length) {
-        rows.appendChild(emptyLine('This profile arranges nothing. Capture the desktop to make one that does.'))
+        container.appendChild(emptyLine('This profile arranges nothing.'
+            + ' Capture the desktop to make one that does.'))
         return
     }
     entries.forEach((entry) => {
@@ -156,7 +175,7 @@ async function drawEntries() {
         const words = document.createElement('span')
         words.className = 'words'
         const name = document.createElement('span')
-        name.className = 'name'
+        name.className = wrapping ? 'name wrap' : 'name'
         name.textContent = entry.application
         const note = document.createElement('span')
         note.className = 'note wrap'
@@ -170,8 +189,31 @@ async function drawEntries() {
         remove.title = 'Take this application out of the profile'
         remove.onclick = () => void removeEntry(entry.application)
         row.appendChild(remove)
-        rows.appendChild(row)
+        container.appendChild(row)
     })
+}
+
+// openEntries shows the selected profile's applications in a dialog, where a
+// path has room to be read in full (FR-068).
+//
+// The column in the panel is where they live; this is the same rows in the
+// space a dialog has. It is reached from the bar rather than from the footer,
+// because it is about the window's own furniture rather than about the panel
+// that happens to be up.
+async function openEntries() {
+    if (!selected) return
+    let entries
+    try {
+        entries = await backend().Entries(selected)
+    } catch (e) {
+        showError(String(e))
+        return
+    }
+    $('entries-title').textContent = selected
+    $('entries-summary').textContent = entries.length === 1
+        ? '1 application' : entries.length + ' applications'
+    entryRows($('entries-rows'), entries, true)
+    dialog('entries', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
 }
 
 // describe says in words what one entry asks for.
@@ -183,7 +225,12 @@ function describe(entry) {
     return entry.kind + ', ' + running + ', ' + where
 }
 
+// removeEntry takes one application out of the profile, from either place the
+// rows are shown. Where the dialog is the one they were removed from, it is
+// drawn again over the list it has just changed, rather than being left showing
+// a row that is no longer there.
 async function removeEntry(application) {
+    const fromTheDialog = dialogIsOpen() && $('sheet-entries').classList.contains('active')
     try {
         await backend().RemoveEntry(selected, application)
     } catch (e) {
@@ -191,6 +238,7 @@ async function removeEntry(application) {
         return
     }
     await openProfiles()
+    if (fromTheDialog) await openEntries()
 }
 
 /* ------------------------------------------------------------------ rename */

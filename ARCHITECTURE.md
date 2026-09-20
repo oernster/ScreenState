@@ -293,6 +293,13 @@ through every layer between the desktop and the webview, while one reading half 
 harmless. The report then goes up over the profile list rather than over the Applying panel, so
 closing it leaves the user somewhere they can act (FR-066).
 
+**What a profile arranges is readable in two places, drawn by one renderer.** The column in the
+profiles panel lists the selected profile's applications; the button in the bar opens the same list in
+a dialog, where a path can wrap and be read in full (FR-068). A second copy of that rendering is how
+the two would come to say different things about an entry, so there is one. The column keeps a floor
+of three rows while the settings under it shrink and scroll, since each setting added was taking a row
+off the list above it.
+
 **The taskbar is asked to redraw itself after a sign-in restore.** Its buttons for the applications
 the agent had started were drawn without their icons on the reference machine and stayed that way
 until the user clicked anywhere on the taskbar, so the icons were resolved while the drawing of them

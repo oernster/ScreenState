@@ -409,6 +409,21 @@ tells the shell nothing. Whether it is enough is not yet known, which is what
 the log line is for: a boot that still shows the fault with the line present
 says the click does something a repaint does not.
 
+**FR-068 Reading what a profile arranges**
+Priority: Should
+Requirement: When the user asks for the applications of the selected profile,
+the manager shall present them in a dialog, each with its application, what it
+arranges and a control to take it out of the profile. The control that opens
+the dialog shall be inert while no profile is selected.
+Rationale: reported 2026-09-21. The column listing them shares its space with
+the settings beneath it; each setting added took a row off the list above:
+with three settings the list stood one row tall and an application's path was
+cut off after a few words. The entries are the user's work and had the least
+room of anything in the window. Two things answer it: the column now keeps a
+floor of three rows while the settings shrink and scroll within what is left.
+The dialog shows those same rows with room for a path to wrap. One renderer
+fills both, so the two cannot come to say different things about an entry.
+
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
@@ -1030,7 +1045,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 | Priority | Count | Notes |
 |---|---|---|
 | Must | 68 | The product does not work without any one of them. |
-| Should | 15 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Should | 16 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
