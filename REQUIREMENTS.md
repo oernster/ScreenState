@@ -465,10 +465,17 @@ NordVPN again, then the existing window becomes visible and is placed.
 Priority: Should
 Requirement: When a profile entry holds more than one placement, the ScreenState
 agent shall apply the placements to that application's windows in the order the
-windows were created; the report shall name every placement left without a
-window and every window left without a placement.
+agent first saw those windows; the report shall name every placement left
+without a window and every window left without a placement.
 Rationale: window handles do not survive a session, so a saved window can only
-be matched by a rule. Creation order is a rule the user can predict.
+be matched by a rule. Windows records no creation time for a window, so creation
+order cannot be read from the system; the order the agent first saw a window
+can be. During a restore the two agree, because the agent is watching while the
+windows appear: a window seen on a later pass is genuinely newer than one seen
+on an earlier one. Windows already open when the agent starts share one moment
+and keep the order the first enumeration gave them, which is a stacking order
+rather than an age. That limit is stated here rather than hidden behind a claim
+about creation the system cannot answer.
 
 **FR-038 Default profile applies at sign-in**
 Priority: Must

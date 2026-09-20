@@ -187,8 +187,8 @@ func differences(before []string, after []string) []string {
 	return changes
 }
 
-// windowsOf returns the readable windows of one application, oldest first,
-// which is the order FR-037 matches placements in.
+// windowsOf returns the readable windows of one application in the order the
+// agent first saw them, which is the order FR-037 matches placements in.
 func windowsOf(windows []Window, application domain.ApplicationIdentity) []Window {
 	var owned []Window
 	for _, window := range windows {

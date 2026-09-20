@@ -18,7 +18,8 @@ import (
 //
 // It holds one piece of state between calls, the moment each window was first
 // seen, because Windows does not record when a window was created and FR-037
-// matches placements to windows by age. See firstSeen for what that costs.
+// matches placements to windows in first-seen order. See firstSeen for what
+// that costs.
 type Desktop struct {
 	clock application.Clock
 
@@ -136,17 +137,18 @@ func (desktop *Desktop) describe(handle uintptr) (application.Window, error) {
 	}, nil
 }
 
-// firstSeen answers when this agent first saw a window, which is what stands in
-// for when the window was created.
+// firstSeen answers when this agent first saw a window, which is the order
+// FR-037 asks for.
 //
-// Windows records no creation time for a window, so FR-037's "the order the
-// windows were created" cannot be read from the system. During a restore the
-// two orders agree, because the agent is watching while the windows appear: a
-// window seen on a later pass is genuinely newer than one seen on an earlier
-// one. Windows already open when the agent starts all share one moment; within
-// that moment they keep the order the first enumeration gave them, which is a
-// stacking order rather than an age. That distinction is a known limit and
-// is recorded as such rather than being presented as a measurement.
+// Windows records no creation time for a window, so an age cannot be read from
+// the system at all; that is why the requirement asks for first-seen order
+// rather than creation order. During a restore the two agree, because the agent
+// is watching while the windows appear: a window seen on a later pass is
+// genuinely newer than one seen on an earlier one. Windows already open when
+// the agent starts all share one moment; within that moment they keep the order
+// the first enumeration gave them, which is a stacking order rather than an
+// age. That distinction is a known limit and is recorded as such rather than
+// being presented as a measurement.
 func (desktop *Desktop) firstSeen(handle uintptr) time.Time {
 	desktop.mutex.Lock()
 	defer desktop.mutex.Unlock()

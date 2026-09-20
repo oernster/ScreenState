@@ -111,9 +111,9 @@ func (service *RestoreService) advanceWithoutPlacement(
 	}
 }
 
-// applyPlacements applies the entry's placements to its windows, oldest window
-// to first placement (FR-037); it settles the entry once every placement has
-// been applied.
+// applyPlacements applies the entry's placements to its windows, first-seen
+// window to first placement (FR-037); it settles the entry once every
+// placement has been applied.
 func (service *RestoreService) applyPlacements(
 	ctx context.Context,
 	state *restoreState,

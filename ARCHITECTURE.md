@@ -440,12 +440,13 @@ the desktop of whoever ran the suite.
 
 ## Known limits
 
-**Creation order.** FR-037 matches placements to windows "in the order the windows were created".
-Windows records no creation time for a window; no call answers it. What the agent uses is the order
-it first *saw* each window. During a restore the two agree, because the agent is watching while the
-windows appear. Windows already open when the agent starts all share one moment; within it they
-keep the order the first enumeration gave, which is a stacking order rather than an age. The requirement
-is not verifiable as written and wants either rewording or a different matching rule.
+**First-seen order.** FR-037 matches placements to windows in the order the agent first *saw* them,
+which is what the system can actually answer: Windows records no creation time for a window and no
+call reports one. During a restore first-seen order and age agree, because the agent is watching
+while the windows appear. Windows already open when the agent starts all share one moment; within it
+they keep the order the first enumeration gave, which is a stacking order rather than an age. So the
+placements of an application whose windows were all open before the agent started are matched in
+stacking order; the user cannot predict that from the order they opened them.
 
 **Unverified against a real desktop.** Moving a window and starting an application are implemented and
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They

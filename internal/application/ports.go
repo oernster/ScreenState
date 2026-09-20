@@ -37,9 +37,11 @@ type Window struct {
 	// Visible is false for a window the application is holding hidden, which is
 	// how an application that starts into the tray presents itself.
 	Visible bool
-	// Created orders the windows of one application by age, oldest first. It
-	// satisfies FR-037, which matches several placements to several windows by
-	// creation order, because a handle cannot be matched across a session.
+	// Created orders the windows of one application, oldest first. It is when
+	// the agent first saw the window rather than when Windows made it, which
+	// the system does not record. It satisfies FR-037, which matches several
+	// placements to several windows in first-seen order, because a handle
+	// cannot be matched across a session.
 	Created time.Time
 	// Unreadable is why the desktop could not read this window, empty for one
 	// it could. Such a window is still reported rather than dropped, so that a
