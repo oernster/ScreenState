@@ -122,6 +122,9 @@ func TestTheWireIsStatedTwiceAndAgrees(t *testing.T) {
 // presses the button, which is the worst place to find it.
 func TestThePageCallsOnlyWhatIsBound(t *testing.T) {
 	bound := exportedMethodsOf(t, filepath.Join(repoRoot(t), facade), "App")
+	if len(bound) == 0 {
+		t.Fatalf("%s declares no exported method on App, so this check would pass over anything", facade)
+	}
 	for _, path := range pageFiles(t) {
 		if !strings.HasSuffix(path, ".js") {
 			continue
@@ -200,8 +203,9 @@ func exportedMethodsOf(t *testing.T, path, typeName string) map[string]bool {
 			}
 		}
 	}
-	if len(methods) == 0 {
-		t.Fatalf("%s declares no exported methods on %s", path, typeName)
-	}
+	// An empty answer is not a failure here: the root package is read file by
+	// file and most of its files declare no method at all. Each caller asserts
+	// that the methods it gathered add up to something, which is the check that
+	// stops a scan passing over everything.
 	return methods
 }

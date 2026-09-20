@@ -16,8 +16,8 @@ function helpItems() {
         {label: 'Guide', onChoose: openGuide},
         {label: 'The last restore', onChoose: openReport},
         {separator: true},
-        {label: 'About ' + state.appName, onChoose: openAbout},
-        {label: 'Licence', onChoose: openLicence},
+        {label: 'About ' + state.appName, onChoose: () => void openAbout()},
+        {label: 'Licence', onChoose: () => void openLicence()},
         {label: 'Check for updates', onChoose: () => void runUpdateCheck(false), off: !state.updateCheck},
     ]
 }
@@ -190,26 +190,80 @@ function guideLine(words) {
 
 /* ------------------------------------------------------------ about, licence */
 
-function openAbout() {
-    $('about-title').textContent = state.appName + ' ' + state.version
-    $('about-words').textContent = state.tagline + '. It records where your windows'
-        + ' are, puts them back after you sign in and never closes anything.'
-    $('about-detail').textContent = 'Copyright Oliver Ernster. Released under the'
-        + ' GNU General Public License, version 3.'
+// openAbout says what this is, who wrote it and what it stands on. Everything
+// in it arrives from the program: the version, the author, the copyright and
+// the credits all go out of date in a page and cannot in one place.
+async function openAbout() {
+    let about
+    try {
+        about = await backend().About()
+    } catch (e) {
+        showError(String(e))
+        return
+    }
+    $('about-title').textContent = about.name + ' ' + about.version
+    $('about-tagline').textContent = about.tagline
+    const lines = $('about-lines')
+    lines.innerHTML = ''
+    aboutLine(lines, 'Version', about.version)
+    aboutLine(lines, 'Author', about.author)
+    aboutLine(lines, 'Licence', about.licence)
+    const copyright = document.createElement('div')
+    copyright.className = 'aboutcopyright'
+    copyright.textContent = about.copyright
+    lines.appendChild(copyright)
+
+    // Credit where it is owed, with the licence each is offered under beside it.
+    const credits = $('about-credits')
+    credits.innerHTML = ''
+    about.credits.forEach((credit) => {
+        const row = document.createElement('li')
+        const name = document.createElement('span')
+        name.textContent = credit.name
+        const licence = document.createElement('span')
+        licence.className = 'creditlicence'
+        licence.textContent = credit.licence
+        row.append(name, licence)
+        credits.appendChild(row)
+    })
+    $('about-thanks').textContent = 'Built on Go and the Qt-free Wails, with thanks to'
+        + ' their communities and to everyone above.'
+
     dialog('about', [
-        {label: 'Licence', onClick: openLicence},
+        {label: 'Licence', onClick: () => void openLicence()},
         {label: 'Close', kind: 'primary', onClick: closeDialog},
     ])
 }
 
-function openLicence() {
-    $('licence-words').textContent = state.appName + ' is free software, released under'
-        + ' the GNU General Public License, version 3. You may use it, study it, share it'
-        + ' and change it; anything you pass on carries the same freedoms. It comes with'
-        + ' no warranty.'
-    $('licence-detail').textContent = 'The full text is in the file named LICENSE, in the'
-        + ' folder this program was installed into.'
-    dialog('licence', [{label: 'Back', onClick: openAbout}, {label: 'Close', kind: 'primary', onClick: closeDialog}])
+// aboutLine is one labelled fact about this build.
+function aboutLine(into, label, value) {
+    const line = document.createElement('div')
+    const name = document.createElement('span')
+    name.className = 'aboutlabel'
+    name.textContent = label
+    line.append(name, document.createTextNode(value))
+    into.appendChild(line)
+}
+
+// openLicence shows the licence itself rather than sending the reader to look
+// for a file: a licence a program will not show is one nobody reads. The text
+// is carried inside the binary and the dialog's body reads it down gently.
+async function openLicence() {
+    let text
+    try {
+        text = await backend().LicenceText()
+    } catch (e) {
+        showError(String(e))
+        return
+    }
+    $('licence-words').textContent = state.appName + ' is free software. You may use it,'
+        + ' study it, share it and change it; anything you pass on carries the same'
+        + ' freedoms. It comes with no warranty. The whole of it is below.'
+    $('licence-text').textContent = text
+    dialog('licence', [
+        {label: 'Back', onClick: () => void openAbout()},
+        {label: 'Close', kind: 'primary', onClick: closeDialog},
+    ])
 }
 
 /* ------------------------------------------------------------------ updates */

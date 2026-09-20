@@ -136,10 +136,25 @@ func TestTheManagerWireIsStatedTwiceAndAgrees(t *testing.T) {
 func managerMethods(t *testing.T, root string) map[string]bool {
 	t.Helper()
 	methods := map[string]bool{}
-	for _, name := range []string{"app.go", "app_profiles.go"} {
+	// Every file of the root package, rather than a list of names. The facade is
+	// split by subject and gains a file whenever a new one arrives: a named list
+	// went stale the first time that happened and reported two bound methods as
+	// unbound.
+	entries, err := os.ReadDir(root)
+	if err != nil {
+		t.Fatalf("reading %s: %v", root, err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
 		for method := range exportedMethodsOf(t, filepath.Join(root, name), "App") {
 			methods[method] = true
 		}
+	}
+	if len(methods) == 0 {
+		t.Fatal("no method of App was found, so this check would pass over anything")
 	}
 	return methods
 }

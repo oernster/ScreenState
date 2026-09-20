@@ -410,6 +410,85 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
     margin-bottom: 12px;
 }
 
+.aboutname { margin: 8px 0 2px; }
+
+.abouttagline {
+    margin: 0 0 16px;
+    color: var(--muted);
+}
+
+/* The facts sit as a labelled block, left aligned inside a centred dialog: a
+   column of labels is read down, which centring would take away. */
+.aboutlines {
+    display: inline-block;
+    text-align: left;
+    line-height: 1.8;
+}
+
+.aboutlabel {
+    display: inline-block;
+    width: 88px;
+    color: var(--muted);
+}
+
+.aboutcopyright {
+    margin-top: 6px;
+    color: var(--muted);
+}
+
+.aboutrule {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 18px 0;
+}
+
+.aboutcreditstitle {
+    margin: 0 0 10px;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+/* One line per project, its name at the left and the licence it is offered
+   under at the right, so the two read as a pair rather than as a sentence. */
+.aboutcredits {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    font-size: 15px;
+}
+
+.aboutcredits li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.creditlicence { color: var(--muted); }
+
+.aboutthanks {
+    margin: 16px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+/* The licence itself, shown rather than pointed at. It keeps the shape it was
+   written in, so the numbered sections and their indents survive. */
+.licencetext {
+    margin: 0;
+    padding: 14px;
+    white-space: pre-wrap;
+    font-family: ui-monospace, "Consolas", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
 /* A guide row names a control and shows the picture the window actually draws
    for it, at the size the window draws it. A picture at another size is a
    different picture as far as recognising it goes. */
