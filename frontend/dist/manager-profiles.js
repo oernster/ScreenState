@@ -1,6 +1,6 @@
 /*
- * The profile list and everything done to one profile: the entries it holds,
- * renaming it, deleting it and applying it.
+ * The profile list and everything done to one profile: the applications it
+ * holds, renaming it, deleting it and applying it.
  */
 
 // openProfiles reads the list again and shows it. It reads rather than trusting
@@ -16,7 +16,7 @@ async function openProfiles() {
         selected = profiles.length ? profiles[0].name : ''
     }
     drawProfiles()
-    await drawEntries()
+    settleEntriesButton()
     drawSettings()
     show('profiles', profileFooter())
 }
@@ -52,7 +52,7 @@ function drawProfiles() {
         row.onclick = () => {
             selected = profile.name
             drawProfiles()
-            void drawEntries()
+            settleEntriesButton()
             setFooter(profileFooter())
         }
         const art = document.createElement('img')
@@ -127,42 +127,20 @@ async function toggleDefault(profile) {
 
 /* ----------------------------------------------------------------- entries */
 
-// drawEntries fills the right-hand column with the entries of the selected
-// profile (EIR-002).
-async function drawEntries() {
-    const rows = $('entry-rows')
-    rows.innerHTML = ''
-    $('detail-title').textContent = selected || 'Nothing selected'
-    $('entry-count').textContent = ''
-    // The button that opens them in full can do nothing until there is a
-    // profile to open, so it says so (FR-068).
+// settleEntriesButton makes the button in the bar match what there is to open:
+// a profile selected on the left is what gives it something to show, so until
+// one is it wears the permanent red ring and does nothing when pressed
+// (FR-068).
+function settleEntriesButton() {
     $('entries').disabled = selected === ''
-    if (!selected) {
-        rows.appendChild(emptyLine('Select a profile to see what it arranges.'))
-        return
-    }
-    let entries
-    try {
-        entries = await backend().Entries(selected)
-    } catch (e) {
-        rows.appendChild(emptyLine(String(e)))
-        return
-    }
-    $('entry-count').textContent = entries.length === 1 ? '1 application' : entries.length + ' applications'
-    entryRows(rows, entries, false)
 }
 
-// entryRows fills a container with one row per entry.
+// entryRows fills the dialog with one row per entry.
 //
-// It is one renderer for two places: the column in the profiles panel and the
-// dialog that shows the same list with room around it. A second copy is how the
-// two would come to disagree about what an entry says.
-//
-// wrapping is true for the dialog, where an application's whole path can be
-// read. The column clips it to one line instead, because a row grown tall
-// enough for a long path pushes the next one off the bottom of a space that is
-// already short.
-function entryRows(container, entries, wrapping) {
+// A name wraps rather than being cut off after a few words: the dialog is the
+// one place a profile's applications are shown, so it is the place that has to
+// show a whole path.
+function entryRows(container, entries) {
     container.innerHTML = ''
     if (!entries.length) {
         container.appendChild(emptyLine('This profile arranges nothing.'
@@ -175,7 +153,7 @@ function entryRows(container, entries, wrapping) {
         const words = document.createElement('span')
         words.className = 'words'
         const name = document.createElement('span')
-        name.className = wrapping ? 'name wrap' : 'name'
+        name.className = 'name wrap'
         name.textContent = entry.application
         const note = document.createElement('span')
         note.className = 'note wrap'
@@ -193,13 +171,15 @@ function entryRows(container, entries, wrapping) {
     })
 }
 
-// openEntries shows the selected profile's applications in a dialog, where a
-// path has room to be read in full (FR-068).
+// openEntries shows the selected profile's applications in a dialog, which is
+// the only place they are shown (FR-068).
 //
-// The column in the panel is where they live; this is the same rows in the
-// space a dialog has. It is reached from the bar rather than from the footer,
-// because it is about the window's own furniture rather than about the panel
-// that happens to be up.
+// They used to fill a column beside the profile list, where they crowded out
+// the settings and left a path cut off after a few words. What a profile holds
+// is read now and then rather than watched, so it is asked for rather than
+// always on screen. It is reached from the bar rather than from the footer,
+// because it belongs to the window rather than to the panel that happens to be
+// up.
 async function openEntries() {
     if (!selected) return
     let entries
@@ -212,7 +192,7 @@ async function openEntries() {
     $('entries-title').textContent = selected
     $('entries-summary').textContent = entries.length === 1
         ? '1 application' : entries.length + ' applications'
-    entryRows($('entries-rows'), entries, true)
+    entryRows($('entries-rows'), entries)
     dialog('entries', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
 }
 

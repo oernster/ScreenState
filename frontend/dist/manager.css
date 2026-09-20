@@ -194,24 +194,17 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 
 /* ----------------------------------------------------------- settings */
 
-/* The settings take the room they need and no more. They sat under the entries
-   as a block that could not shrink, so each setting added took a row off the
-   list above it: with three of them the list was one row tall in a window of
-   1392 pixels. Now the list keeps a floor of three rows and the settings scroll
-   within whatever is left, which is the right way round: the entries are the
-   user's work and the settings are two ticks they set once. */
+/* The settings have the right-hand column to themselves. They shared it with
+   the applications of the selected profile, which left both cramped: the
+   applications were cut off after a few words and the settings pushed the rows
+   above them down to one. The applications moved to a dialog of their own
+   (FR-068), so this scrolls within the column and nothing else is squeezed. */
 .settings {
     flex: 0 1 auto;
     min-height: 0;
     overflow-y: auto;
-    border-top: 1px solid var(--border);
     padding-top: 10px;
-    margin-top: 6px;
 }
-
-/* Three rows plus the padding around them, so the column can never be squeezed
-   down to a sliver by whatever sits under it. */
-.column.wide .rows { min-height: 210px; }
 
 /* ------------------------------------------------------------ capture */
 

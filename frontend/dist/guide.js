@@ -26,7 +26,7 @@ const guideSections = [
         entries: [
             {
                 art: 'profile.png', name: 'The applications in this profile',
-                text: 'opens what the selected profile arranges in a window of its own, where a long path can be read in full rather than cut off in the column. Take an application out from either place. It is ringed in red until you select a profile, since there is nothing for it to show until then.',
+                text: 'opens what the selected profile arranges: every application it holds, where its windows go and a way to take one out. It is the only place they are shown, so the window itself stays clear. It is ringed in red until you press a profile on the left, since there is nothing for it to show until then.',
             },
             {
                 art: 'dark-mode.png', name: 'Light or dark',
@@ -40,7 +40,7 @@ const guideSections = [
     },
     {
         heading: 'The profiles',
-        intro: 'A profile is a list of applications and where their windows belong. The list is down the left; what the selected one arranges is down the right.',
+        intro: 'A profile is a list of applications and where their windows belong. The list is down the left and the settings are on the right. What the selected profile arranges opens from the button beside the mark.',
         entries: [
             {
                 art: 'profile.png', name: 'A profile',

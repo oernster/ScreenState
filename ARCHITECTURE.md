@@ -293,12 +293,11 @@ through every layer between the desktop and the webview, while one reading half 
 harmless. The report then goes up over the profile list rather than over the Applying panel, so
 closing it leaves the user somewhere they can act (FR-066).
 
-**What a profile arranges is readable in two places, drawn by one renderer.** The column in the
-profiles panel lists the selected profile's applications; the button in the bar opens the same list in
-a dialog, where a path can wrap and be read in full (FR-068). A second copy of that rendering is how
-the two would come to say different things about an entry, so there is one. The column keeps a floor
-of three rows while the settings under it shrink and scroll, since each setting added was taking a row
-off the list above it.
+**What a profile arranges is asked for, not always on screen.** The main screen holds the profile list
+and the settings; the button in the bar opens the selected profile's applications in a dialog, where a
+path can wrap and be read whole (FR-068). They shared the window before, which left all three cramped:
+a path cut off after a few words, a list one row tall and the settings squeezed under it. The button
+is inert while nothing is selected, since there is then nothing for it to show.
 
 **The taskbar is asked to redraw itself after a sign-in restore.** Its buttons for the applications
 the agent had started were drawn without their icons on the reference machine and stayed that way

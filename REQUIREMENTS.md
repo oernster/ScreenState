@@ -411,18 +411,18 @@ says the click does something a repaint does not.
 
 **FR-068 Reading what a profile arranges**
 Priority: Should
-Requirement: When the user asks for the applications of the selected profile,
-the manager shall present them in a dialog, each with its application, what it
-arranges and a control to take it out of the profile. The control that opens
-the dialog shall be inert while no profile is selected.
-Rationale: reported 2026-09-21. The column listing them shares its space with
-the settings beneath it; each setting added took a row off the list above:
-with three settings the list stood one row tall and an application's path was
-cut off after a few words. The entries are the user's work and had the least
-room of anything in the window. Two things answer it: the column now keeps a
-floor of three rows while the settings shrink and scroll within what is left.
-The dialog shows those same rows with room for a path to wrap. One renderer
-fills both, so the two cannot come to say different things about an entry.
+Requirement: The manager shall show what a profile arranges only when the user
+asks for it, in a dialog holding each application, what it arranges and a
+control to take it out of the profile. The control that opens the dialog shall
+be inert while no profile is selected.
+Rationale: reported 2026-09-21. The applications filled a column beside the
+profile list and shared it with the settings, which left every part of the
+window cramped: a path was cut off after a few words, each setting added took a
+row off the list above it and the window could not be read at a glance. What a
+profile holds is looked at now and then rather than watched, so it is asked for
+rather than always on screen. The main screen keeps the profile list, the
+settings and the buttons along the foot; the dialog has room for a path to wrap
+and be read whole.
 
 **FR-029 Never terminate**
 Priority: Must
