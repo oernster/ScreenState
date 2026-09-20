@@ -19,9 +19,17 @@ let profiles = []
 
 // show moves to a panel and gives it its own footer. Every panel is reached
 // through here, so there is one place that knows what each one offers.
+// show is the one way a panel is put up, so it is also where the controls that
+// belong to the WINDOW rather than to a panel are brought up to date.
 function show(name, buttons) {
     showOnly('view', name)
     setFooter(buttons)
+    // The way back to the list is inert while the list is what is showing,
+    // since pressing it would change nothing. Inert means the permanent red
+    // ring rather than a green one under the pointer: green says a press does
+    // something. The theme gives both from the disabled state, so saying it
+    // here once is the whole of it.
+    $('profiles').disabled = name === 'profiles'
 }
 
 function showError(words, back) {

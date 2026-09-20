@@ -86,6 +86,46 @@ func TestIdentitiesMatchWithoutRegardToCase(t *testing.T) {
 	}
 }
 
+func TestASecondCopyOfOneProgramIsRecognisedAsTheSameProgram(t *testing.T) {
+	t.Parallel()
+	// The question SameProgram answers is "is this thing me", asked by a capture
+	// that must never record this product. Two copies of one program live at two
+	// paths, which Equal correctly calls different.
+	installed := mustIdentity(t, KindPath, `C:\Users\Someone\AppData\Local\Programs\Stellody\Stellody.exe`)
+	built := mustIdentity(t, KindPath, `D:\work\Stellody\build\bin\STELLODY.EXE`)
+	if installed.Equal(built) {
+		t.Fatal("two paths that differ were treated as one identity")
+	}
+	if !installed.SameProgram(built) {
+		t.Fatal("a second copy of the same program was not recognised")
+	}
+	if !installed.SameProgram(installed) {
+		t.Fatal("a program did not recognise itself")
+	}
+}
+
+func TestAnotherProgramIsNotTakenForThisOne(t *testing.T) {
+	t.Parallel()
+	mine := mustIdentity(t, KindPath, stellodyPath)
+	other := mustIdentity(t, KindPath, `C:\Program Files\Other\Other.exe`)
+	if mine.SameProgram(other) {
+		t.Fatal("a different program was taken for this one")
+	}
+	// The file name is only compared between two paths: an identity of another
+	// kind is a different way of naming a program altogether.
+	if mine.SameProgram(mustIdentity(t, KindAppUserModelID, stellodyPath)) {
+		t.Fatal("the same value under a different kind was taken for this program")
+	}
+	if mustIdentity(t, KindUpdaterCommand, discordUpdater).SameProgram(mine) {
+		t.Fatal("an updater command was taken for a path")
+	}
+	// A value carrying no separator at all is its own file name.
+	bare := mustIdentity(t, KindPath, "Stellody.exe")
+	if !bare.SameProgram(mustIdentity(t, KindPath, `C:\elsewhere\stellody.exe`)) {
+		t.Fatal("a bare file name did not match the same file in a directory")
+	}
+}
+
 func TestTwoDisplaysOfOneModelAreToldApartByTheirIdentity(t *testing.T) {
 	t.Parallel()
 	// Measured: the left and right screens share model HSJ1340 and differ only

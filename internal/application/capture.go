@@ -95,7 +95,7 @@ func (service *CaptureService) fromWindows(windows []Window, set displaySet) Rev
 				fmt.Sprintf("%s: %s", service.describe(window), window.Unreadable))
 			continue
 		}
-		if window.Application.Validate() != nil || window.Application.Equal(service.self) {
+		if window.Application.Validate() != nil || service.self.SameProgram(window.Application) {
 			continue
 		}
 		key := strings.ToLower(window.Application.String())
@@ -172,7 +172,7 @@ func (service *CaptureService) addProfileOnly(ctx context.Context, basedOn strin
 		if _, already := seen[key]; already {
 			continue
 		}
-		if entry.Application.Equal(service.self) {
+		if service.self.SameProgram(entry.Application) {
 			continue
 		}
 		running, err := service.processes.Running(ctx, entry.Application)

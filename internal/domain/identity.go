@@ -107,6 +107,40 @@ func (identity ApplicationIdentity) Equal(other ApplicationIdentity) bool {
 		strings.EqualFold(identity.Value, other.Value)
 }
 
+// SameProgram reports whether another identity names this same program, in the
+// wider sense that covers a second copy of it installed somewhere else.
+//
+// An identity is an executable's full path, which tells two programs apart
+// correctly and tells two COPIES of one program apart just as correctly. That
+// is wrong for the one question that asks whether something is this product:
+// a capture taken by the copy in a build directory did not recognise the
+// installed copy as itself, so it offered to arrange it like any other
+// application (reported 2026-09-20).
+//
+// The file name is what two copies of one program share, so it is compared as
+// well; only as a fallback. Two unrelated programs sharing a file name in
+// different directories cost one excluded window each; the other way round
+// costs a profile that arranges this product while it is arranging the desktop.
+func (identity ApplicationIdentity) SameProgram(other ApplicationIdentity) bool {
+	if identity.Equal(other) {
+		return true
+	}
+	if identity.Kind != KindPath || other.Kind != KindPath {
+		return false
+	}
+	mine := fileName(identity.Value)
+	return mine != "" && strings.EqualFold(mine, fileName(other.Value))
+}
+
+// fileName is the last segment of a path. Both separators are cut on, because
+// the domain may not import path/filepath and a stored path may carry either.
+func fileName(value string) string {
+	if cut := strings.LastIndexAny(value, `\/`); cut >= 0 {
+		return value[cut+1:]
+	}
+	return value
+}
+
 // String renders an identity for the report.
 func (identity ApplicationIdentity) String() string {
 	return fmt.Sprintf("%s:%s", identity.Kind, identity.Value)
