@@ -43,6 +43,21 @@ func ShowRunningManager() bool {
 	return posted != 0
 }
 
+// Complain says something to a user who has no window to be told in.
+//
+// A launch that ends before any window opens has nowhere to put a message: this
+// program is built without a console, so everything written to a standard
+// output goes nowhere at all and the user is left with a program that did not
+// start and nothing to read. Measured on 2026-09-20: a copy that had lost its
+// tray went on holding the lock; every later start then ended in silence.
+func Complain(words string) {
+	const iconWarning = 0x00000030
+	_, _, _ = pMessageBox.Call(0,
+		uintptr(unsafe.Pointer(wide(words))),
+		uintptr(unsafe.Pointer(wide(product.Name))),
+		iconWarning)
+}
+
 // TakeWindowFocus gives the manager's webview the keyboard, reporting whether
 // it could. It is here rather than called directly, so the one file that knows
 // both the application layer and the Windows layer stays the composition root.

@@ -121,7 +121,12 @@ func run(hidden bool) error {
 			steps.Step("another copy is already running, so its manager was opened")
 			return nil
 		}
+		// Ending here with nothing said is the worst of both: the program does
+		// not start and the user is given no reason. Say which copy is in the
+		// way and what ends it, where they can read it.
 		steps.Step("another copy is already running and would not answer")
+		ui.Complain("Another copy of " + product.Name + " is already running and did" +
+			" not answer.\n\nEnd it from Task Manager, then start this one again.")
 		return nil
 	}
 	defer func() { _ = lock.Release() }()
@@ -249,6 +254,12 @@ func runTray(
 			steps.Step(fmt.Sprintf("the tray failed unexpectedly: %v", recovered))
 		}
 	}()
+	// The loop ends when the user quits from the tray, when the context is
+	// cancelled or when the tray could not be shown at all. All three mean the
+	// run is over: the window hides rather than closing, so the tray is the only
+	// way back to it; a process without one cannot be seen or reached. It is
+	// ended here rather than left to Wails, which knows nothing about the tray.
+	defer app.endRun()
 	if err := ui.NewTray(service, steps, app.ShowManager).Run(ctx); err != nil {
 		steps.Step(fmt.Sprintf("the tray could not be shown: %v", err))
 	}

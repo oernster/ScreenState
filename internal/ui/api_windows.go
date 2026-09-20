@@ -35,6 +35,7 @@ var (
 	pLoadIcon            = user32.NewProc("LoadIconW")
 	pRegisterWindowMsg   = user32.NewProc("RegisterWindowMessageW")
 	pFindWindow          = user32.NewProc("FindWindowW")
+	pMessageBox          = user32.NewProc("MessageBoxW")
 
 	pShellNotifyIcon = shell32.NewProc("Shell_NotifyIconW")
 	pExtractIconEx   = shell32.NewProc("ExtractIconExW")

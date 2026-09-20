@@ -2,7 +2,9 @@
 ScreenState: window layout profiles for Windows
 
 `REQUIREMENTS.md` is the specification. `ARCHITECTURE.md` describes how the product is built and
-which test enforces each invariant.
+which test enforces each invariant. [DEVELOPMENT.md](DEVELOPMENT.md) is how to build it from source;
+[TESTING.md](TESTING.md) is how it is tested, including what a first test run needs doing to the
+machine.
 
 ## Building
 

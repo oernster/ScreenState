@@ -35,5 +35,8 @@ func (tray *Tray) Run(context.Context) error { return ErrNotWindows }
 // ShowRunningManager has no running copy to ask off Windows.
 func ShowRunningManager() bool { return false }
 
+// Complain has nowhere to say it off Windows, where the log is the answer.
+func Complain(string) {}
+
 // TakeWindowFocus has no window to focus off Windows.
 func TakeWindowFocus() bool { return false }

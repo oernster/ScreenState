@@ -260,6 +260,21 @@ func (a *App) Quit() {
 	wailsruntime.Quit(a.ctx)
 }
 
+// endRun ends the program when the tray has gone, whether it was quit or never
+// appeared at all. It is unexported on purpose: Wails binds what is exported,
+// and this is the composition root's business rather than the page's.
+//
+// The tray is the only way back to a window that hides rather than closing, so
+// a run without one has nothing left to be. Without this the process stayed
+// alive holding the single-instance lock with no tray and no window; every
+// later start then found a copy that was running and could not be seen.
+// Measured on 2026-09-20, with a process from an hour earlier still holding it.
+func (a *App) endRun() {
+	if a.ctx != nil {
+		wailsruntime.Quit(a.ctx)
+	}
+}
+
 // Hide puts the window away without ending the run, which is what closing the
 // manager means: the agent goes on waiting in the notification area.
 func (a *App) Hide() {
