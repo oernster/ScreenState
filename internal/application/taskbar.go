@@ -5,27 +5,29 @@ import (
 	"fmt"
 )
 
-// refreshTheTaskbar asks the shell to paint its taskbars again once a sign-in
+// refreshTheTaskbar tells the shell its icons may have changed, once a sign-in
 // restore has settled (FR-067).
 //
 // Measured on the reference machine: after a sign-in the taskbar buttons of the
-// applications the agent had started were drawn without their icons and stayed
-// that way until the user clicked anywhere on the taskbar. The icons were
-// there; the drawing was stale. A restore the user asked for never showed it,
-// so this is done at sign-in alone rather than after every restore.
+// applications the agent had started were drawn grey and stayed that way until
+// the user clicked anywhere on the taskbar. A restore the user asked for never
+// showed it, so this is done at sign-in alone rather than after every restore.
 //
-// It is a repaint asked of the shell, so failing at it changes nothing about
-// the desktop: it is noted in the log and nowhere else, since a user who has
-// their windows back does not need to be told that a taskbar was not asked to
-// redraw itself.
+// Asking every taskbar to repaint was tried first and measured not to fix it,
+// which is what says the shell is not holding a stale drawing: it is holding
+// the answer that there was no icon to draw. This asks it to work that out
+// again.
+//
+// Failing at it changes nothing about the desktop, so it is noted in the log
+// and nowhere else: a user who has their windows back does not need to be told
+// that the shell was not spoken to.
 func (service *RestoreService) refreshTheTaskbar(ctx context.Context, why trigger) {
 	if why != atSignIn {
 		return
 	}
-	asked, err := service.desktop.RefreshTaskbar(ctx)
-	if err != nil {
-		service.log.Step(fmt.Sprintf("the taskbar was not asked to redraw itself: %v", err))
+	if err := service.desktop.RefreshShellIcons(ctx); err != nil {
+		service.log.Step(fmt.Sprintf("the shell was not told its icons may have changed: %v", err))
 		return
 	}
-	service.log.Step(fmt.Sprintf("%d taskbar(s) were asked to redraw themselves", asked))
+	service.log.Step("the shell was told its icons may have changed")
 }

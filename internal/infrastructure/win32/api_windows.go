@@ -38,6 +38,7 @@ var (
 	pGetApplicationUserModelID = kernel32.NewProc("GetApplicationUserModelId")
 	pDwmGetWindowAttribute     = dwmapi.NewProc("DwmGetWindowAttribute")
 	pShellExecute              = shell32.NewProc("ShellExecuteW")
+	pSHChangeNotify            = shell32.NewProc("SHChangeNotify")
 )
 
 // Window reading and moving.

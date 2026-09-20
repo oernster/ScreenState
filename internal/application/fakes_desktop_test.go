@@ -39,7 +39,7 @@ type fakeDesktop struct {
 	// application does not act on the request.
 	closed  []WindowID
 	refuses map[WindowID]bool
-	// refreshed counts the times the shell was asked to redraw its taskbars.
+	// refreshed counts the times the shell was told its icons may have changed.
 	refreshed  int
 	refreshErr error
 	// afterPlace runs once a window has been placed, which is how a test makes
@@ -142,23 +142,18 @@ func (desktop *fakeDesktop) Close(_ context.Context, id WindowID) error {
 	return nil
 }
 
-// RefreshTaskbar records that the shell was asked to paint its taskbars again,
-// answering the number a machine with four displays would have.
-func (desktop *fakeDesktop) RefreshTaskbar(context.Context) (int, error) {
+// RefreshShellIcons records that the shell was told its icons may have changed.
+func (desktop *fakeDesktop) RefreshShellIcons(context.Context) error {
 	desktop.mutex.Lock()
 	defer desktop.mutex.Unlock()
 	if desktop.refreshErr != nil {
-		return 0, desktop.refreshErr
+		return desktop.refreshErr
 	}
 	desktop.refreshed++
-	return taskbarsOnTheReferenceMachine, nil
+	return nil
 }
 
-// taskbarsOnTheReferenceMachine is what the fake answers: one taskbar per
-// display, measured on the reference machine on 2026-09-21.
-const taskbarsOnTheReferenceMachine = 4
-
-// refreshCount answers how many times the taskbars were asked to redraw.
+// refreshCount answers how many times the shell was told.
 func (desktop *fakeDesktop) refreshCount() int {
 	desktop.mutex.Lock()
 	defer desktop.mutex.Unlock()

@@ -171,7 +171,7 @@ beside each requirement.
 | The report names what it could not do (FR-044) | Apply a profile naming an application that is not installed. |
 | The bar moves while a restore runs (FR-065, FR-066) | Apply a profile holding several applications that are not running: the bar should fill as each is placed. Closing the report should leave the profile list showing. |
 | Sign-in (FR-053) | Tick the option, sign out and in again. |
-| The taskbar draws its buttons properly (FR-067) | Sign in and look at the taskbar without clicking it: the buttons of the applications the agent started should carry their icons. The log says how many taskbars were asked to redraw. |
+| The taskbar draws its buttons properly (FR-067) | Sign in and look at the taskbar without clicking it: the buttons of the applications the agent started should carry their icons. The log says whether the shell was told its icons may have changed. |
 | A sign-in start opens no window (FR-048) | Sign in with the option ticked: the agent should be in the notification area only. The log says so where the page asked for the keyboard and was left alone. |
 | Several displays, mixed scaling | Capture and restore across monitors at different scales. |
 | The update check (FR-058, FR-059) | Once per run against the real release feed, then again with the setting off, where nothing should reach the network. |

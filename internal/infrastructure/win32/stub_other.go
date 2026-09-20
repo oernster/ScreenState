@@ -48,9 +48,9 @@ func (desktop *Desktop) Place(
 	return ErrNotWindows
 }
 
-// RefreshTaskbar refuses: the shell whose taskbar this is belongs to Windows.
-func (desktop *Desktop) RefreshTaskbar(context.Context) (int, error) {
-	return 0, ErrNotWindows
+// RefreshShellIcons refuses: the shell it would speak to belongs to Windows.
+func (desktop *Desktop) RefreshShellIcons(context.Context) error {
+	return ErrNotWindows
 }
 
 // Close refuses.

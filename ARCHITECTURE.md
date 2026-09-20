@@ -299,16 +299,14 @@ path can wrap and be read whole (FR-068). They shared the window before, which l
 a path cut off after a few words, a list one row tall and the settings squeezed under it. The button
 is inert while nothing is selected, since there is then nothing for it to show.
 
-**The taskbar is asked to redraw itself after a sign-in restore.** Its buttons for the applications
-the agent had started were drawn without their icons on the reference machine and stayed that way
-until the user clicked anywhere on the taskbar, so the icons were resolved while the drawing of them
-was stale. The restore asks for the same invalidation that click causes: every `Shell_TrayWnd` and
-`Shell_SecondaryTrayWnd`, one per display, is marked as needing paint and painted now (FR-067). It is
-a repaint asked of another process and nothing more; it can move nothing and end nothing. It happens
-only after a sign-in restore has settled, since a restore the user asked for never showed the fault.
-Whether a repaint is what that click actually achieves is unproven, which is what the log line is
-for: a boot that still shows the fault with the line present says the click does something a repaint
-does not.
+**The shell is told its icons may have changed after a sign-in restore.** The taskbar buttons of the
+applications the agent had started were drawn grey on the reference machine and stayed that way until
+the user clicked anywhere on the taskbar. Asking every taskbar to repaint itself was tried first and
+measured not to fix it, which is what says the shell is not holding a stale drawing of an icon it has:
+it is holding the answer that there was no icon. It is now told that its icons may have changed, which
+is the documented way to make it resolve them again (FR-067). Whether that is enough is unproven, so
+the log records that it was told: a boot that still shows the fault with the line present rules this
+answer out as well.
 
 **A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
 keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it

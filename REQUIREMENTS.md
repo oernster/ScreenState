@@ -397,17 +397,19 @@ the cross, by Escape or by the backdrop all land in the same place.
 **FR-067 The taskbar after a sign-in restore**
 Priority: Should
 Requirement: When a restore that ran because the user signed in has settled,
-the ScreenState agent shall ask every taskbar to paint itself again. It shall
-record in the log how many it asked.
+the ScreenState agent shall tell the shell that its icons may have changed. It
+shall record in the log that it did so.
 Rationale: reported 2026-09-21. After a sign-in the taskbar buttons of the
 applications the agent had started were drawn without their icons on the
 reference machine; they stayed that way until the user clicked anywhere on the
 taskbar: the icons were there and the drawing of them was stale. A restore the
 user asked for never showed it, which is why this is the sign-in restore alone.
-The act is a repaint and nothing else: it moves no window, ends nothing and
-tells the shell nothing. Whether it is enough is not yet known, which is what
-the log line is for: a boot that still shows the fault with the line present
-says the click does something a repaint does not.
+Asking every taskbar to repaint itself was tried first and measured, on
+2026-09-20: the log recorded four taskbars asked and the buttons were still
+grey, so the shell is not holding a stale drawing of an icon it has. It is
+holding the answer that there was no icon. Telling it that its icons may have
+changed is the documented way to make it work that out again. Whether that is
+enough is not yet known either, which is what the log line is for.
 
 **FR-068 Reading what a profile arranges**
 Priority: Should
