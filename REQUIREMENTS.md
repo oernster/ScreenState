@@ -371,6 +371,29 @@ the shortcut as well as a sign-in, so the two are told apart by the flag the
 sign-in entry carries (FR-046) rather than by the fact that a restore is
 running.
 
+**FR-065 Progress while a restore runs**
+Priority: Should
+Requirement: While a restore started from the manager is running, the manager
+shall show how many of the profile's entries have been satisfied out of the
+number the profile holds.
+Rationale: reported 2026-09-20. The manager holds the user on a panel that
+offers nothing while a restore runs, which FR-041 allows to take minutes, so
+the panel has to say the wait is going somewhere. Entries are counted rather
+than seconds elapsed, because the agent knows how many entries are settled and
+cannot know how long an application will take to put a window up: a bar
+weighted by time would be a guess drawn as a measurement.
+
+**FR-066 Where the report leaves the user**
+Priority: Should
+Requirement: When a restore started from the manager ends, the manager shall
+present the report over the profile list, so that closing the report leaves the
+profile list showing.
+Rationale: reported 2026-09-20. The report used to go up over the panel that
+said the restore was running, so closing it left the user looking at an
+Applying panel for work that had finished, with nothing on it to press. The
+list is drawn before the report rather than after it is dismissed, so leaving by
+the cross, by Escape or by the backdrop all land in the same place.
+
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
@@ -992,7 +1015,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 | Priority | Count | Notes |
 |---|---|---|
 | Must | 68 | The product does not work without any one of them. |
-| Should | 12 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Should | 14 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |

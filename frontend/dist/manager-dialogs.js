@@ -113,8 +113,48 @@ function showError(words, back) {
 // busy holds the window on a panel that offers nothing while work runs. A
 // restore can take minutes: a window that looked ready to take another
 // instruction would be lying about what it is doing.
+//
+// The bar starts empty every time. A bar still showing where the last piece of
+// work got to says this one has already made progress it has not made.
 function busy(title, words) {
     $('busy-title').textContent = title
     $('busy-words').textContent = words
+    $('busy-fill').style.width = '0'
+    $('busy-status').textContent = ''
     show('busy', [])
+}
+
+// progressEveryMs is how often the busy panel asks how far the restore has got.
+// Fast enough that the bar moves while somebody is watching it; slow enough
+// that a restore waiting fifteen minutes for a window is not asked a thousand
+// times about it.
+const progressEveryMs = 500
+
+// watchProgress fills the bar from what the restore has actually settled: the
+// entries it has satisfied out of the entries the profile holds (FR-065).
+//
+// Entries rather than seconds, because seconds are not knowable here: an
+// application may put its window up at once or two minutes later, so a bar
+// weighted by time would be a guess drawn as a measurement.
+//
+// It answers a handle to stop it with, which the caller does when the work
+// ends. A reading that fails stops the watch rather than being shown or
+// swallowed: the piece of work itself reports what went wrong; a bar that stops
+// moving is visible where a message written to a console is not.
+function watchProgress() {
+    let timer = 0
+    const stop = () => {
+        if (timer) window.clearInterval(timer)
+        timer = 0
+    }
+    const read = () => backend().RestoreProgress().then((reading) => {
+        if (!reading || !reading.running) return
+        const done = reading.total ? Math.round(100 * reading.satisfied / reading.total) : 0
+        $('busy-fill').style.width = done + '%'
+        $('busy-status').textContent = reading.satisfied + ' of ' + reading.total
+            + (reading.total === 1 ? ' application placed' : ' applications placed')
+    }, stop)
+    timer = window.setInterval(read, progressEveryMs)
+    read()
+    return {stop}
 }

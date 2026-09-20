@@ -22,12 +22,8 @@
 const guideSections = [
     {
         heading: 'The bar along the top',
-        intro: 'The mark and the name sit at the left, with the way back to the list beside them. The other two are held at the far end. Hover any of them to see its name.',
+        intro: 'The mark and the name sit at the left. The other two are held at the far end. Hover either of them to see its name.',
         entries: [
-            {
-                art: 'profile.png', name: 'Back to the profiles',
-                text: 'returns to the list from wherever you are, so no panel is a dead end.',
-            },
             {
                 art: 'dark-mode.png', name: 'Light or dark',
                 text: 'the toggle shows the mode it will switch INTO, so the moon appears while the window is light.',
@@ -68,7 +64,7 @@ const guideSections = [
         rules: [
             {title: 'Capture the desktop', text: 'reads every window you have open and offers them for review. Nothing is written until you name it and confirm.'},
             {title: 'Rename and Delete', text: 'act on the selected profile. A delete names it and asks first.'},
-            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now. Anything the profile does not name is minimised out of the way afterwards. Apply never closes anything.'},
+            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now. A bar shows how many of its applications are in place while you wait; the report goes up over the list when it finishes. Anything the profile does not name is minimised out of the way afterwards. Apply never closes anything.'},
             {title: 'Close', text: 'puts the window away. %s keeps running in the notification area.'},
             {title: 'Quit', text: 'ends it altogether, after which nothing is arranged at your next sign-in until you start it again.'},
         ],

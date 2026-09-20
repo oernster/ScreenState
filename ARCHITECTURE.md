@@ -284,6 +284,15 @@ the capture review with the restore report (`manager-capture.js`), the settings 
 one scope, so `index.html` loads `manager.js` first and a structural test holds the tags and the
 files to each other.
 
+**The window asks how far a restore has got; nothing pushes it.** The Applying panel carries the same
+bar the setup program shows, filled from the entries the restore has satisfied out of the entries the
+profile holds (FR-065). The restore keeps that reading in an atomic beside the report rather than in
+it, since the report is being written by the restore while the window wants to read it. The page asks
+twice a second while the panel is up and stops when the work ends: a push would need a route out
+through every layer between the desktop and the webview, while one reading half a second old is
+harmless. The report then goes up over the profile list rather than over the Applying panel, so
+closing it leaves the user somewhere they can act (FR-066).
+
 **A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
 keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it
 opens the manager, which is what double-clicking a shortcut means. An entry written without that

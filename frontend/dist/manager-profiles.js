@@ -250,14 +250,26 @@ async function commitDelete(name) {
 
 /* ----------------------------------------------------------------- restore */
 
+// applySelected restores the selected profile, holding the window on the busy
+// panel with its bar until the restore ends (FR-041, FR-065).
+//
+// The list is drawn again before the report goes up, so the panel behind the
+// dialog is the one the user belongs on: closing the report leaves them at the
+// profiles rather than at an Applying panel for work that has finished. It is
+// done by drawing the list rather than by a callback on the dialog, so leaving
+// by the cross, by Escape or by the backdrop all land in the same place.
 async function applySelected() {
     const name = selected
     busy('Applying ' + name, 'Windows are being put back where the profile says they go.')
+    const watching = watchProgress()
     try {
         await backend().Apply(name)
     } catch (e) {
+        watching.stop()
         showError(String(e))
         return
     }
+    watching.stop()
+    await openProfiles()
     openReport()
 }

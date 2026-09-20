@@ -169,6 +169,7 @@ beside each requirement.
 | Closing the windows a profile does not name (FR-064) | Turn the setting on, sign out and in again, watch where the unnamed applications go: the ones that live in the notification area should be there rather than on the taskbar. Then press Apply with the setting still on; then quit from the tray and start it from the shortcut. Neither should close anything. |
 | A window that refuses to close is minimised (FR-064) | With the setting on, leave an unsaved document open in an application no profile names, sign out and in again, then answer the prompt it puts up. |
 | The report names what it could not do (FR-044) | Apply a profile naming an application that is not installed. |
+| The bar moves while a restore runs (FR-065, FR-066) | Apply a profile holding several applications that are not running: the bar should fill as each is placed. Closing the report should leave the profile list showing. |
 | Sign-in (FR-053) | Tick the option, sign out and in again. |
 | A sign-in start opens no window (FR-048) | Sign in with the option ticked: the agent should be in the notification area only. The log says so where the page asked for the keyboard and was left alone. |
 | Several displays, mixed scaling | Capture and restore across monitors at different scales. |

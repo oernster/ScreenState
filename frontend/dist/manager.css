@@ -520,3 +520,31 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 }
 
 .guidehead:first-child { margin-top: 0; }
+
+/* -------------------------------------------------------------- progress */
+
+/* The bar on the Applying panel, the same one the setup program shows, so a
+   wait looks the same wherever the product makes the user wait. */
+.track {
+    height: 9px;
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 16px auto 9px;
+    /* The busy panel centres its children, which leaves a block sized to its
+       contents: a track holding nothing is then two pixels of border. It is
+       told to take the width it is offered, up to a line length a person can
+       take in at a glance. */
+    width: min(520px, 100%);
+}
+
+.fill {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+}
+
+.status { color: var(--muted); font-size: 16px; }

@@ -151,6 +151,28 @@ func (a *App) SaveCapture(name string, keep []string, replace bool) error {
 	return nil
 }
 
+// ProgressDTO is how far the restore in progress has got (FR-065).
+type ProgressDTO struct {
+	Running   bool   `json:"running"`
+	Profile   string `json:"profile"`
+	Satisfied int    `json:"satisfied"`
+	Total     int    `json:"total"`
+}
+
+// RestoreProgress answers what the window shows on its bar while it waits. The
+// page asks for it rather than being told, because nothing else about a restore
+// is pushed either: one reading that is a little old is harmless, while a push
+// would need a route out through every layer between here and the desktop.
+func (a *App) RestoreProgress() ProgressDTO {
+	reading := a.restores.Progress()
+	return ProgressDTO{
+		Running:   reading.Running,
+		Profile:   reading.Profile,
+		Satisfied: reading.Satisfied,
+		Total:     reading.Total,
+	}
+}
+
 // Report returns the report of the most recent restore (FR-044).
 func (a *App) Report() ReportDTO {
 	report, held := a.restores.Last()

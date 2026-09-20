@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/oernster/ScreenState/internal/domain"
 )
@@ -35,6 +36,11 @@ type RestoreService struct {
 	mutex  sync.Mutex
 	active *activeRestore
 	last   *Report
+
+	// progress is the last reading of the restore in progress, kept apart from
+	// the report so the window can read it while the restore is still writing
+	// to that report. It is never nil once the service is built.
+	progress atomic.Pointer[RestoreProgress]
 }
 
 // trigger says what asked for a restore.
@@ -56,6 +62,21 @@ const (
 	atSignIn
 )
 
+// RestoreProgress is how far a restore has got, for the window to show while it
+// waits (FR-065).
+//
+// Satisfied and Total count entries rather than seconds, because entries are
+// what the restore actually knows: an application may take two seconds or two
+// minutes to put a window up, so a bar weighted by time would be a guess shown
+// as a measurement. Running is false when no restore is in progress, which is
+// an answer rather than an absence.
+type RestoreProgress struct {
+	Running   bool
+	Profile   string
+	Satisfied int
+	Total     int
+}
+
 // activeRestore is the restore in progress, enough of it for a newer request to
 // stand it down (FR-061).
 type activeRestore struct {
@@ -76,7 +97,7 @@ func NewRestoreService(
 	self domain.ApplicationIdentity,
 	strangers StrangerPreferences,
 ) *RestoreService {
-	return &RestoreService{
+	service := &RestoreService{
 		desktop:   desktop,
 		processes: processes,
 		launcher:  launcher,
@@ -87,6 +108,20 @@ func NewRestoreService(
 		self:      self,
 		strangers: strangers,
 	}
+	service.progress.Store(&RestoreProgress{})
+	return service
+}
+
+// Progress answers how far the restore in progress has got, for the window to
+// show while it waits (FR-065). Running is false where there is no restore,
+// which is what the window reads the moment one ends.
+func (service *RestoreService) Progress() RestoreProgress {
+	return *service.progress.Load()
+}
+
+// noteProgress records a reading for the window to pick up.
+func (service *RestoreService) noteProgress(reading RestoreProgress) {
+	service.progress.Store(&reading)
 }
 
 // Last returns the report of the most recent restore that finished, plus
@@ -163,6 +198,10 @@ func (service *RestoreService) restore(
 
 	cancel()
 	report.Finish(service.clock.Now())
+	// Cleared before the done channel is closed, because a restore replacing
+	// this one waits on that channel and then states its own reading: clearing
+	// afterwards would wipe the newer one.
+	service.noteProgress(RestoreProgress{})
 	service.retire(active)
 	close(active.done)
 
@@ -238,6 +277,8 @@ func (service *RestoreService) run(
 		profile.Name, len(profile.Entries), service.policy.Ceiling))
 
 	state := newRestoreState(profile, report)
+	total := len(profile.Entries)
+	service.noteProgress(RestoreProgress{Running: true, Profile: profile.Name, Total: total})
 	service.launchMissing(ctx, state)
 
 	for {
@@ -255,6 +296,12 @@ func (service *RestoreService) run(
 
 		service.advance(ctx, state, set, windows)
 		service.recheck(ctx, state)
+		// Read after the pass rather than before it, so the bar shows what has
+		// happened rather than what is about to be tried.
+		satisfied, _ := report.Counts()
+		service.noteProgress(RestoreProgress{
+			Running: true, Profile: profile.Name, Satisfied: satisfied, Total: total,
+		})
 
 		if state.settled() {
 			service.putTheRestAway(ctx, profile, report, why)
