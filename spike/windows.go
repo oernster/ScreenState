@@ -37,7 +37,7 @@ func enumerateWindows() []windowRecord {
 	displays := enumerateDisplays()
 	monitorNames := make(map[uintptr]string, len(displays))
 	for _, display := range displays {
-		monitorNames[display.Handle] = display.GDIName
+		monitorNames[display.Handle] = display.Position
 	}
 
 	var records []windowRecord

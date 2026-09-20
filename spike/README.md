@@ -170,8 +170,94 @@ after that point was lost in silence. The log is now written first and the
 console is allowed to fail. A measurement tool that depends on someone
 watching it is not a measurement tool.
 
+### OQ-4, closing a window: answered for all three; they do not agree
+
+A second sign-in run on 2026-09-20 closed all three tray windows by hand at
+2m21, 2m22 and 2m24. Their processes were read back 43 minutes later:
+
+| Application | Window closed at | Process 43 minutes later | Closing it |
+|---|---|---|---|
+| NordVPN | 2m21 | pid 25156 alive, no window | leaves it running |
+| GameGlass Hub | 2m22 | 13 processes alive, none with a window | leaves it running |
+| Postal Gambit | 2m24 | no process at all | ends the application |
+
+So assumption A-3 does not hold in general. It holds for the two applications
+that live in the tray; Postal Gambit is an ordinary windowed application and
+closing its window is quitting it. A profile that closes a window is therefore
+doing one of two quite different things depending on what it is closing; it
+cannot tell which from the window alone.
+
+GameGlass also shows why a live process is a weak signal: it runs thirteen of
+them, the same shape as the Notepad finding above. What matters is whether a
+window can be brought back, never whether something is still running.
+
+### OQ-5, startup timings: a better bound from a run that was cut short
+
+A hidden run started 31 seconds after boot, against 2 minutes 9 seconds for the
+first attempt, so a scheduled task firing at logon is the right harness.
+
+Measured from that run:
+
+- 15 windows appeared in the first 7 minutes 12 seconds.
+- The last one observed was Chrome at 7m12.
+- The largest gap between two appearances was 2 minutes 1 second.
+- Claude, the slowest starter in the first run at 5m34, appeared at 4m5s here.
+
+The ceiling is not established by this run, because the run did not finish: see
+the defect below. What it does establish is a floor of 7 minutes 12 seconds of
+appearances, which is already longer than the 5 minutes the specification
+originally assumed.
+
+### OQ-7, do windows move after they appear: CLOSED; it was us
+
+Three windows moved after appearing: Discord at 68s to 128s, PigeonPost at 146s
+to 148s, Stellody at 216s to 228s. Each burst had the shape of a hand drag,
+several moves a few hundred milliseconds apart through intermediate
+coordinates, ending in a snap to maximised. The owner confirmed he was dragging
+those windows between displays at the time, so the run holds no evidence about
+what applications do by themselves.
+
+It will not be measured again, for two reasons. The test cannot be run: it needs
+25 minutes during which nobody touches the machine, which is 25 minutes of the
+owner's own working day. More to the point it settles nothing, since FR-033
+re-applies a placement once when the window no longer matches; FR-034 gives up
+rather than fight. Those hold whether or not applications move their own
+windows.
+
+### The summary was lost again, in a new way
+
+The run was told to watch for 25 minutes. It stopped writing at 7 minutes 12
+seconds and never wrote its Summary section; the process was gone by the
+time anyone looked. The binary was untouched on disk at its original size, no
+crash was recorded in the Application log and the scheduled task's limit is an
+hour, so none of the obvious explanations fits. **Why it stopped is not known.**
+
+The response is not to find out. It is that the question should never have
+depended on the process surviving. Every number in the two sections above was
+computed from the event log after the fact, without the summary, because the
+log holds every event and the summary is only a view over it.
+
+So the fix is to make that view a command rather than a thing written once at
+the end. A run that dies still answers the question; the tool stops depending
+on its own survival. That is the same lesson as the first defect,
+learned again at a different level.
+
+### OQ-5 is closed too, by removing what needed it
+
+The owner's ruling: only the target state matters, so who cares what the desktop
+looked like at boot. The specification agreed with him in its own words, since
+NFR-PERF-002 said the quiet period "only catches stragglers the profile does not
+name". A window the profile does not name is one the product will never
+place. Waiting for it bought nothing.
+
+FR-020 now settles on the profile's own entries alone: every application it
+records as running is running; every one with a placement has a window. The
+quiet period is withdrawn, the ceiling is a policy choice rather than a
+measurement; the sign-in timing study is not needed at all.
+
 ### Still to measure
 
-- **OQ-4**: Postal Gambit only, whenever it is next running.
-- **OQ-5 and OQ-7**: one more sign-in run, hidden, for 25 minutes.
-- **OQ-6**: run `launch` against a tray application while it is running, to see whether it shows its own window.
+- **OQ-6**: run `launch` against a tray application while it is running, to see
+  whether it shows its own window. This is the only question left in appendix B
+  and the only one blocking a requirement: FR-036 is unsatisfied until it is
+  answered. It takes two minutes and no reboot.

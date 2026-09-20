@@ -61,8 +61,8 @@ func moveWindow(out io.Writer, handle uintptr, displayIndex int) {
 	fmt.Fprintf(out, "After:  display=%s state=%s rect=(x=%d y=%d w=%d h=%d)\n",
 		after.MonitorName, after.state(),
 		after.Rect.Left, after.Rect.Top, after.Rect.Width(), after.Rect.Height())
-	fmt.Fprintf(out, "Wanted: display=%s state=maximised\n", target.GDIName)
-	if after.MonitorName == target.GDIName && after.Maximised {
+	fmt.Fprintf(out, "Wanted: display=%s state=maximised\n", target.Position)
+	if after.MonitorName == target.Position && after.Maximised {
 		fmt.Fprintf(out, "RESULT: the window went where it was told.\n")
 		return
 	}

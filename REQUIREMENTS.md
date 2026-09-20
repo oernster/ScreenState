@@ -66,7 +66,6 @@ Out of scope (each settled with the owner on 2026-09-19):
 | Normal rectangle | The position and size a window occupies when neither minimised nor maximised. |
 | Restore | Driving the desktop towards a profile's end state. |
 | Settled | The condition defined in FR-020 that ends the wait after sign-in. |
-| Quiet period | The span during which no new top-level window may appear for the startup to count as settled. |
 | Ceiling | The maximum span after sign-in that the agent waits for settling. |
 | Default profile | The one profile marked to be applied after sign-in. |
 | Report | The readable record of what a restore did, including every entry it could not satisfy. |
@@ -238,11 +237,15 @@ shall name it in the review as unreadable.
 **FR-020 Settled**
 Priority: Must
 Requirement: The ScreenState agent shall treat the startup as settled when every
-application recorded in the profile as running is running, every such
-application that has a placement has at least one top-level window and no new
-top-level window has appeared for the quiet period.
+application recorded in the profile as running is running and every such
+application that has a placement has at least one top-level window.
 Rationale: Windows gives no signal that startup has finished. The profile itself
-defines what finished means.
+defines what finished means; it defines it completely, since an entry is either
+satisfied or it is not. An earlier draft also waited for a quiet period with no new
+windows, which was dropped because it waited on windows the profile does not
+name and will never place. Waiting for those bought nothing towards the end
+state while making settling depend on a number that differs per machine and
+cannot be measured on a machine somebody is using.
 
 **FR-021 Wait before applying**
 Priority: Must
@@ -499,34 +502,31 @@ the placement of up to 20 windows within 3 seconds.
 Method: timestamps in the step log, from the settling event to the last
 placement.
 
-**NFR-PERF-002 Quiet period**
-Priority: Must
-Requirement: The ScreenState agent shall treat 60 seconds with no new top-level
-window as the quiet period, configurable by the user between 5 and 600 seconds.
-Method: the value is read from configuration and asserted in a test over a fake
-clock.
-Rationale: measured on the reference machine on 2026-09-19, the longest gap
-between windows appearing during startup was 3 minutes 25 seconds, before
-Claude's window. A quiet period alone cannot cover that. It does not need to:
-FR-020 waits for every application the profile names; the quiet period only
-catches stragglers the profile does not name. The first draft of 15 seconds was
-replaced by this measurement.
+**NFR-PERF-002 Quiet period: WITHDRAWN**
+The agent no longer waits for a quiet period, so there is no such value to set.
+FR-020 settles on the profile's own entries alone. The number is retired rather
+than reused, so nothing that cited it can quietly come to mean something else.
 
 **NFR-PERF-003 Ceiling**
 Priority: Must
 Requirement: The ScreenState agent shall treat 15 minutes after sign-in as the
 ceiling, configurable by the user between 1 and 60 minutes.
-Method: as NFR-PERF-002.
-Rationale: measured on the reference machine on 2026-09-19, the last startup
-window appeared 5 minutes 34 seconds after boot; the owner reports roughly 10
-minutes before the machine is usable. The first draft of 5 minutes would
-have given up while startup was still running.
+Method: the value is read from configuration and asserted in a test over a fake
+clock.
+Rationale: measured on the reference machine, windows were still appearing 7
+minutes 12 seconds into a sign-in run on 2026-09-20 and the last one in an
+earlier run arrived 5 minutes 34 seconds after boot; the owner reports roughly
+10 minutes before the machine is usable. The first draft of 5 minutes would have
+given up while startup was still running. The ceiling is a policy choice about
+how long to keep trying rather than a measurement of how long startup takes:
+nothing here needs to know that.
 
 **NFR-PERF-004 Settle-check delay**
 Priority: Must
 Requirement: The ScreenState agent shall re-read each placed window 10 seconds
 after placing it, for the check in FR-033.
-Method: as NFR-PERF-002. The default is provisional until A-6 is confirmed.
+Method: the value is read from configuration and asserted in a test over a fake
+clock. The default is provisional until A-6 is confirmed.
 
 **NFR-PERF-005 Idle cost**
 Priority: Must
@@ -731,9 +731,8 @@ And Stellody does not start by itself
 When the user signs in
 
 Then the agent launches Stellody and launches nothing else
-And no window is moved until every one of the seven applications is running,
-  every one of the four placed applications has a window and no new window has
-  appeared for the quiet period
+And no window is moved until every one of the seven applications is running
+  and every one of the four placed applications has a window
 And Claude is maximised on display 1
 And Stellody is maximised on display 4
 And Discord is maximised on display 3
@@ -792,9 +791,9 @@ that settles it. The first five form the spike.
 | OQ-2 | What identifies an application so that the value survives its updates? Claude runs from a versioned Store directory, Discord from a versioned per-user directory. Measure: read the candidate identifiers for both, then determine how each is launched without naming a versioned path. | Oliver | 2026-09-26 |
 | OQ-3 | Can a window be moved and maximised on a target display by a process without administrator rights, across displays with different scaling? Measure: move a window to each of the four displays and read back its position. | Oliver | 2026-09-26 |
 | OQ-4 | Does closing the main window of NordVPN, GameGlass and Postal Gambit leave each running? Measure: close each and read the process list. | Oliver | 2026-09-26 |
-| OQ-5 | What are the real timings on the reference machine: the span from sign-in to the last startup window; also whether any application moves its own window after appearing? Measure: log window creations and positions from sign-in for 10 minutes, across two reboots. | Oliver | 2026-09-26 |
+| OQ-5 | CLOSED, dissolved rather than answered. It existed to supply two things: the quiet period, which FR-020 no longer has, plus the ceiling, which is a policy choice about how long to keep trying rather than a fact about this machine. Settling is now defined entirely by whether the profile's own entries are satisfied, so no timing needs measuring. | Oliver | closed 2026-09-20 |
 | OQ-6 | Can an application that starts with no visible window be made to show one from outside it? Decides whether FR-036 stands or is withdrawn. Measure: attempt it against Discord and NordVPN. | Oliver | 2026-09-26 |
-| OQ-7 | Where does Discord land after a reboot today; is it the same place each time? Informs FR-033. Measure: record its position across two reboots. | Oliver | 2026-09-26 |
+| OQ-7 | CLOSED, no longer load-bearing. FR-033 re-applies a placement once when the window no longer matches; FR-034 gives up rather than fight. Both hold whether or not applications move their own windows, so the answer changes no requirement. The one run that recorded movement recorded the owner dragging windows, which is also why this cannot be measured on a machine in use. | Oliver | closed 2026-09-20 |
 | OQ-8 | What happens when a restore is requested while one is already running? | Oliver | before baselining |
 | OQ-9 | Is Windows 10 a supported target? | Oliver | before baselining |
 | OQ-10 | What happens when a display is connected or disconnected mid restore? | Oliver | before baselining |
@@ -819,7 +818,7 @@ that question is closed.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 50 | The product does not work without any one of them. |
+| Must | 49 | The product does not work without any one of them. |
 | Should | 8 | FR-014, FR-036, FR-037, FR-049, NFR-PERF-006, NFR-USE-001, NFR-USE-002 and the second half of FR-045. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |

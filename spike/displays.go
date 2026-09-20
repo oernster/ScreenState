@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"sort"
 	"syscall"
 	"unsafe"
 )
@@ -14,6 +15,7 @@ import (
 type displayRecord struct {
 	Handle          uintptr
 	GDIName         string
+	Position        string
 	Primary         bool
 	Bounds          RECT
 	WorkArea        RECT
@@ -49,7 +51,114 @@ func enumerateDisplays() []displayRecord {
 		return 1
 	})
 	procEnumDisplayMonitors.Call(0, 0, callback, 0)
+	assignPositions(records)
 	return records
+}
+
+// assignPositions names each display by where it physically sits, because the
+// Windows device name and the number Windows Settings shows do not agree;
+// reading one as the other wasted a measurement.
+func assignPositions(records []displayRecord) {
+	rows := groupIntoRows(records)
+	for rowIndex, row := range rows {
+		sort.Slice(row, func(first, second int) bool {
+			return records[row[first]].Bounds.Left < records[row[second]].Bounds.Left
+		})
+		for columnIndex, recordIndex := range row {
+			records[recordIndex].Position = joinPosition(
+				verticalWord(rowIndex, len(rows)),
+				horizontalWord(columnIndex, len(row)),
+			)
+		}
+	}
+}
+
+// groupIntoRows collects displays whose vertical ranges overlap, ordered from
+// the top of the desktop downwards.
+func groupIntoRows(records []displayRecord) [][]int {
+	order := make([]int, len(records))
+	for index := range records {
+		order[index] = index
+	}
+	sort.Slice(order, func(first, second int) bool {
+		return records[order[first]].Bounds.Top < records[order[second]].Bounds.Top
+	})
+
+	var rows [][]int
+	var rowTop, rowBottom int32
+	for _, index := range order {
+		bounds := records[index].Bounds
+		if len(rows) > 0 && sharesRow(bounds, rowTop, rowBottom) {
+			rows[len(rows)-1] = append(rows[len(rows)-1], index)
+			if bounds.Top < rowTop {
+				rowTop = bounds.Top
+			}
+			if bounds.Bottom > rowBottom {
+				rowBottom = bounds.Bottom
+			}
+			continue
+		}
+		rows = append(rows, []int{index})
+		rowTop = bounds.Top
+		rowBottom = bounds.Bottom
+	}
+	return rows
+}
+
+// sharesRow answers whether a display sits alongside a row rather than above or
+// below it. Displays stacked above one another still overlap by a few pixels
+// when their edges are not exactly aligned, so a shared row demands that the
+// overlap covers at least half of the shorter of the two.
+func sharesRow(bounds RECT, rowTop, rowBottom int32) bool {
+	overlap := min(bounds.Bottom, rowBottom) - max(bounds.Top, rowTop)
+	if overlap <= 0 {
+		return false
+	}
+	shorter := min(bounds.Height(), rowBottom-rowTop)
+	return overlap*2 >= shorter
+}
+
+func verticalWord(index, count int) string {
+	switch {
+	case count < 2:
+		return ""
+	case index == 0:
+		return "top"
+	case index == count-1:
+		return "bottom"
+	case count == 3:
+		return "middle"
+	default:
+		return fmt.Sprintf("row %d", index+1)
+	}
+}
+
+func horizontalWord(index, count int) string {
+	switch {
+	case count < 2:
+		return ""
+	case index == 0:
+		return "left"
+	case index == count-1:
+		return "right"
+	case count == 3:
+		return "centre"
+	default:
+		return fmt.Sprintf("%d from left", index+1)
+	}
+}
+
+func joinPosition(vertical, horizontal string) string {
+	switch {
+	case vertical == "" && horizontal == "":
+		return "only display"
+	case vertical == "":
+		return horizontal
+	case horizontal == "":
+		return vertical
+	default:
+		return vertical + " " + horizontal
+	}
 }
 
 // fillDeviceIdentity reads the adapter entry that owns the GDI name, then the
@@ -107,7 +216,7 @@ func reportDisplays(out io.Writer, records []displayRecord) {
 		if record.Primary {
 			primary = "yes"
 		}
-		fmt.Fprintf(out, "[%d] %s\n", index, record.GDIName)
+		fmt.Fprintf(out, "[%d] %s, the %s display\n", index, record.GDIName, record.Position)
 		fmt.Fprintf(out, "    primary:          %s\n", primary)
 		fmt.Fprintf(out, "    bounds:           x=%d y=%d w=%d h=%d\n",
 			record.Bounds.Left, record.Bounds.Top, record.Bounds.Width(), record.Bounds.Height())

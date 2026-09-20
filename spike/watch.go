@@ -23,8 +23,11 @@ type watchedWindow struct {
 	MonitorName string
 }
 
-// watch settles OQ-5 and OQ-7: how long after sign-in the last startup window
-// appears; also whether any application moves its own window after showing it.
+// watch recorded window appearances and movements at sign-in for OQ-5 and
+// OQ-7. Both are closed: settling is defined by the profile's own entries
+// rather than by any timing, so nothing here blocks a requirement. It is kept
+// for seeing what a real sign-in does, never as evidence about who moved a
+// window.
 func watch(out io.Writer, span time.Duration) {
 	start := time.Now()
 	sinceBoot := time.Duration(tickCount()) * time.Millisecond
@@ -132,11 +135,11 @@ func summarise(out io.Writer, seen map[uintptr]*watchedWindow, lastAppearance, l
 	fmt.Fprintf(out, "\nLast window appeared %s into the watch.\n", lastAppearance.Round(time.Second))
 	fmt.Fprintf(out, "Longest gap between appearances: %s.\n", longestQuiet.Round(time.Second))
 	fmt.Fprintf(out, "Watch span: %s.\n\n", span)
-	fmt.Fprintf(out, "OQ-5: the last appearance time bounds the ceiling. The longest gap\n")
-	fmt.Fprintf(out, "bounds the quiet period, which has to be longer than any gap that\n")
-	fmt.Fprintf(out, "occurs while startup is still running.\n")
-	fmt.Fprintf(out, "OQ-7: a window with moves after it first appeared moved itself,\n")
-	fmt.Fprintf(out, "which is what FR-033 exists to deal with.\n")
+	fmt.Fprintf(out, "Moves recorded here say nothing about who made them. A drag by\n")
+	fmt.Fprintf(out, "hand and a window repositioning itself look identical in this log,\n")
+	fmt.Fprintf(out, "which is how the run on 2026-09-20 recorded the owner moving three\n")
+	fmt.Fprintf(out, "windows and was nearly read as applications moving their own. Treat\n")
+	fmt.Fprintf(out, "a move as evidence only from a run nobody touched.\n")
 }
 
 func trim(text string, limit int) string {
