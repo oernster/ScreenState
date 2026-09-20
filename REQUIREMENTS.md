@@ -347,11 +347,12 @@ never put away: the manager is where Apply was pressed.
 **FR-064 Closing the windows the profile does not name**
 Priority: Should
 Requirement: The ScreenState agent shall offer a setting, off unless the user
-turns it on, under which a restore asks each window that FR-063 would put away
-to close instead. Where such a window is still open once the settle time has
-passed, the agent shall minimise it and shall record in the report that it did
-not close. The agent shall never close a window the profile names and shall
-never close one of its own.
+turns it on, under which the restore that runs at sign-in asks each window that
+FR-063 would put away to close instead. Where such a window is still open once
+the settle time has passed, the agent shall minimise it and shall record in the
+report that it did not close. A restore the user asked for shall minimise those
+windows whatever the setting says. The agent shall never close a window the
+profile names and shall never close one of its own.
 Rationale: reported 2026-09-20 by the owner, having watched FR-063 work. Most of
 the applications that start with Windows go to the notification area when their
 window is closed, which is where their owner wanted them; minimising leaves them
@@ -360,13 +361,16 @@ for. A-3 measured that an ordinary windowed application ends when its window
 closes, so this is the user's decision to make and not the agent's: the setting
 is off until they turn it on and says in as many words what it costs. Closing is
 a request rather than an order, so a refusal is an ordinary answer and is met by
-the act the setting replaced.
+the act the setting replaced. It is the sign-in restore alone because that is
+the one that builds a desktop from nothing: pressing Apply happens in the middle
+of a session, where a window being asked to close is a surprise the user did not
+ask for (ruled by the owner, 2026-09-20).
 
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
-start. It shall not close any window either, with one exception: a window the
-profile does not name, while the user has turned FR-064 on.
+start. It shall not close any window either, with one exception: at sign-in, a
+window the profile does not name, while the user has turned FR-064 on.
 Rationale: C-3, widened by measurement, then narrowed by a decision. Terminating
 is never allowed and never will be. Closing was forbidden too, once OQ-4 showed
 that closing a window ends some applications outright, which is a termination

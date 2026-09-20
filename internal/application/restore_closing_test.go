@@ -18,12 +18,12 @@ func TestAStrangerIsAskedToCloseWhenTheSettingSaysSo(t *testing.T) {
 		windows:  []Window{aWindow(1, claude, at(0)), stranger},
 	}
 	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
-		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{},
+		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
-	report, err := service.Restore(context.Background(), deskProfile(t))
-	if err != nil {
-		t.Fatalf("restoring: %v", err)
+	report, marked, err := service.RestoreDefault(context.Background())
+	if err != nil || !marked {
+		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
 	if asked := desktop.closedCount(stranger.ID); asked != 1 {
 		t.Fatalf("the stranger was asked to close %d time(s)", asked)
@@ -32,6 +32,38 @@ func TestAStrangerIsAskedToCloseWhenTheSettingSaysSo(t *testing.T) {
 		t.Errorf("the stranger was minimised as well as asked to close")
 	}
 	if !anyContaining(report.SortedNotes(), "to close") {
+		t.Errorf("the report says nothing about it: %v", report.SortedNotes())
+	}
+}
+
+// Apply never closes anything, whatever the setting says (FR-064).
+//
+// The setting is about the desktop a sign-in builds from nothing, where the
+// windows in the way are the ones that started with Windows. Pressing Apply
+// happens in the middle of a session the user is working in, so a window of
+// theirs being asked to close is a surprise they did not ask for.
+func TestApplyNeverClosesAnythingWhateverTheSettingSays(t *testing.T) {
+	t.Parallel()
+	stranger := aWindow(2, nordvpn, at(1))
+	desktop := &fakeDesktop{
+		displays: []Display{primaryDisplay},
+		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+	}
+	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{},
+		&fakeStrangers{closing: true})
+
+	report, err := service.Restore(context.Background(), deskProfile(t))
+	if err != nil {
+		t.Fatalf("restoring: %v", err)
+	}
+	if asked := desktop.closedCount(stranger.ID); asked != 0 {
+		t.Fatalf("Apply asked a window to close %d time(s)", asked)
+	}
+	if put := putAwayCalls(desktop, stranger.ID); len(put) != 1 {
+		t.Fatalf("Apply put the stranger away %d time(s)", len(put))
+	}
+	if !anyContaining(report.SortedNotes(), "put away") {
 		t.Errorf("the report says nothing about it: %v", report.SortedNotes())
 	}
 }
@@ -49,12 +81,12 @@ func TestAStrangerThatRefusesToCloseIsPutAway(t *testing.T) {
 		refuses:  map[WindowID]bool{stranger.ID: true},
 	}
 	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
-		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{},
+		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
-	report, err := service.Restore(context.Background(), deskProfile(t))
-	if err != nil {
-		t.Fatalf("restoring: %v", err)
+	report, marked, err := service.RestoreDefault(context.Background())
+	if err != nil || !marked {
+		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
 	if put := putAwayCalls(desktop, stranger.ID); len(put) != 1 {
 		t.Fatalf("a window that refused to close was put away %d time(s)", len(put))
@@ -75,12 +107,12 @@ func TestAStrangerThatCannotBeAskedToCloseIsReported(t *testing.T) {
 		closeErr: map[WindowID]error{stranger.ID: errors.New("the window is gone")},
 	}
 	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
-		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{},
+		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
-	report, err := service.Restore(context.Background(), deskProfile(t))
-	if err != nil {
-		t.Fatalf("restoring: %v", err)
+	report, marked, err := service.RestoreDefault(context.Background())
+	if err != nil || !marked {
+		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
 	if !anyContaining(report.SortedNotes(), "could not be asked to close") {
 		t.Errorf("the report says nothing about the refusal: %v", report.SortedNotes())
@@ -98,12 +130,12 @@ func TestASettingThatCannotBeReadMinimises(t *testing.T) {
 		windows:  []Window{aWindow(1, claude, at(0)), stranger},
 	}
 	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
-		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{},
+		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true, readErr: errors.New("the settings file is unreadable")})
 
-	report, err := service.Restore(context.Background(), deskProfile(t))
-	if err != nil {
-		t.Fatalf("restoring: %v", err)
+	report, marked, err := service.RestoreDefault(context.Background())
+	if err != nil || !marked {
+		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
 	if asked := desktop.closedCount(stranger.ID); asked != 0 {
 		t.Fatalf("a window was asked to close under a setting nobody could read")
@@ -123,7 +155,7 @@ func TestTheSettingIsReadAndWrittenThroughTheRestoreService(t *testing.T) {
 	choice := &fakeStrangers{}
 	log := &fakeLog{}
 	service := restoreUnder(&fakeDesktop{}, newFakeProcesses(),
-		&fakeLauncher{}, newFakeStore(), newFakeClock(), log, choice)
+		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), log, choice)
 
 	if closing, err := service.CloseStrangers(); err != nil || closing {
 		t.Fatalf("a user who has chosen nothing got closing: %v, %v", closing, err)
@@ -151,7 +183,7 @@ func TestASettingThatCannotBeWrittenIsRefused(t *testing.T) {
 	t.Parallel()
 	refused := errors.New("the settings file is read only")
 	service := restoreUnder(&fakeDesktop{}, newFakeProcesses(),
-		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{},
+		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{writeErr: refused})
 
 	if err := service.SetCloseStrangers(true); !errors.Is(err, refused) {

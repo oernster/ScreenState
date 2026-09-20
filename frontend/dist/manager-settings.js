@@ -30,13 +30,14 @@ function drawSettings() {
         },
         {
             key: 'close-unnamed',
-            label: 'Close the windows a profile does not name',
+            label: 'At sign-in, close the windows a profile does not name',
             hint: 'A restore puts every other window out of the way. Off, they are'
-                + ' minimised. On, they are asked to close, which is what pressing'
-                + ' the cross does: most applications that start with Windows go to'
-                + ' the notification area, while an ordinary one ends and takes'
-                + ' anything unsaved with it. One that refuses is minimised instead'
-                + ' and the report says which.',
+                + ' minimised. On, the restore that runs when you sign in asks them'
+                + ' to close instead, which is what pressing the cross does: most'
+                + ' applications that start with Windows go to the notification area,'
+                + ' while an ordinary one ends and takes anything unsaved with it.'
+                + ' One that refuses is minimised instead and the report says which.'
+                + ' Apply always minimises, whatever this says.',
             checked: state.closeUnnamed,
             disabled: !!state.closeUnnamedError,
             onChange: (on) => void setCloseUnnamed(on),

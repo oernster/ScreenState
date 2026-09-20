@@ -37,6 +37,24 @@ type RestoreService struct {
 	last   *Report
 }
 
+// trigger says what asked for a restore.
+//
+// It decides one thing and nothing else: whether the windows the profile does
+// not name may be closed rather than minimised (FR-064). Closing belongs to the
+// sign-in restore, where the desktop is being made from nothing and the
+// applications in the way are the ones that started with Windows. Pressing
+// Apply is a different act: the user is looking at a desktop they are working
+// in, so a window of theirs being asked to close is a surprise nobody signed up
+// for.
+type trigger int
+
+const (
+	// byHand is a restore the user pressed Apply for.
+	byHand trigger = iota
+	// atSignIn is the restore that runs because the user signed in (FR-038).
+	atSignIn
+)
+
 // activeRestore is the restore in progress, enough of it for a newer request to
 // stand it down (FR-061).
 type activeRestore struct {
@@ -92,18 +110,28 @@ func (service *RestoreService) RestoreDefault(ctx context.Context) (*Report, boo
 		service.log.Step("no profile is marked as the default, so nothing was restored")
 		return nil, false, nil
 	}
-	report, err := service.Restore(ctx, profile)
+	report, err := service.restore(ctx, profile, atSignIn)
 	return report, true, err
 }
 
 // Restore puts the desktop into the state the profile describes and returns the
-// report of what it did.
+// report of what it did. It is the restore the user pressed Apply for; the one
+// that runs at sign-in goes through RestoreDefault.
+func (service *RestoreService) Restore(ctx context.Context, profile domain.Profile) (*Report, error) {
+	return service.restore(ctx, profile, byHand)
+}
+
+// restore is the restore itself, whatever asked for it.
 //
 // A restore requested while one is already running replaces it (FR-061): the
 // running restore stops before its next action, every window it has already
 // placed is left exactly where it is and this one then runs. Nothing is put
-// back, because a restore closes and undoes nothing (FR-029).
-func (service *RestoreService) Restore(ctx context.Context, profile domain.Profile) (*Report, error) {
+// back, because a restore undoes nothing (FR-029).
+func (service *RestoreService) restore(
+	ctx context.Context,
+	profile domain.Profile,
+	why trigger,
+) (*Report, error) {
 	replaced := service.standDown()
 
 	runCtx, cancel := context.WithCancel(ctx)
@@ -118,7 +146,7 @@ func (service *RestoreService) Restore(ctx context.Context, profile domain.Profi
 	service.active = active
 	service.mutex.Unlock()
 
-	err := service.guardedRun(runCtx, profile, report)
+	err := service.guardedRun(runCtx, profile, report, why)
 
 	cancel()
 	report.Finish(service.clock.Now())
@@ -168,6 +196,7 @@ func (service *RestoreService) guardedRun(
 	ctx context.Context,
 	profile domain.Profile,
 	report *Report,
+	why trigger,
 ) (err error) {
 	defer func() {
 		recovered := recover()
@@ -179,12 +208,17 @@ func (service *RestoreService) guardedRun(
 		report.Note("%s", message)
 		err = fmt.Errorf("restoring %q: %v", profile.Name, recovered)
 	}()
-	return service.run(ctx, profile, report)
+	return service.run(ctx, profile, report, why)
 }
 
 // run is the restore itself: launch what is missing, then place each entry as
 // its window appears, until every entry is settled or the ceiling passes.
-func (service *RestoreService) run(ctx context.Context, profile domain.Profile, report *Report) error {
+func (service *RestoreService) run(
+	ctx context.Context,
+	profile domain.Profile,
+	report *Report,
+	why trigger,
+) error {
 	started := report.Started
 	deadline := started.Add(service.policy.Ceiling)
 	service.log.Step(fmt.Sprintf("restoring %q, %d entries, ceiling %s",
@@ -210,7 +244,7 @@ func (service *RestoreService) run(ctx context.Context, profile domain.Profile, 
 		service.recheck(ctx, state)
 
 		if state.settled() {
-			service.putTheRestAway(ctx, profile, report)
+			service.putTheRestAway(ctx, profile, report, why)
 			return nil
 		}
 		if state.hasPending() && !service.clock.Now().Before(deadline) {

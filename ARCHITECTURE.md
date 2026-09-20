@@ -64,7 +64,7 @@ leaves one surface still announcing the old one.
 
 `internal/infrastructure/settings` keeps the few choices remembered between runs: whether the update
 check is wanted (FR-059), which released version the user passed over (FR-058) and whether a restore
-closes the windows a profile does not name rather than minimising them (FR-064). It is deliberately
+closes the windows a profile does not name at sign-in rather than minimising them (FR-064). It is deliberately
 apart from the profile store, because a profile is the user's work and a setting is a preference.
 `internal/infrastructure/update` is the release feed.
 
@@ -206,8 +206,9 @@ Every one of those is exercised against fakes in `internal/application`, which h
 
 ## What a restore never does
 
-It never terminates a process it did not start (FR-029, C-3). It closes a window only where the user
-has turned FR-064 on; even then, only a window no profile names.
+It never terminates a process it did not start (FR-029, C-3). It closes a window only during the restore that runs at
+sign-in, only where the user has turned FR-064 on and only a window no profile names. Apply
+minimises whatever the setting says.
 
 Closing was forbidden outright until the owner asked for it back. NordVPN and GameGlass survive their
 windows closing; Postal Gambit is ended by it. Nothing about a window says which kind it is, so an
