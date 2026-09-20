@@ -21,7 +21,7 @@ const tickMs = 40
 
 // startHoldMs is the stillness before the first descent: the reader orients
 // before anything moves. It is the opening phase's wait rather than a special
-// case, so it costs no extra state.
+// case, so it costs nothing extra to hold.
 const startHoldMs = 5000
 
 // The descent is one pixel every second tick. The divider is a countdown of
@@ -56,70 +56,70 @@ function initialAutoScrollState() {
     return {phase: 'pauseTop', waitMs: startHoldMs, ticksToStep: descentTicksPerStep}
 }
 
-// suspended is the state a manual reading input puts the cycle into: a hold it
+// suspended is what a manual reading input puts the cycle into: a hold it
 // resumes from at the reader's own position rather than restarting.
-function suspended(state) {
-    return {phase: 'manual', waitMs: manualHoldMs, ticksToStep: state.ticksToStep}
+function suspended(cycle) {
+    return {phase: 'manual', waitMs: manualHoldMs, ticksToStep: cycle.ticksToStep}
 }
 
 // autoScrollTick advances the cycle by one tick and says how far the surface
 // should move, already clamped. Content that does not overflow consumes nothing,
 // so attaching the cycle to a surface that currently fits is free and correct.
-function autoScrollTick(state, view) {
-    if (view.maxScrollTop <= 0) return {state: state, delta: 0}
-    if (state.phase === 'down') return autoScrollDescend(state, view)
-    if (state.phase === 'up') return autoScrollRewind(state, view)
-    return autoScrollHold(state, view)
+function autoScrollTick(cycle, view) {
+    if (view.maxScrollTop <= 0) return {cycle: cycle, delta: 0}
+    if (cycle.phase === 'down') return autoScrollDescend(cycle, view)
+    if (cycle.phase === 'up') return autoScrollRewind(cycle, view)
+    return autoScrollHold(cycle, view)
 }
 
 // autoScrollHold counts the current wait down; when it runs out, it chooses the
 // direction to resume in: after the bottom hold the rewind; after a manual hold
 // whatever is left from where the reader stopped, which for a reader already at
 // the very end is the rewind; otherwise the reading pass.
-function autoScrollHold(state, view) {
-    const waitMs = state.waitMs - tickMs
+function autoScrollHold(cycle, view) {
+    const waitMs = cycle.waitMs - tickMs
     if (waitMs > 0) {
-        return {state: {phase: state.phase, waitMs: waitMs, ticksToStep: state.ticksToStep}, delta: 0}
+        return {cycle: {phase: cycle.phase, waitMs: waitMs, ticksToStep: cycle.ticksToStep}, delta: 0}
     }
-    if (state.phase === 'pauseBottom') {
-        return {state: {phase: 'up', waitMs: 0, ticksToStep: state.ticksToStep}, delta: 0}
+    if (cycle.phase === 'pauseBottom') {
+        return {cycle: {phase: 'up', waitMs: 0, ticksToStep: cycle.ticksToStep}, delta: 0}
     }
-    if (state.phase === 'manual' && view.scrollTop >= view.maxScrollTop) {
-        return {state: {phase: 'up', waitMs: 0, ticksToStep: state.ticksToStep}, delta: 0}
+    if (cycle.phase === 'manual' && view.scrollTop >= view.maxScrollTop) {
+        return {cycle: {phase: 'up', waitMs: 0, ticksToStep: cycle.ticksToStep}, delta: 0}
     }
-    return {state: {phase: 'down', waitMs: 0, ticksToStep: descentTicksPerStep}, delta: 0}
+    return {cycle: {phase: 'down', waitMs: 0, ticksToStep: descentTicksPerStep}, delta: 0}
 }
 
 // autoScrollDescend advances the reading pass by a pixel every second tick and
 // hands over to the bottom hold on arrival.
-function autoScrollDescend(state, view) {
-    const ticksToStep = state.ticksToStep - 1
+function autoScrollDescend(cycle, view) {
+    const ticksToStep = cycle.ticksToStep - 1
     if (ticksToStep > 0) {
-        return {state: {phase: state.phase, waitMs: state.waitMs, ticksToStep: ticksToStep}, delta: 0}
+        return {cycle: {phase: cycle.phase, waitMs: cycle.waitMs, ticksToStep: ticksToStep}, delta: 0}
     }
     const remaining = view.maxScrollTop - view.scrollTop
     if (remaining <= descentPx) {
         return {
-            state: {phase: 'pauseBottom', waitMs: bottomHoldMs, ticksToStep: descentTicksPerStep},
+            cycle: {phase: 'pauseBottom', waitMs: bottomHoldMs, ticksToStep: descentTicksPerStep},
             delta: Math.max(0, remaining),
         }
     }
     return {
-        state: {phase: state.phase, waitMs: state.waitMs, ticksToStep: descentTicksPerStep},
+        cycle: {phase: cycle.phase, waitMs: cycle.waitMs, ticksToStep: descentTicksPerStep},
         delta: descentPx,
     }
 }
 
 // autoScrollRewind travels back at the repositioning pace and hands over to the
 // top hold on arrival.
-function autoScrollRewind(state, view) {
+function autoScrollRewind(cycle, view) {
     if (view.scrollTop <= rewindPx) {
         return {
-            state: {phase: 'pauseTop', waitMs: topHoldMs, ticksToStep: descentTicksPerStep},
+            cycle: {phase: 'pauseTop', waitMs: topHoldMs, ticksToStep: descentTicksPerStep},
             delta: -view.scrollTop,
         }
     }
-    return {state: state, delta: -rewindPx}
+    return {cycle: cycle, delta: -rewindPx}
 }
 
 // autoScroll gives one scrollable element the cycle and answers a handle whose
@@ -127,10 +127,10 @@ function autoScrollRewind(state, view) {
 // than building it each time, so the restart is what a mount does elsewhere: the
 // start hold is owed to every opening, not only to the first.
 function autoScroll(node) {
-    let state = initialAutoScrollState()
+    let cycle = initialAutoScrollState()
     let reading = false
     manualEvents.forEach((type) => {
-        node.addEventListener(type, () => { state = suspended(state) }, {passive: true})
+        node.addEventListener(type, () => { cycle = suspended(cycle) }, {passive: true})
     })
     window.setInterval(() => {
         // A surface nobody is looking at is FROZEN rather than suspended: the
@@ -138,13 +138,13 @@ function autoScroll(node) {
         // and the remaining hold are all exactly where they were.
         if (!reading) return
         const view = {scrollTop: node.scrollTop, maxScrollTop: node.scrollHeight - node.clientHeight}
-        const answer = autoScrollTick(state, view)
-        state = answer.state
+        const answer = autoScrollTick(cycle, view)
+        cycle = answer.cycle
         if (answer.delta !== 0) node.scrollTop = view.scrollTop + answer.delta
     }, tickMs)
     return {
         restart: () => {
-            state = initialAutoScrollState()
+            cycle = initialAutoScrollState()
             node.scrollTop = 0
             reading = true
         },
