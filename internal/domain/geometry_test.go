@@ -134,3 +134,51 @@ func TestAnUnknownIdentityKindIsRejected(t *testing.T) {
 		t.Fatalf("expected ErrUnknownIdentityKind, got %v", err)
 	}
 }
+
+func TestOverlappingRectanglesShareTheExpectedArea(t *testing.T) {
+	t.Parallel()
+	left := Rect{X: 0, Y: 0, Width: 100, Height: 100}
+	right := Rect{X: 60, Y: 20, Width: 100, Height: 100}
+	shared := left.Intersection(right)
+	want := Rect{X: 60, Y: 20, Width: 40, Height: 80}
+	if shared != want {
+		t.Fatalf("shared %s, wanted %s", shared, want)
+	}
+	if shared.Area() != 40*80 {
+		t.Fatalf("area %d", shared.Area())
+	}
+	if other := right.Intersection(left); other != want {
+		t.Fatalf("intersection is not symmetric: %s", other)
+	}
+}
+
+func TestRectanglesThatOnlyTouchShareNoArea(t *testing.T) {
+	t.Parallel()
+	left := Rect{X: 0, Y: 0, Width: 100, Height: 100}
+	for name, other := range map[string]Rect{
+		"edge to edge": {X: 100, Y: 0, Width: 100, Height: 100},
+		"corner":       {X: 100, Y: 100, Width: 100, Height: 100},
+		"clear away":   {X: 500, Y: 500, Width: 10, Height: 10},
+		"above":        {X: 0, Y: -100, Width: 100, Height: 100},
+	} {
+		shared := left.Intersection(other)
+		if shared.Valid() {
+			t.Fatalf("%s: reported a shared rectangle %s", name, shared)
+		}
+		if shared.Area() != 0 {
+			t.Fatalf("%s: reported area %d", name, shared.Area())
+		}
+	}
+}
+
+func TestAContainedRectangleIsItsOwnIntersection(t *testing.T) {
+	t.Parallel()
+	display := Rect{X: -3840, Y: 0, Width: 3840, Height: 2400}
+	window := Rect{X: -2000, Y: 100, Width: 800, Height: 600}
+	if shared := display.Intersection(window); shared != window {
+		t.Fatalf("shared %s, wanted the window itself", shared)
+	}
+	if window.Area() != 800*600 {
+		t.Fatalf("area %d", window.Area())
+	}
+}

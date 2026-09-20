@@ -93,6 +93,34 @@ func (rect Rect) Intersects(other Rect) bool {
 		rect.Y < other.Bottom() && other.Y < rect.Bottom()
 }
 
+// Intersection returns the rectangle two rectangles share. Where they share no
+// area the result has no size, which Valid reports as invalid, so a caller that
+// forgets to check cannot mistake an empty overlap for a real one.
+func (rect Rect) Intersection(other Rect) Rect {
+	left := max(rect.X, other.X)
+	top := max(rect.Y, other.Y)
+	right := min(rect.Right(), other.Right())
+	bottom := min(rect.Bottom(), other.Bottom())
+	if right <= left || bottom <= top {
+		return Rect{X: left, Y: top}
+	}
+	return Rect{X: left, Y: top, Width: right - left, Height: bottom - top}
+}
+
+// Area returns how much surface a rectangle covers, zero for one with no size.
+// It answers in 64 bits because two 32 bit edges multiply beyond 32.
+//
+// It exists so a window straddling two displays can be said to belong to one of
+// them: Windows itself judges by the larger share rather than by which display
+// holds the title bar, so a restore that judged differently would disagree with
+// what the user sees when they maximise that window by hand.
+func (rect Rect) Area() int64 {
+	if !rect.Valid() {
+		return 0
+	}
+	return int64(rect.Width) * int64(rect.Height)
+}
+
 // String renders a rectangle the way the spike's logs did, so a report and a
 // measurement can be compared by eye.
 func (rect Rect) String() string {
