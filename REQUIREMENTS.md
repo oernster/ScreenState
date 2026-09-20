@@ -124,12 +124,12 @@ on an assumption without naming it.
 
 | ID | Assumption | Owner | Confirm by |
 |---|---|---|---|
-| A-1 | A display identity exists that survives a reboot and distinguishes three displays of the same model. | Oliver | 2026-09-26 |
-| A-2 | An application identity exists that survives an application's updates, both for Store-packaged applications such as Claude and for applications installed into versioned directories such as Discord. | Oliver | 2026-09-26 |
-| A-3 | Closing the main window of NordVPN, GameGlass and Postal Gambit leaves each application running in the tray. | Oliver | 2026-09-26 |
+| A-1 | CONFIRMED 2026-09-19. The monitor id serves, for example `DISPLAY#HSJ1340#5&14514d51&0&UID4356`. Every one was unchanged after a reboot and still sat on the same device name. The UID is what distinguishes displays of the same model: the left and the right screen both report model `HSJ1340` and differ only by `UID4356` against `UID4354`. See appendix E. | Oliver | closed 2026-09-19 |
+| A-2 | CONFIRMED 2026-09-19, as three rules rather than one value. A Store-packaged application is identified by its application user model id, which carries no version. An application installed under a versioned directory is identified by the updater command that does not move. Every other application is identified by its path. See appendix E. | Oliver | closed 2026-09-19 |
+| A-3 | FALSE AS STATED, measured 2026-09-20. It holds for NordVPN and GameGlass, whose processes were alive 43 minutes after their windows were closed. It does not hold for Postal Gambit, which is an ordinary windowed application: closing its window ends it. The agent therefore cannot treat closing as harmless without knowing which kind it is dealing with. | Oliver | closed 2026-09-20 |
 | A-4 | CONFIRMED 2026-09-20, in one form only. An application that starts with no visible window can be asked to show one by running it again; it cannot be made to show one by acting on the window from outside. Measured against NordVPN: showing the hidden window directly produced an empty frame the application was not drawing, while a second launch made the running instance show and draw that same window, after which the second process exited by itself. | Oliver | closed 2026-09-20 |
-| A-5 | A window can be moved to a target display and maximised there by a process without administrator rights, across displays with different scaling. | Oliver | 2026-09-26 |
-| A-6 | Confirmed in part on 2026-09-19: the last startup window appeared 5 minutes 34 seconds after boot, under the 15 minute ceiling. A second run is needed to confirm that nothing appears later. | Oliver | 2026-09-26 |
+| A-5 | CONFIRMED 2026-09-19. A window was moved to each of four displays in turn and maximised there, from a process holding no administrator rights, including from a 96 dpi display to a 240 dpi one. Every move landed where it was told. The sequence that works: restore the window, set its rectangle to the target display's work area, then maximise. See appendix E. | Oliver | closed 2026-09-19 |
+| A-6 | NO LONGER LOAD-BEARING. It asked whether startup finishes inside the ceiling, which mattered only while placement waited on the whole profile. FR-055 places each entry as its own window appears, so a late application delays nothing but itself and the ceiling merely bounds how long the agent keeps waiting. | Oliver | closed 2026-09-20 |
 
 ---
 
@@ -808,10 +808,10 @@ that settles it. The first five form the spike.
 
 | ID | Question | Owner | Confirm by |
 |---|---|---|---|
-| OQ-1 | What identifies a display so that the value survives a reboot and tells three displays of the same model apart? Measure: read every available identifier for the four displays, reboot, read again, compare. | Oliver | 2026-09-26 |
-| OQ-2 | What identifies an application so that the value survives its updates? Claude runs from a versioned Store directory, Discord from a versioned per-user directory. Measure: read the candidate identifiers for both, then determine how each is launched without naming a versioned path. | Oliver | 2026-09-26 |
-| OQ-3 | Can a window be moved and maximised on a target display by a process without administrator rights, across displays with different scaling? Measure: move a window to each of the four displays and read back its position. | Oliver | 2026-09-26 |
-| OQ-4 | Does closing the main window of NordVPN, GameGlass and Postal Gambit leave each running? Measure: close each and read the process list. | Oliver | 2026-09-26 |
+| OQ-1 | CLOSED. The monitor id, which survived a reboot unchanged and distinguishes same-model displays by their UID. Neither the device name nor the number Windows Settings shows can identify a display: Settings 4 is device DISPLAY3. See appendix E. | Oliver | closed 2026-09-20 |
+| OQ-2 | CLOSED. Three rules: application user model id for a Store-packaged application, the updater command for one installed under a versioned directory, the path for everything else. A window class cannot be used, because it carries a GUID that changes every session. See appendix E. | Oliver | closed 2026-09-20 |
+| OQ-3 | CLOSED. Yes, from a process without administrator rights, across a 96 dpi to 240 dpi boundary. Restore, set the rectangle to the target work area, then maximise. See appendix E. | Oliver | closed 2026-09-20 |
+| OQ-4 | CLOSED. Not uniformly. NordVPN and GameGlass survive their windows closing; Postal Gambit does not. See A-3. See appendix E. | Oliver | closed 2026-09-20 |
 | OQ-5 | CLOSED, dissolved rather than answered. It existed to supply two things: the quiet period, which FR-020 no longer has, plus the ceiling, which is a policy choice about how long to keep trying rather than a fact about this machine. Settling is now defined entirely by whether the profile's own entries are satisfied, so no timing needs measuring. | Oliver | closed 2026-09-20 |
 | OQ-6 | CLOSED 2026-09-20. Not from outside the window: that produced an empty frame. By asking the application, yes. Running NordVPN again while it was running made the running instance show its own hidden window at the same handle and rectangle; the second process then exited by itself. FR-036 stands, with its mechanism changed to FR-056. | Oliver | closed 2026-09-20 |
 | OQ-7 | CLOSED, no longer load-bearing. FR-033 re-applies a placement once when the window no longer matches; FR-034 gives up rather than fight. Both hold whether or not applications move their own windows, so the answer changes no requirement. The one run that recorded movement recorded the owner dragging windows, which is also why this cannot be measured on a machine in use. | Oliver | closed 2026-09-20 |
@@ -852,3 +852,82 @@ The Must proportion is high for a first release of a utility whose whole purpose
 is one behaviour. The check that keeps it honest: every Must names a failure the
 owner would call the product broken for. Any that does not gets demoted at the
 next pass.
+
+---
+
+## Appendix E: measured facts
+
+Taken from the measurement spike, which was deleted once every question in
+appendix B was closed. These are the readings the requirements rest on, kept
+here because a requirement whose evidence has been thrown away is an assertion.
+All were measured on the reference machine in section 2.3.
+
+### Display identity, 2026-09-19, unchanged after a reboot
+
+| Device name | Settings number | Monitor id | DPI |
+|---|---|---|---|
+| `\\.\DISPLAY1` | 1, top, primary | `DISPLAY#GSM784F#5&14514d51&0&UID4352` | 96 |
+| `\\.\DISPLAY2` | 3, centre | `DISPLAY#HSJB30F#5&14514d51&0&UID4357` | 240 |
+| `\\.\DISPLAY3` | 4, left | `DISPLAY#HSJ1340#5&14514d51&0&UID4356` | 240 |
+| `\\.\DISPLAY4` | 2, right | `DISPLAY#HSJ1340#5&14514d51&0&UID4354` | 240 |
+
+Two facts the product depends on. The Settings number, the device name and the
+physical position do not line up, so neither number can identify a display. The
+left and right screens share the model code `HSJ1340`; only the UID tells them
+apart. A display is therefore named to the user by where it physically sits,
+derived from the desktop layout, never by a number Windows reports.
+
+### Application identity, 2026-09-19
+
+| Application | Installed as | Identity that survives its updates |
+|---|---|---|
+| Claude | `WindowsApps\Claude_2.2553.1.0_x64__pzs8sxrjxfjjc\app\claude.exe` | `Claude_pzs8sxrjxfjjc!Claude`, an application user model id carrying no version |
+| Discord | `Discord\app-1.0.9258\Discord.exe` | `Discord\Update.exe --processStart Discord.exe`, which does not move |
+| Stellody | `Programs\Stellody\Stellody.exe` | the path, which carries no version |
+
+A window class is not an identity. NordVPN's main window class was
+`HwndWrapper[NordVPNApp;Hosted Main;3bcafb52-...]` before a reboot and
+`HwndWrapper[NordVPNApp;Hosted Main;0e6920e5-...]` after it: the GUID changes
+every session. The process image path does not.
+
+The candidate rule in FR-012, a visible window that is not cloaked, not owned by
+another window, not a tool window and not untitled, reduced 523 enumerated
+windows to the 8 a user would call windows.
+
+### Placement, 2026-09-19
+
+A window was moved to each display in turn and maximised, from a process with no
+administrator rights.
+
+| Target | Landed on | State | Rectangle |
+|---|---|---|---|
+| `\\.\DISPLAY1`, 96 dpi | `\\.\DISPLAY1` | maximised | x=-8 y=-8 w=3456 h=1408 |
+| `\\.\DISPLAY2`, 240 dpi | `\\.\DISPLAY2` | maximised | x=-239 y=1424 w=3872 h=2312 |
+| `\\.\DISPLAY3`, 240 dpi | `\\.\DISPLAY3` | maximised | x=-4079 y=1407 w=3872 h=2312 |
+| `\\.\DISPLAY4`, 240 dpi | `\\.\DISPLAY4` | maximised | x=3601 y=1407 w=3872 h=2312 |
+
+A maximised window overhangs its display by the border width, which is why each
+rectangle is 16 pixels wider than the display it sits on.
+
+### One process, several windows, 2026-09-19
+
+A Notepad window opened for the placement measurement joined an existing Notepad
+process that already held another window. Two consequences. An entry cannot
+assume one window per application, which is what FR-037 exists for. Whether a
+process is still running also fails to say whether closing one of its windows
+was harmless, since another window of it may be keeping it alive.
+
+### Closing a window, 2026-09-20
+
+| Application | Process 43 minutes after its window was closed |
+|---|---|
+| NordVPN | alive, no window |
+| GameGlass Hub | alive as 13 processes, none with a window |
+| Postal Gambit | gone |
+
+### Showing a hidden window, 2026-09-19 and 2026-09-20
+
+Acting on NordVPN's hidden window from outside made it visible and useless: an
+empty frame the application was not drawing. Running NordVPN again while it was
+running made the running instance show that same window, at the same handle and
+the same rectangle, drawn properly; the second process then exited by itself.
