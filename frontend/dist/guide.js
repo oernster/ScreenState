@@ -68,7 +68,7 @@ const guideSections = [
         rules: [
             {title: 'Capture the desktop', text: 'reads every window you have open and offers them for review. Nothing is written until you name it and confirm.'},
             {title: 'Rename and Delete', text: 'act on the selected profile. A delete names it and asks first.'},
-            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now.'},
+            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now. Anything the profile does not name is minimised out of the way; nothing is ever closed.'},
             {title: 'Close', text: 'puts the window away. %s keeps running in the notification area.'},
             {title: 'Quit', text: 'ends it altogether, after which nothing is arranged at your next sign-in until you start it again.'},
         ],

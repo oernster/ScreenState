@@ -81,7 +81,7 @@ func restoreUnder(
 	log *fakeLog,
 ) *RestoreService {
 	policy := Policy{Ceiling: time.Minute, SettleCheck: 10 * time.Second, Poll: time.Second}
-	return NewRestoreService(desktop, processes, launcher, store, clock, log, policy)
+	return NewRestoreService(desktop, processes, launcher, store, clock, log, policy, screenst)
 }
 
 // reportOf returns the entry report for one application, failing the test where

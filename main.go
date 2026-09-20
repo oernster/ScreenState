@@ -160,6 +160,7 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 		ticking,
 		steps,
 		application.DefaultPolicy(),
+		self(),
 	)
 	captures := application.NewCaptureService(
 		win32.NewDesktop(ticking), win32.NewProcesses(), profiles, steps, self())

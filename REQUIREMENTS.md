@@ -330,6 +330,19 @@ An application that should be present but out of the way is recorded with the
 minimised show state, which is reversible, loses nothing and quits nothing. The
 number is retired rather than reused.
 
+**FR-063 Windows the profile does not name**
+Priority: Must
+Requirement: When a restore has satisfied every entry it can, the ScreenState
+agent shall minimise every visible window whose application the profile does not
+name, excluding its own windows, then shall name each one in the report.
+Rationale: reported 2026-09-20. Applications that start with Windows and take no
+part in a session, NordVPN and GameGlass on the reference machine, arrived on top
+of the arrangement and had to be put away by hand, which is the work this product
+exists to remove. Minimising is the whole of the act: FR-029 forbids closing and
+A-3 measured why, since closing ends some applications outright. A window already
+minimised is left alone, having nothing left to do. The agent's own windows are
+never put away: the manager is where Apply was pressed.
+
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
@@ -933,12 +946,12 @@ Counted from this document rather than carried forward, because the previous
 figures had drifted about ten below the requirements actually written. Recounted
 on 2026-09-20 by scanning every `Priority:` line: the Must figure had been
 written as 56 against 65 actually present, a transposition that the earlier
-recount did not catch. FR-061 took it to 66 and FR-062 to 67. Withdrawn requirements carry no
+recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. Withdrawn requirements carry no
 `Priority:` line, so they are not in the Must or Should figures.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 67 | The product does not work without any one of them. |
+| Must | 68 | The product does not work without any one of them. |
 | Should | 11 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |

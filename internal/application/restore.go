@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/oernster/ScreenState/internal/domain"
@@ -23,6 +24,9 @@ type RestoreService struct {
 	clock     Clock
 	log       Log
 	policy    Policy
+	// self is this product's own identity, never put away by a restore: the
+	// window the user pressed Apply in is not one of the strangers.
+	self domain.ApplicationIdentity
 
 	mutex  sync.Mutex
 	active *activeRestore
@@ -46,6 +50,7 @@ func NewRestoreService(
 	clock Clock,
 	log Log,
 	policy Policy,
+	self domain.ApplicationIdentity,
 ) *RestoreService {
 	return &RestoreService{
 		desktop:   desktop,
@@ -55,6 +60,7 @@ func NewRestoreService(
 		clock:     clock,
 		log:       log,
 		policy:    policy,
+		self:      self,
 	}
 }
 
@@ -198,6 +204,7 @@ func (service *RestoreService) run(ctx context.Context, profile domain.Profile, 
 		service.recheck(ctx, state)
 
 		if state.settled() {
+			service.putTheRestAway(ctx, profile, report)
 			return nil
 		}
 		if state.hasPending() && !service.clock.Now().Before(deadline) {
@@ -209,6 +216,72 @@ func (service *RestoreService) run(ctx context.Context, profile domain.Profile, 
 			return service.stopped(err, state)
 		}
 	}
+}
+
+// putTheRestAway minimises every window the profile does not name (FR-063).
+//
+// A profile is a statement of what the desktop should look like, so a window
+// that is not in it is in the way: the applications that start with Windows and
+// are not part of a session were arriving on top of the arrangement and had to
+// be put away by hand. Minimising is the whole of it. Nothing is closed and
+// nothing is ended, which FR-029 forbids and which the measurement in A-3 says
+// would end some applications outright.
+//
+// It runs once the arrangement is settled, so a window still being placed is
+// never mistaken for a stranger. This product's own windows are never put away:
+// the manager is where Apply was pressed.
+func (service *RestoreService) putTheRestAway(
+	ctx context.Context,
+	profile domain.Profile,
+	report *Report,
+) {
+	windows, err := service.desktop.Windows(ctx)
+	if err != nil {
+		report.Note("the windows this profile does not name were left alone: %v", err)
+		return
+	}
+	var put []string
+	for _, window := range windows {
+		if !service.isStranger(profile, window) {
+			continue
+		}
+		if err := service.desktop.Place(ctx, window.ID, window.Rect, domain.ShowMinimised); err != nil {
+			report.Note("%s could not be put away: %v", describeWindow(window), err)
+			continue
+		}
+		put = append(put, describeWindow(window))
+	}
+	if len(put) == 0 {
+		return
+	}
+	report.Note("put away %d window(s) this profile does not name: %s",
+		len(put), strings.Join(put, ", "))
+	service.log.Step(fmt.Sprintf("put away %d window(s) outside %q", len(put), profile.Name))
+}
+
+// isStranger reports whether a window belongs to none of the profile's
+// applications and so is in the way of the arrangement.
+//
+// A window already minimised is left alone rather than minimised again: there
+// is nothing to do and a report listing it would say something happened.
+func (service *RestoreService) isStranger(profile domain.Profile, window Window) bool {
+	if window.Unreadable != "" || !window.Visible || window.State == domain.ShowMinimised {
+		return false
+	}
+	if window.Application.Validate() != nil || service.self.SameProgram(window.Application) {
+		return false
+	}
+	_, named := profile.Find(window.Application)
+	return !named
+}
+
+// describeWindow names a window for the report, by its description where it has
+// one and by its application where it has not.
+func describeWindow(window Window) string {
+	if description := strings.TrimSpace(window.Description); description != "" {
+		return description
+	}
+	return window.Application.String()
 }
 
 // stopped turns the end of the context into the right answer: a replacement is
