@@ -187,12 +187,19 @@ Windows itself decides where to maximise it.
 ## What a restore does
 
 1. Launch every application the profile records as running that is not running (FR-024), once, at the
-   start, so they load alongside each other. Nothing already running is launched again (FR-025).
+   start, so they load alongside each other. Nothing already running is launched again (FR-025),
+   except as step 3 asks.
 2. On each pass, read the displays and the windows as they then stand; take every outstanding entry
    as far as the windows now open allow.
-3. An entry whose application is running with no visible window has the application run again, which
-   signals the instance already running to show and draw its own window (FR-036, FR-056). Acting on the
-   hidden window from outside was measured producing an empty frame the application was not drawing.
+3. An entry with fewer windows showing than the profile records has the application run again, once
+   per missing window, each run given the settle-check delay before the next (FR-069). With no window
+   showing, the run signals the instance already running to show and draw its own (FR-036, FR-056);
+   acting on the hidden window from outside was measured producing an empty frame. With some showing,
+   the run is for another window: Windows Terminal opens one each time it is run. A run that opens no
+   window ends the asking for that entry and the report says how many opened, since an application
+   allowing one copy would otherwise hold the restore until the ceiling. An application this restore
+   has just started is never run again inside that delay: on 2026-09-21 every launched application
+   was started twice in the same second, which is a second copy FR-025 forbids.
 4. Once placed, a window is read again after the settle-check delay and put back **once** if the
    application has moved it (FR-033). After that one further attempt the agent gives up and says so,
    rather than fighting an application for its own window (FR-034).
@@ -303,8 +310,10 @@ is inert while nothing is selected, since there is then nothing for it to show.
 goes to `IApplicationActivationManager` first and to the shell only where that fails, so the worst case
 is the route used before (FR-067). The taskbar buttons of packaged applications were drawn grey after
 a sign-in on the reference machine until the user clicked the taskbar, while every application started
-by path was drawn properly; how packaged applications are started is the one difference left. Whether
-this route cures it is unproven, so the log names the route that started each one. The call is COM with
+by path was drawn properly; how packaged applications are started was the one difference left. A boot
+on 2026-09-21 measured that it does not cure it (see Known limits); it stays because it is the route
+Windows documents for packaged applications and the log names the route that started each one. The
+call is COM with
 no cgo: a hand-written method table on a goroutine locked to its own thread, which is never unlocked,
 so the thread's COM state ends with it. The comment in `activate_windows.go` records what was tried
 and measured not to work, so nobody tries it again.
@@ -491,6 +500,15 @@ while the windows appear. Windows already open when the agent starts all share o
 they keep the order the first enumeration gave, which is a stacking order rather than an age. So the
 placements of an application whose windows were all open before the agent started are matched in
 stacking order; the user cannot predict that from the order they opened them.
+
+**Grey taskbar buttons for Claude and Windows Terminal after sign-in.** After a sign-in restore the
+taskbar buttons of these two packaged applications can be drawn grey, without their icons, until the
+user clicks anywhere on the taskbar; every application started by path or through an updater is drawn
+properly. Four answers were measured on the reference machine and none cured it: asking every taskbar
+to repaint, telling the shell its icons may have changed, a restore mid-session long after the shell
+was up and starting them through the activation manager. On the boot after the last, Claude's button
+carried its icon on the primary display's taskbar and on no other; Terminal's was grey on all of them.
+The shell draws these buttons and nothing this product can reach changes how, so it is left.
 
 **Unverified against a real desktop.** Moving a window and starting an application are implemented and
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They

@@ -136,6 +136,82 @@ func TestAnApplicationThatStartsIntoTheTrayIsAskedOnceItHasSettled(t *testing.T)
 	}
 }
 
+// FR-069, its acceptance case: a profile recording two Windows Terminal windows
+// with no Terminal running. Terminal is started, run once more after its first
+// window appears and both windows are placed. Each run opens one window, which
+// arrives a few reads after the run, as a real one does.
+func TestEveryWindowAProfileRecordsIsOpened(t *testing.T) {
+	t.Parallel()
+	desktop := &fakeDesktop{displays: []Display{primaryDisplay}}
+	processes := newFakeProcesses()
+	launcher := &fakeLauncher{}
+	var owed []WindowID
+	launcher.onLaunch = func(domain.ApplicationIdentity) {
+		processes.start(terminal)
+		owed = append(owed, WindowID(launcher.launchCount(terminal)))
+	}
+	reads := 0
+	desktop.onWindows = func() {
+		reads++
+		if len(owed) > 0 && reads%windowArrivesOnRead == 0 {
+			desktop.addWindow(aWindow(owed[0], terminal, at(int(owed[0]))))
+			owed = owed[1:]
+		}
+	}
+	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
+	profile, _ := domain.NewProfile("Desk", domain.Entry{
+		Application: terminal, Running: true,
+		Placements: []domain.Placement{onPrimary, second},
+	})
+	service := restoreUnder(desktop, processes, launcher,
+		newFakeStore(), newFakeClock(), &fakeLog{})
+
+	report, err := service.Restore(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("the restore failed: %v", err)
+	}
+	if launcher.launchCount(terminal) != 2 {
+		t.Fatalf("it was run %d times for two windows", launcher.launchCount(terminal))
+	}
+	if entry := reportOf(t, report, terminal); !entry.Satisfied {
+		t.Fatalf("both windows were not placed: %+v", entry)
+	}
+	if placed := desktop.placements(); len(placed) != 2 {
+		t.Fatalf("%d window(s) were placed rather than two", len(placed))
+	}
+}
+
+// FR-069: an application that allows one copy opens nothing when run again, so
+// the asking ends after that one run and the report says how many opened,
+// rather than the restore waiting on it until the ceiling.
+func TestAnApplicationThatOpensNoFurtherWindowIsReported(t *testing.T) {
+	t.Parallel()
+	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
+	desktop := &fakeDesktop{
+		displays: []Display{primaryDisplay},
+		windows:  []Window{aWindow(1, claude, at(0))},
+	}
+	launcher := &fakeLauncher{}
+	service := restoreUnder(desktop, newFakeProcesses(claude), launcher,
+		newFakeStore(), newFakeClock(), &fakeLog{})
+
+	profile, _ := domain.NewProfile("Desk", domain.Entry{
+		Application: claude, Running: true,
+		Placements: []domain.Placement{onPrimary, second},
+	})
+	report, err := service.Restore(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("the restore failed: %v", err)
+	}
+	if launcher.launchCount(claude) != 1 {
+		t.Fatalf("it was run %d times rather than once", launcher.launchCount(claude))
+	}
+	entry := reportOf(t, report, claude)
+	if entry.Satisfied || !containsText(entry.Reason, "opened 1 of the 2 windows") {
+		t.Fatalf("the report does not say how many opened: %+v", entry)
+	}
+}
+
 // FR-036: an application that shows no window after being asked is reported.
 func TestAnApplicationThatShowsNoWindowIsReported(t *testing.T) {
 	t.Parallel()

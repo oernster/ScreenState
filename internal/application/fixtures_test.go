@@ -42,6 +42,7 @@ var (
 	claude   = domain.ApplicationIdentity{Kind: domain.KindAppUserModelID, Value: "Anthropic.Claude"}
 	stellody = domain.ApplicationIdentity{Value: `C:\Programs\Stellody\Stellody.exe`}
 	nordvpn  = domain.ApplicationIdentity{Value: `C:\Programs\NordVPN\NordVPN.exe`}
+	terminal = domain.ApplicationIdentity{Kind: domain.KindAppUserModelID, Value: "Microsoft.WindowsTerminal!App"}
 	screenst = domain.ApplicationIdentity{Value: `C:\Programs\ScreenState\ScreenState.exe`}
 )
 

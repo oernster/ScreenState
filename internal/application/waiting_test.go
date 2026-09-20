@@ -9,10 +9,10 @@ import (
 	"github.com/oernster/ScreenState/internal/domain"
 )
 
-// FR-037 while the second window is still coming: the first placement is
-// applied, the entry stays outstanding and the application is not asked to show
-// a window it plainly has.
-func TestAnEntryWaitsForItsSecondWindow(t *testing.T) {
+// FR-069 with the application already running: it shows one of the two windows
+// the profile records, so it is run again for the second; both are placed,
+// oldest first (FR-037).
+func TestARunningApplicationIsRunAgainForAWindowItIsMissing(t *testing.T) {
 	t.Parallel()
 	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
 	desktop := &fakeDesktop{
@@ -20,14 +20,9 @@ func TestAnEntryWaitsForItsSecondWindow(t *testing.T) {
 		windows:  []Window{aWindow(1, claude, at(0))},
 	}
 	launcher := &fakeLauncher{}
-	clock := newFakeClock()
-	clock.onSleep = func(_ context.Context, _ *fakeClock, count int) {
-		if count == 20 {
-			desktop.addWindow(aWindow(2, claude, at(1)))
-		}
-	}
+	launcher.onLaunch = func(domain.ApplicationIdentity) { desktop.addWindow(aWindow(2, claude, at(1))) }
 	service := restoreUnder(desktop, newFakeProcesses(claude), launcher,
-		newFakeStore(), clock, &fakeLog{})
+		newFakeStore(), newFakeClock(), &fakeLog{})
 
 	profile, _ := domain.NewProfile("Desk", domain.Entry{
 		Application: claude, Running: true,
@@ -44,8 +39,8 @@ func TestAnEntryWaitsForItsSecondWindow(t *testing.T) {
 	if len(placements) != 2 || placements[0].id != 1 || placements[1].id != 2 {
 		t.Fatalf("the windows were not placed oldest first: %+v", placements)
 	}
-	if launcher.launchCount(claude) != 0 {
-		t.Fatal("an application with a visible window was asked to show one")
+	if launcher.launchCount(claude) != 1 {
+		t.Fatalf("it was run %d times for one missing window", launcher.launchCount(claude))
 	}
 }
 

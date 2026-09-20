@@ -15,18 +15,18 @@ import (
 // inferred from the state of the restore as a whole.
 type pendingEntry struct {
 	entry domain.Entry
-	// launched records that this restore started the application (FR-024);
-	// launchedAt is when. A launch that has not had time to settle is never
-	// taken for an application holding a window hidden (FR-025).
-	launched   bool
-	launchedAt time.Time
 	// applied counts the placements already applied, so a placement is never
 	// applied twice as later windows of the same application appear.
 	applied int
-	// askedToShow records the second launch that asks a running application to
-	// show a window it is holding hidden (FR-056); askedAt is when.
-	askedToShow bool
-	askedAt     time.Time
+	// lastRun is when this restore last ran the application, to start it
+	// (FR-024) or to ask it for a window (FR-036, FR-069). A run that has not
+	// had time to settle is waited for, never followed by another (FR-025).
+	lastRun time.Time
+	// asked records that the last run asked for a window; windowsAtAsk is how
+	// many were showing then, so a run that opened nothing can be told apart
+	// from one that did.
+	asked        bool
+	windowsAtAsk int
 }
 
 // placements returns the entry's placements.

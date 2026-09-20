@@ -171,7 +171,8 @@ beside each requirement.
 | The report names what it could not do (FR-044) | Apply a profile naming an application that is not installed. |
 | The bar moves while a restore runs (FR-065, FR-066) | Apply a profile holding several applications that are not running: the bar should fill as each is placed. Closing the report should leave the profile list showing. |
 | Sign-in (FR-053) | Tick the option, sign out and in again. |
-| A packaged application is started by the activation manager (FR-067) | Sign in and look at the taskbar without clicking it: the buttons of the applications the agent started should carry their icons. The log says, for each packaged application, whether the activation manager started it or the shell was asked instead. |
+| A packaged application is started by the activation manager (FR-067) | Sign in and read the log: for each packaged application it says whether the activation manager started it or the shell was asked instead. The grey taskbar buttons are a known limit in ARCHITECTURE.md, not a failure of this check. |
+| Every window a profile records is opened (FR-069) | Capture with two Windows Terminal windows open, close Terminal, then apply the profile: both windows should come back and be placed, with the unnamed windows closed straight after rather than at the ceiling. |
 | A sign-in start opens no window (FR-048) | Sign in with the option ticked: the agent should be in the notification area only. The log says so where the page asked for the keyboard and was left alone. |
 | Several displays, mixed scaling | Capture and restore across monitors at different scales. |
 | The update check (FR-058, FR-059) | Once per run against the real release feed, then again with the setting off, where nothing should reach the network. |

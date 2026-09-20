@@ -290,7 +290,8 @@ applications load alongside the rest.
 Priority: Must
 Requirement: The ScreenState agent shall not launch an application that is
 already running, except as FR-036 requires in order to make a running
-application show a window it is holding hidden.
+application show a window it is holding hidden or as FR-069 requires in order to
+open a window the profile records that is not open.
 Rationale: the exception is not a loophole. Running a second copy is the only
 measured way to get a hidden window back; on a single-instance application it
 starts no second instance: the copy signals the one already running and
@@ -406,9 +407,10 @@ packaged applications the agent had started were drawn grey, without their
 icons, on the reference machine; they stayed that way until the user clicked
 anywhere on the taskbar. Applications started by path or through an updater were
 drawn properly every time, which leaves the way packaged applications are started
-as the one difference. Whether this route draws the buttons properly is not yet
-known; the log line is what lets a boot settle it. Falling back to the shell
-keeps the worst case at the behaviour before.
+as the one difference. A boot on 2026-09-21 measured that this route does not
+draw them properly either; it is kept because it is the documented route for a
+packaged application. Falling back to the shell keeps the worst case at the
+behaviour before.
 
 **FR-068 Reading what a profile arranges**
 Priority: Should
@@ -424,6 +426,25 @@ profile holds is looked at now and then rather than watched, so it is asked for
 rather than always on screen. The main screen keeps the profile list, the
 settings and the buttons along the foot; the dialog has room for a path to wrap
 and be read whole.
+
+**FR-069 Every window a profile records**
+Priority: Must
+Requirement: When a profile entry records more windows than the application has
+open, the ScreenState agent shall run the application's own launch command
+again, once for each missing window, waiting after each run for the time a
+window is given to settle. Where a run opens no new window in that time, the
+agent shall stop asking for that entry; the report shall say how many of the
+recorded windows opened.
+Rationale: reported 2026-09-21. A profile is the desktop as it was when it was
+recorded and a restore reproduces it, however many windows of one application
+that means; how many there should be is never a question for the user. Windows
+Terminal opens another window each time it is run. An application that allows
+one copy answers a second run by bringing its own window forward and opens
+nothing, which is why a run that opens no window ends the asking rather than
+repeating it until the ceiling.
+Acceptance: Given a profile recording two Windows Terminal windows and no
+Terminal running, when a restore runs, then Terminal is started, run once more
+after its first window appears and both windows are placed.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -1045,7 +1066,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 68 | The product does not work without any one of them. |
+| Must | 69 | The product does not work without any one of them. |
 | Should | 16 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |

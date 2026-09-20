@@ -27,9 +27,10 @@ func snapshotPlaced(placed []*placedWindow) []*placedWindow {
 // not running (FR-024). It runs once, at the start, so those applications load
 // alongside each other rather than one at a time.
 //
-// Nothing already running is launched again here (FR-025). The one exception,
-// asking a running application to show a hidden window, belongs to the entry
-// that needs it and is made later, by askToShow.
+// Nothing already running is launched again here (FR-025). The exceptions,
+// asking a running application for a window it is hiding or for one more of its
+// windows, belong to the entry that needs them and are made later, by
+// askForWindows.
 func (service *RestoreService) launchMissing(ctx context.Context, state *restoreState) {
 	for _, pending := range snapshotPending(state.pending) {
 		if !pending.entry.Running {
@@ -55,8 +56,7 @@ func (service *RestoreService) launchMissing(ctx context.Context, state *restore
 			state.fail(pending, "could not be launched: %v", err)
 			continue
 		}
-		pending.launched = true
-		pending.launchedAt = service.clock.Now()
+		pending.lastRun = service.clock.Now()
 		state.report.NoteEntry(pending.entry.Application, "was not running, so it was launched")
 	}
 }
@@ -88,7 +88,7 @@ func (service *RestoreService) advanceEntry(
 	}
 	shown := visible(owned)
 	if len(shown) <= pending.applied {
-		service.askToShow(ctx, state, pending, shown)
+		service.askForWindows(ctx, state, pending, shown)
 		return
 	}
 	service.applyPlacements(ctx, state, set, shown, pending)
@@ -158,29 +158,36 @@ func (service *RestoreService) applyPlacements(
 	state.satisfy(pending)
 }
 
-// askToShow deals with an entry whose application is running with no window to
-// place. FR-036 and FR-056: the application is run again, which signals the
-// instance already running to show and draw its own window. Acting on the
-// hidden window from outside was measured producing an empty frame, so it is
-// not done.
-func (service *RestoreService) askToShow(
+// askForWindows deals with an entry that has fewer windows showing than its
+// profile records. The application is run again once per missing window; each
+// run is given the time a window is given to settle before the next.
+//
+// With no window showing, the run signals the instance already running to show
+// and draw its own (FR-036, FR-056); acting on the hidden window from outside
+// was measured producing an empty frame, so it is not done. With some showing,
+// the run is for another window (FR-069): Windows Terminal opens one each time
+// it is run. An application allowing one copy opens nothing, so a run that
+// adds no window ends the asking and the report says how many opened.
+func (service *RestoreService) askForWindows(
 	ctx context.Context,
 	state *restoreState,
 	pending *pendingEntry,
 	shown []Window,
 ) {
-	if len(shown) > 0 {
-		// Some windows are open and placed; the entry is waiting for the rest
-		// to appear. The ceiling decides how long that waiting lasts.
+	now := service.clock.Now()
+	if !pending.lastRun.IsZero() && now.Sub(pending.lastRun) < service.policy.SettleCheck {
+		// The last run has not had time to open its window. Running it again
+		// now would be the second copy FR-025 forbids: on 2026-09-21 every
+		// launched application was started twice in the same second.
 		return
 	}
-	if pending.launched && service.clock.Now().Sub(pending.launchedAt) < service.policy.SettleCheck {
-		// This restore has just started it, so it is still starting rather than
-		// holding a window hidden: running it again now would be the second
-		// copy FR-025 forbids. Measured on 2026-09-21, when every launched
-		// application was started twice in the same second. Once it has had the
-		// time any window is given to settle, an application that started into
-		// the notification area is asked like any other (FR-036).
+	if pending.asked && len(shown) <= pending.windowsAtAsk {
+		if len(shown) == 0 {
+			state.fail(pending, "is running but showed no window to place")
+			return
+		}
+		state.fail(pending, "opened %d of the %d windows the profile records",
+			len(shown), len(pending.placements()))
 		return
 	}
 	running, err := service.processes.Running(ctx, pending.entry.Application)
@@ -192,20 +199,25 @@ func (service *RestoreService) askToShow(
 		// Still starting or never started. Either way there is nothing to ask.
 		return
 	}
-	if !pending.askedToShow {
-		if err := service.launcher.Launch(ctx, pending.entry.Application); err != nil {
+	if err := service.launcher.Launch(ctx, pending.entry.Application); err != nil {
+		if len(shown) == 0 {
 			state.fail(pending, "is running with no window and could not be asked to show one: %v", err)
 			return
 		}
-		pending.askedToShow = true
-		pending.askedAt = service.clock.Now()
+		state.fail(pending, "could not be run again for another window: %v", err)
+		return
+	}
+	pending.asked = true
+	pending.lastRun = now
+	pending.windowsAtAsk = len(shown)
+	if len(shown) == 0 {
 		state.report.NoteEntry(pending.entry.Application,
 			"was running with no visible window, so it was asked to show one")
 		return
 	}
-	if service.clock.Now().Sub(pending.askedAt) >= service.policy.SettleCheck {
-		state.fail(pending, "is running but showed no window to place")
-	}
+	state.report.NoteEntry(pending.entry.Application,
+		"had %d of the %d windows the profile records, so it was run again for another",
+		len(shown), len(pending.placements()))
 }
 
 // recheck makes the check FR-033 requires: a window is read again once it has
