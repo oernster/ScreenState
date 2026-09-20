@@ -34,3 +34,17 @@ the download.
 
 Your captured profiles live somewhere else, so removing the product leaves them alone unless you tick
 the box that says otherwise.
+
+## Using it
+
+The agent waits in the notification area. Click its icon or launch it again from the Start Menu
+or the desktop. Either way the manager opens with the profiles down the left, what the selected one arranges down
+the right and the sign-in setting under them. Right-click the icon instead for the menu, which
+applies a profile, starts a capture, opens the report of the last restore or quits.
+
+Capture the desktop to make a profile. Nothing is saved until you name it and confirm; anything you
+untick is left out. Marking a profile as the default is what makes it the one applied after you sign
+in; marking none means nothing is applied.
+
+Started by Windows at sign-in it opens no window at all, which is the point of it: it puts your
+windows back and waits.

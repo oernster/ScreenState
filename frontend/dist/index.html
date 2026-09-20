@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Manager</title>
+    <link rel="stylesheet" href="theme.css"/>
+    <link rel="stylesheet" href="manager.css"/>
+</head>
+<!--
+  Nothing on this page writes the product's name or its tagline down. A page has
+  no compiler behind it, so a name written here survives a rename in silence.
+  Both arrive on the state the program hands over.
+-->
+<body>
+<div class="shell">
+    <div class="head">
+        <img class="mark" id="mark" src="icon.png" alt=""/>
+        <div class="who">
+            <div class="title" id="brand"></div>
+            <div class="sub" id="tagline"></div>
+        </div>
+        <button class="linkbtn" id="donate" title="Open the donation page in your browser">Donate</button>
+        <button class="themebtn" id="theme" title="Switch between light and dark">
+            <svg id="theme-sun" class="themeart" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="2"/>
+                <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M12 2v2.6"/><path d="M12 19.4V22"/>
+                    <path d="M2 12h2.6"/><path d="M19.4 12H22"/>
+                    <path d="M4.9 4.9l1.9 1.9"/><path d="M17.2 17.2l1.9 1.9"/>
+                    <path d="M19.1 4.9l-1.9 1.9"/><path d="M6.8 17.2l-1.9 1.9"/>
+                </g>
+            </svg>
+            <svg id="theme-moon" class="themeart" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"
+                      stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="body">
+        <section class="view" id="view-profiles">
+            <div class="split">
+                <div class="column">
+                    <div class="columnhead">
+                        <h2>Profiles</h2>
+                        <span class="count" id="profile-count"></span>
+                    </div>
+                    <div class="rows" id="profile-rows"></div>
+                </div>
+                <div class="column wide">
+                    <div class="columnhead">
+                        <h2 id="detail-title">Nothing selected</h2>
+                        <span class="count" id="entry-count"></span>
+                    </div>
+                    <div class="rows" id="entry-rows"></div>
+                    <div class="settings">
+                        <div class="options" id="settings-options"></div>
+                        <p class="lead small" id="settings-note"></p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="view" id="view-capture">
+            <h1>What this capture would record</h1>
+            <p class="lead">Nothing is saved until you name it and confirm. Untick
+                anything that does not belong in this profile.</p>
+            <div class="namerow">
+                <label class="fieldlabel" for="capture-name">Profile name</label>
+                <input class="field" id="capture-name" type="text" autocomplete="off" spellcheck="false"/>
+            </div>
+            <div class="rows tall" id="capture-rows"></div>
+            <p class="lead small" id="capture-unreadable" hidden></p>
+        </section>
+
+        <section class="view" id="view-report">
+            <h1 id="report-title">Report of the last restore</h1>
+            <p class="lead" id="report-summary"></p>
+            <div class="rows tall" id="report-rows"></div>
+        </section>
+
+        <section class="view centred" id="view-donate">
+            <img class="donateart" id="donate-art" src="donate.png" alt=""/>
+            <h1 id="donate-title">Free today and tomorrow</h1>
+            <p class="lead" id="donate-words"></p>
+            <div class="infobox"><span class="path" id="donate-url"></span></div>
+        </section>
+
+        <section class="view centred" id="view-confirm">
+            <div class="verdict" style="color: var(--danger)">&#9888;</div>
+            <h1 id="confirm-title">Delete it?</h1>
+            <p class="lead" id="confirm-words"></p>
+        </section>
+
+        <section class="view centred" id="view-busy">
+            <h1 id="busy-title">Working...</h1>
+            <p class="lead" id="busy-words"></p>
+        </section>
+
+        <section class="view centred" id="view-error">
+            <div class="verdict" style="color: var(--danger)">&#9888;</div>
+            <h1 id="error-title">Something went wrong</h1>
+            <p class="lead" id="error-words"></p>
+        </section>
+    </div>
+
+    <div class="footer" id="footer"></div>
+</div>
+
+<script src="shell.js"></script>
+<script src="manager.js"></script>
+</body>
+</html>

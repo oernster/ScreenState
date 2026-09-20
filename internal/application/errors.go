@@ -14,6 +14,10 @@ var (
 	ErrNoSuchProfile = errors.New("no such profile")
 	// ErrProfileNameInUse is a save under a name already stored (FR-002).
 	ErrProfileNameInUse = errors.New("profile name is already in use")
+	// ErrNoSuchEntry is a request to remove an application a profile does not
+	// hold. It is told apart from a successful removal on purpose: a silent
+	// success would let the manager report a change that never happened.
+	ErrNoSuchEntry = errors.New("no such entry in the profile")
 	// ErrNoDisplays is a desktop reporting no connected display. Nothing can be
 	// placed, so a restore says so rather than guessing at coordinates.
 	ErrNoDisplays = errors.New("no display is connected")

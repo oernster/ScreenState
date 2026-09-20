@@ -21,7 +21,19 @@ var ErrNotWindows = errors.New("the tray runs on Windows only")
 type Tray struct{}
 
 // NewTray returns a tray that refuses to run.
-func NewTray(*application.TrayService, application.Log) *Tray { return &Tray{} }
+func NewTray(
+	*application.TrayService,
+	application.Log,
+	func(application.ManagerRequest),
+) *Tray {
+	return &Tray{}
+}
 
 // Run refuses.
 func (tray *Tray) Run(context.Context) error { return ErrNotWindows }
+
+// ShowRunningManager has no running copy to ask off Windows.
+func ShowRunningManager() bool { return false }
+
+// TakeWindowFocus has no window to focus off Windows.
+func TakeWindowFocus() bool { return false }

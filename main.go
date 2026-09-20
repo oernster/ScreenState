@@ -1,5 +1,5 @@
 // Command ScreenState is the agent: it restores the default profile after
-// sign-in and writes down what it did.
+// sign-in, waits in the notification area and presents the manager when asked.
 //
 // This file is the composition root. It is the only place that knows both the
 // application layer and the Windows layer, which is why the structural suite
@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"flag"
 	"fmt"
 	"os"
@@ -20,11 +21,20 @@ import (
 	"github.com/oernster/ScreenState/internal/infrastructure/clock"
 	"github.com/oernster/ScreenState/internal/infrastructure/instance"
 	"github.com/oernster/ScreenState/internal/infrastructure/runlog"
+	"github.com/oernster/ScreenState/internal/infrastructure/setup"
+	"github.com/oernster/ScreenState/internal/infrastructure/startup"
 	"github.com/oernster/ScreenState/internal/infrastructure/store"
 	"github.com/oernster/ScreenState/internal/infrastructure/win32"
 	"github.com/oernster/ScreenState/internal/product"
 	"github.com/oernster/ScreenState/internal/ui"
+	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
+	windowsoptions "github.com/wailsapp/wails/v2/pkg/options/windows"
 )
+
+//go:embed all:frontend/dist
+var assets embed.FS
 
 // version is stamped in at build time from the VERSION file. It is a var and
 // not a const on purpose: the linker's -X flag reaches a var and silently does
@@ -34,23 +44,49 @@ var version = "0.0.0-dev"
 // exitFailure is the code a run that could not do its work ends with.
 const exitFailure = 1
 
+const (
+	windowTitle = product.Name
+	// The manager holds a profile list beside the entries of the selected
+	// profile, so it wants width more than height. It is resizable, unlike the
+	// setup window, because how many entries a profile holds is the user's
+	// business rather than this program's.
+	windowWidth     = 1100
+	windowHeight    = 760
+	minWindowWidth  = 820
+	minWindowHeight = 560
+)
+
+// dark and light are the surface colours of the palette, sampled from the
+// product's own artwork. One of them paints the window before the page loads,
+// so the manager never flashes the wrong ground.
+var (
+	dark  = options.RGBA{R: 0x0b, G: 0x0e, B: 0x14, A: 1}
+	light = options.RGBA{R: 0xf4, G: 0xf6, B: 0xf9, A: 1}
+)
+
 func main() {
 	showVersion := flag.Bool("version", false, "print the version and exit")
+	// hidden is what the sign-in entry passes. A companion that opens a window
+	// every time the machine is signed into is not waiting quietly, which is
+	// what FR-046 offers; launched by hand it opens the manager instead, which
+	// is what a user double-clicking a shortcut means by it.
+	hidden := flag.Bool("hidden", false,
+		"wait in the notification area without opening the manager")
 	flag.Parse()
 	if *showVersion {
 		fmt.Printf("%s %s\n", product.Name, version)
 		return
 	}
-	if err := run(); err != nil {
+	if err := run(*hidden); err != nil {
 		// The log already carries this, where there was a log to carry it.
 		fmt.Fprintf(os.Stderr, "%s: %v\n", product.Name, err)
 		os.Exit(exitFailure)
 	}
 }
 
-// run does the whole of a sign-in: hold the log open, take the single-instance
-// mutex, build the adapters and restore the default profile.
-func run() error {
+// run holds the log open, takes the single-instance mutex, builds the adapters
+// and runs the window until the user quits.
+func run(hidden bool) error {
 	started := clock.New().Now()
 
 	directory, err := store.DefaultDirectory()
@@ -75,20 +111,23 @@ func run() error {
 		return err
 	}
 	if !held {
-		// FR-054: a second launch stands down. It will present the running
-		// copy's manager once there is one; for now it says so and stops,
-		// rather than arranging the desktop twice at once.
-		steps.Step("another copy is already running, so this one stopped")
+		// FR-054: a second launch presents the running instance's manager and
+		// ends. Asking the copy that is already there is the whole of what this
+		// launch does; it never arranges the desktop a second time.
+		if ui.ShowRunningManager() {
+			steps.Step("another copy is already running, so its manager was opened")
+			return nil
+		}
+		steps.Step("another copy is already running and would not answer")
 		return nil
 	}
 	defer func() { _ = lock.Release() }()
 
-	return signIn(steps, directory)
+	return serve(steps, directory, hidden)
 }
 
-// signIn builds the services over the real machine and restores the default
-// profile (FR-038).
-func signIn(steps *runlog.Steps, directory string) error {
+// serve builds the services over the real machine and runs the window.
+func serve(steps *runlog.Steps, directory string, hidden bool) error {
 	profiles, err := store.New(directory, steps)
 	if err != nil {
 		return err
@@ -114,29 +153,95 @@ func signIn(steps *runlog.Steps, directory string) error {
 		steps,
 		application.DefaultPolicy(),
 	)
+	captures := application.NewCaptureService(
+		win32.NewDesktop(ticking), win32.NewProcesses(), profiles, steps, self())
+	manager := application.NewManagerService(profiles, startup.New(), steps)
+	tray := application.NewTrayService(profiles, restores, captures, steps)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
+	app := NewApp(manager, tray, restores, captures, steps, version)
+	go signIn(ctx, restores, steps)
+	go runTray(ctx, tray, steps, app)
+
+	background := light
+	if setup.SystemPrefersDark() {
+		background = dark
+	}
+	return wails.Run(&options.App{
+		Title:             windowTitle,
+		Width:             windowWidth,
+		Height:            windowHeight,
+		MinWidth:          minWindowWidth,
+		MinHeight:         minWindowHeight,
+		StartHidden:       hidden,
+		HideWindowOnClose: true,
+		BackgroundColour:  &background,
+		AssetServer:       &assetserver.Options{Assets: assets},
+		OnStartup:         app.startup,
+		OnDomReady:        app.domReady,
+		Bind:              []interface{}{app},
+		Windows: &windowsoptions.Options{
+			WebviewUserDataPath: webviewData(),
+		},
+	})
+}
+
+// webviewData pins the webview's own cache beside the profiles rather than
+// letting it default into the roaming profile under the executable's name,
+// where an uninstall would not know to look for it.
+func webviewData() string {
+	directory, err := store.DefaultDirectory()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(filepath.Dir(directory), "webview")
+}
+
+// signIn restores the default profile (FR-038) without holding up the window.
+//
+// It runs alongside rather than before, because a restore waits for windows to
+// appear and may take minutes: a manager that could not be opened until it
+// finished would be shut for the whole of the time a user most wants to look at
+// it. FR-048 asks only that the restore complete without the window being
+// opened, which it does.
+func signIn(ctx context.Context, restores *application.RestoreService, steps *runlog.Steps) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			steps.Step(fmt.Sprintf("the sign-in restore failed unexpectedly: %v", recovered))
+		}
+	}()
 	report, marked, err := restores.RestoreDefault(ctx)
 	if err != nil {
-		return err
+		steps.Step(fmt.Sprintf("the sign-in restore stopped: %v", err))
+		return
 	}
 	if marked {
 		write(steps, report)
 	}
 	// FR-039 needs nothing more where no profile is marked: the restore service
-	// has already said so in the log; the tray then offers the capture that
+	// has already said so in the log; the manager then offers the capture that
 	// gets the user started.
+}
 
-	captures := application.NewCaptureService(
-		win32.NewDesktop(ticking), win32.NewProcesses(), profiles, steps, self())
-	tray := application.NewTrayService(profiles, restores, captures, steps)
-
-	// The agent stays for the session from here. A restore at sign-in is only
-	// half of what the product does; FR-041 lets the user apply a profile
-	// whenever they like, which needs something on screen to ask.
-	return ui.NewTray(tray, steps).Run(ctx)
+// runTray carries the notification area icon for the session. It runs on a
+// goroutine because the window owns the main thread; the tray locks a thread of
+// its own, since a window belongs to the thread that made it.
+func runTray(
+	ctx context.Context,
+	service *application.TrayService,
+	steps *runlog.Steps,
+	app *App,
+) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			steps.Step(fmt.Sprintf("the tray failed unexpectedly: %v", recovered))
+		}
+	}()
+	if err := ui.NewTray(service, steps, app.ShowManager).Run(ctx); err != nil {
+		steps.Step(fmt.Sprintf("the tray could not be shown: %v", err))
+	}
 }
 
 // self is this product's own identity, which every capture excludes so that a

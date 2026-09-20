@@ -54,6 +54,9 @@ func TestAnEmptyStoreStillGivesAUsefulMenu(t *testing.T) {
 	if message.Enabled {
 		t.Fatal("a line that does nothing was offered as something to click")
 	}
+	if manager, held := itemOf(items, MenuManager); !held || !manager.Enabled {
+		t.Error("the menu does not offer the manager (EIR-001)")
+	}
 	capture, held := itemOf(items, MenuCapture)
 	if !held || !capture.Enabled {
 		t.Fatal("a user with no profiles cannot capture one")
@@ -249,14 +252,20 @@ func TestCapturingFromTheTrayWritesNothing(t *testing.T) {
 }
 
 // The menu's shape is settled: profiles, then the things that are always
-// there, each group divided.
+// there, each group divided. EIR-001 names what the menu offers; the manager
+// is on that list: a menu that cannot reach the window is a window a
+// user has to find another way into.
 func TestTheMenuHasASettledShape(t *testing.T) {
 	t.Parallel()
 	profile, _ := domain.NewProfile("Desk", domain.Entry{Application: claude, Running: true})
 	tray, _ := trayOver(newFakeStore(profile), &fakeDesktop{displays: []Display{primaryDisplay}},
 		newFakeProcesses())
 
-	want := []MenuKind{MenuProfile, MenuSeparator, MenuCapture, MenuReport, MenuSeparator, MenuQuit}
+	want := []MenuKind{
+		MenuProfile, MenuSeparator,
+		MenuManager, MenuCapture, MenuReport,
+		MenuSeparator, MenuQuit,
+	}
 	got := kinds(tray.Menu(context.Background()))
 	if len(got) != len(want) {
 		t.Fatalf("the menu has %d entries: %v", len(got), got)

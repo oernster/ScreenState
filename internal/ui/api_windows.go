@@ -33,8 +33,8 @@ var (
 	pSetForegroundWindow = user32.NewProc("SetForegroundWindow")
 	pLoadCursor          = user32.NewProc("LoadCursorW")
 	pLoadIcon            = user32.NewProc("LoadIconW")
-	pMessageBox          = user32.NewProc("MessageBoxW")
 	pRegisterWindowMsg   = user32.NewProc("RegisterWindowMessageW")
+	pFindWindow          = user32.NewProc("FindWindowW")
 
 	pShellNotifyIcon = shell32.NewProc("Shell_NotifyIconW")
 	pExtractIconEx   = shell32.NewProc("ExtractIconExW")
@@ -97,15 +97,6 @@ const (
 
 	// tipLength is the room Windows gives a tray tooltip, in UTF-16 units.
 	tipLength = 128
-)
-
-// Message box flags. The report is information, so it carries the information
-// icon rather than a warning: an entry left outstanding is something to read,
-// not an error the user caused.
-const (
-	mbIconInfo    = 0x00000040
-	mbIconWarning = 0x00000030
-	mbOK          = 0x00000000
 )
 
 // point is the Win32 POINT, used to open the menu where the pointer is.

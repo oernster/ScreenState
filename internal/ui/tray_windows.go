@@ -28,11 +28,19 @@ const firstCommand = 1
 type Tray struct {
 	service *application.TrayService
 	log     application.Log
+	// onManager asks for the manager window. The tray never opens a window
+	// itself: it runs on its own locked thread and the manager belongs to the
+	// thread the webview runs on, so this hands the request across rather than
+	// reaching over.
+	onManager func(application.ManagerRequest)
 
 	hwnd    uintptr
 	icon    uintptr
 	added   bool
 	taskbar uint32
+	// showManager is the message a second launch posts to ask this copy for
+	// its manager (FR-054).
+	showManager uint32
 
 	mutex   sync.Mutex
 	entries []application.MenuItem
@@ -45,9 +53,26 @@ type Tray struct {
 // exists and read only on the thread that owns it.
 var current *Tray
 
-// NewTray returns a tray over the given service.
-func NewTray(service *application.TrayService, log application.Log) *Tray {
-	return &Tray{service: service, log: log}
+// NewTray returns a tray over the given service. onManager is called when the
+// user asks for the manager, by clicking the icon or by choosing it from the
+// menu; it may be nil for a tray with no window behind it.
+func NewTray(
+	service *application.TrayService,
+	log application.Log,
+	onManager func(application.ManagerRequest),
+) *Tray {
+	return &Tray{service: service, log: log, onManager: onManager}
+}
+
+// manager asks for the manager window, saying so in the log where there is
+// nothing to ask. A tray whose click does nothing is the failure that is
+// hardest to tell from a tray that is broken.
+func (tray *Tray) manager(request application.ManagerRequest) {
+	if tray.onManager == nil {
+		tray.log.Step("the manager was asked for and this run has no window")
+		return
+	}
+	tray.onManager(request)
 }
 
 // Run shows the tray icon and carries messages until the user quits.
@@ -69,6 +94,7 @@ func (tray *Tray) Run(ctx context.Context) error {
 	name := wide("TaskbarCreated")
 	registered, _, _ := pRegisterWindowMsg.Call(uintptr(unsafe.Pointer(name)))
 	tray.taskbar = uint32(registered)
+	tray.showManager = registerShowManager()
 
 	tray.add()
 	tray.log.Step("the tray icon is showing")
@@ -153,8 +179,20 @@ func procedure(hwnd, value, wParam, lParam uintptr) uintptr {
 		tray.added = false
 		tray.add()
 		return 0
+	case uint32(value) == tray.showManager && tray.showManager != 0:
+		// A second launch asked for the manager rather than starting a second
+		// agent (FR-054).
+		tray.manager(application.ManagerProfiles)
+		return 0
 	case value == wmTray:
-		if lParam == wmRButtonUp || lParam == wmLButtonUp || lParam == wmContextMenu {
+		// A left click opens the manager and a right click opens the menu,
+		// which is what every other tray program on the machine does. Both were
+		// the menu before there was a window to open.
+		if lParam == wmLButtonUp {
+			tray.manager(application.ManagerProfiles)
+			return 0
+		}
+		if lParam == wmRButtonUp || lParam == wmContextMenu {
 			tray.showMenu()
 		}
 		return 0

@@ -45,43 +45,38 @@ if ($LASTEXITCODE -ne 0) { throw "test.ps1 failed with exit code $LASTEXITCODE" 
 # rather than a stage of the work.
 $icon = Join-Path $root 'assets/application-icon.ico'
 $master = Join-Path $root 'assets/application-icon.png'
-$manifest = Join-Path $root 'versioninfo.json'
 if (-not ((Test-Path $icon) -and (Test-Path $master))) {
     throw 'Missing assets/application-icon.png or .ico: run tools/genicons.py first.'
 }
-if (-not (Test-Path $manifest)) { throw 'Missing versioninfo.json.' }
 
-# The icon and the version Windows shows in the agent's file properties are
-# carried by a resource object the Go toolchain links in when it finds one
-# beside the main package. goversioninfo writes it from versioninfo.json.
-Write-Host 'Applying the icon and the version resource...'
-$syso = Join-Path $root 'resource_windows.syso'
-& go run github.com/josephspurrier/goversioninfo/cmd/goversioninfo@latest -o $syso -icon $icon -product-version $version -ver-major ($version.Split('.')[0]) -ver-minor ($version.Split('.')[1]) -ver-patch ($version.Split('.')[2]) $manifest
-if ($LASTEXITCODE -ne 0) { throw "goversioninfo failed with exit code $LASTEXITCODE" }
+# Wails reads each program's own icon out of its build directory, so the same
+# file is placed in both rather than a second one being drawn.
+foreach ($dir in @('build', 'installer/build')) {
+    New-Item -ItemType Directory -Force -Path (Join-Path $root "$dir/windows") | Out-Null
+    Copy-Item $master (Join-Path $root "$dir/appicon.png") -Force
+    Copy-Item $icon (Join-Path $root "$dir/windows/icon.ico") -Force
+}
 
-# Wails reads the setup program's own icon out of its build directory, so the
-# same file is placed there rather than a second one being drawn.
-New-Item -ItemType Directory -Force -Path (Join-Path $root 'installer/build/windows') | Out-Null
-Copy-Item $master (Join-Path $root 'installer/build/appicon.png') -Force
-Copy-Item $icon (Join-Path $root 'installer/build/windows/icon.ico') -Force
+# The palette and the page furniture have ONE home, in assets/. Each window
+# embeds its own copy of the page it shows, so the copies are refreshed here and
+# a structural test fails when one has drifted. Copying beats editing two files.
+foreach ($shared in @('theme.css', 'shell.js')) {
+    foreach ($dist in @('frontend/dist', 'installer/frontend/dist')) {
+        Copy-Item (Join-Path $root "assets/$shared") (Join-Path $root "$dist/$shared") -Force
+    }
+}
 
-Write-Host 'Building the application...'
+Write-Host 'Building the agent...'
+# Wails builds it now, because the manager is a window in the same program: the
+# tray runs on a locked thread of its own while the window owns the main one.
+# The version reaches it through the linker rather than a literal; -X only
+# reaches a var; against a const it silently does nothing.
+wails build -ldflags "-X main.version=$version"
+if ($LASTEXITCODE -ne 0) { throw "wails build failed with exit code $LASTEXITCODE" }
+
 $binDir = Join-Path $root 'build/bin'
-New-Item -ItemType Directory -Force -Path $binDir | Out-Null
 $exe = Join-Path $binDir 'ScreenState.exe'
-
-# -H=windowsgui gives the agent no console window, which is what a program that
-# lives in the tray wants: started at sign-in it must not flash a black box;
-# started from a prompt it must not hold the prompt. It also means the run has no
-# error output of its own, which is precisely why the log takes it over.
-& go build -trimpath -ldflags "-s -w -H=windowsgui -X main.version=$version" -o $exe .
-if ($LASTEXITCODE -ne 0) { throw "go build failed with exit code $LASTEXITCODE" }
-
-# The resource object is a build output rather than source. Leaving it behind
-# makes `go build ./...` silently link it into every later build, including ones
-# meant to carry a different version.
-if (Test-Path $syso) { Remove-Item $syso -Force }
-
+if (-not (Test-Path $exe)) { throw "the build produced no $exe" }
 Write-Host "Built $exe"
 
 if ($SkipInstaller) {
@@ -104,10 +99,9 @@ $payload = Join-Path $root 'installer/payload.zip'
 if (Test-Path $payload) { Remove-Item $payload -Force }
 Compress-Archive -Path (Join-Path $binDir '*') -DestinationPath $payload
 
-# The setup program is a second program in the same module, built as a Wails
-# application because it needs a window and the agent does not. The version
-# reaches it the same way it reaches the agent, through the linker rather than a
-# literal.
+# The setup program is a second program in the same module with a window of its
+# own, so it is built separately from its own directory. The version reaches it
+# the same way it reaches the agent, through the linker rather than a literal.
 Write-Host 'Building the setup program...'
 Push-Location (Join-Path $root 'installer')
 try {

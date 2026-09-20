@@ -1,9 +1,11 @@
-const $ = (id) => document.getElementById(id)
+/*
+ * What the setup window adds to the shared furniture in shell.js: the licence
+ * panel, the choices each screen offers and the work behind the go-ahead.
+ */
 
 // appName is the product's name, read from the setup program rather than
 // written here. The page renders before it arrives, so the static text carries
-// none of it and every screen fills it in from this. Written down, it goes stale
-// through a rename with nothing to say so.
+// none of it and every screen fills it in from this.
 let appName = ''
 
 // currentState is the last reading of the machine, kept so a screen that goes
@@ -11,125 +13,14 @@ let appName = ''
 // heading, the options and the buttons; nothing works any of that out twice.
 let currentState = null
 
-function backend() {
-    return window.go && window.go.main && window.go.main.App
-}
-
-/* ------------------------------------------------------------------ theme */
-
-// applyTheme sets the theme and re-faces the button to the theme it would
-// switch TO, so the sun shows while you are in the dark. Both happen here: a
-// repaint that left the button showing the mode just departed invites a second
-// press.
-function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme)
-    const dark = theme === 'dark'
-    $('theme-sun').classList.toggle('showing', dark)
-    $('theme-moon').classList.toggle('showing', !dark)
-    $('theme').title = dark ? 'Switch to light' : 'Switch to dark'
-}
-
-function currentTheme() {
-    return document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
-}
-
-$('theme').onclick = () => applyTheme(currentTheme() === 'dark' ? 'light' : 'dark')
-
-/* ---------------------------------------------------------------- screens */
-
-function showScreen(name) {
-    document.querySelectorAll('.screen').forEach((el) => el.classList.remove('active'))
-    $('screen-' + name).classList.add('active')
-}
-
-// setFooter rebuilds the row for the screen now showing. It is never one fixed
-// row relabelled as it goes: a relabelled row has to remember what it used to
-// mean, which is how a go-ahead button on a removal screen kept the styling of a
-// safe action. Passing an empty list leaves no buttons at all, which is what a
-// screen with nothing safe to offer offers.
-function setFooter(buttons) {
-    const footer = $('footer')
-    footer.innerHTML = ''
-    buttons.forEach((spec) => {
-        const el = document.createElement('button')
-        el.className = 'btn' + (spec.kind ? ' ' + spec.kind : '')
-        el.textContent = spec.label
-        el.onclick = spec.onClick
-        footer.appendChild(el)
-    })
-    focusFooter()
-}
-
-// keyboardSettleMs is how long the webview is given to come up holding the
-// keyboard before the page decides it has not.
-const keyboardSettleMs = 400
-
-// focusFooter puts focus on the button a screen leads with, so Enter does the
-// obvious thing and the ring says where it would land.
-function focusFooter() {
-    const footer = $('footer')
-    const first = footer.querySelector('.btn.primary') || footer.querySelector('.btn')
-    if (first) first.focus()
-}
-
-// settleKeyboard repairs a launch that came up with no keyboard at all. See the
-// window package for the race it loses; the page is the only thing that can
-// tell, because focusing an element is not the same as the document HAVING
-// focus.
-function settleKeyboard() {
-    window.focus()
-    focusFooter()
-    window.setTimeout(() => {
-        if (document.hasFocus()) return
-        void backend().TakeKeyboard().then(() => {
-            window.focus()
-            focusFooter()
-        })
-    }, keyboardSettleMs)
-}
-
 /* ---------------------------------------------------------------- licence */
 
 // The licence is a screen reachable from everywhere, so whatever was due stays
 // due behind it. The setup program carries ONE licence, its own; what the agent
 // is covered by belongs to the agent.
 $('licence').onclick = () => {
-    showScreen('licence')
+    showOnly('screen', 'licence')
     setFooter([{label: 'Back', kind: 'primary', onClick: () => route(currentState)}])
-}
-
-/* ---------------------------------------------------------------- options */
-
-// renderOptions fills a container with checkboxes and returns a reader for their
-// values, so no screen has to know the ids of its own boxes.
-function renderOptions(container, specs) {
-    container.innerHTML = ''
-    const boxes = {}
-    specs.forEach((spec) => {
-        const label = document.createElement('label')
-        label.className = 'option'
-        const input = document.createElement('input')
-        input.type = 'checkbox'
-        input.checked = !!spec.checked
-        if (spec.onChange) input.onchange = () => spec.onChange(input.checked)
-        const tick = document.createElement('span')
-        tick.className = 'check'
-        const text = document.createElement('span')
-        const title = document.createElement('span')
-        title.className = 'label'
-        title.textContent = spec.label
-        text.appendChild(title)
-        if (spec.hint) {
-            const hint = document.createElement('span')
-            hint.className = 'hint'
-            hint.textContent = spec.hint
-            text.appendChild(hint)
-        }
-        label.append(input, tick, text)
-        container.appendChild(label)
-        boxes[spec.key] = input
-    })
-    return (key) => boxes[key].checked
 }
 
 // freshChoices are what a first install applies; they are what a reinstall puts back.
@@ -189,12 +80,12 @@ async function run(work, title, doneTitle, doneMsg) {
     $('progress-fill').style.width = '0'
     $('progress-status').textContent = 'Starting...'
     setFooter([])
-    showScreen('progress')
+    showOnly('screen', 'progress')
     try {
         await work()
         $('done-title').textContent = doneTitle
         $('done-msg').textContent = doneMsg
-        showScreen('done')
+        showOnly('screen', 'done')
         setFooter([{label: 'Close', kind: 'primary', onClick: () => backend().Quit()}])
     } catch (e) {
         showError(String(e))
@@ -215,7 +106,7 @@ function finish(work, wanted, title, doneTitle, doneMsg) {
 
 function showError(message) {
     $('error-msg').textContent = message
-    showScreen('error')
+    showOnly('screen', 'error')
     setFooter([{label: 'Close', kind: 'primary', onClick: () => backend().Quit()}])
 }
 
@@ -227,7 +118,7 @@ async function withAppClosed(proceed) {
         proceed()
         return
     }
-    showScreen('running')
+    showOnly('screen', 'running')
     setFooter([
         {label: 'Cancel', onClick: () => route(currentState)},
         {

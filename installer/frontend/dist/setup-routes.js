@@ -6,7 +6,7 @@ function routeInstall(state) {
     const read = renderOptions($('install-options'), shortcutOptions(state).concat([
         launchOption(),
     ]))
-    showScreen('install')
+    showOnly('screen', 'install')
     setFooter([
         {label: 'Cancel', onClick: () => backend().Quit()},
         {
@@ -33,7 +33,7 @@ function routeChange(state) {
     const read = renderOptions($('update-options'), shortcutOptions(state).concat([
         launchOption(),
     ]))
-    showScreen('update')
+    showOnly('screen', 'update')
     setFooter([
         {label: 'Uninstall', kind: 'danger', onClick: () => routeUninstall(state)},
         {label: 'Not now', onClick: () => backend().Quit()},
@@ -72,7 +72,7 @@ function routeManage(state) {
         },
         launchOption(),
     ])
-    showScreen('manage')
+    showOnly('screen', 'manage')
     setFooter([
         {label: 'Uninstall', kind: 'danger', onClick: () => routeUninstall(state)},
         {label: 'Close', onClick: () => backend().Quit()},
@@ -105,7 +105,7 @@ function routeUninstall(state) {
             checked: false,
         },
     ])
-    showScreen('uninstall')
+    showOnly('screen', 'uninstall')
     setFooter([
         {label: 'Cancel', onClick: () => state.installed ? route(state) : backend().Quit()},
         {
@@ -132,19 +132,9 @@ function route(state) {
     }
 }
 
-// backendTries and backendWaitMs bound the wait for the bindings to appear, so a
-// setup program that cannot be reached says so rather than sitting blank.
-const backendTries = 100
-const backendWaitMs = 50
-
 async function init() {
     applyTheme('light')
-    let tries = 0
-    while (!backend() && tries < backendTries) {
-        await new Promise((resolve) => setTimeout(resolve, backendWaitMs))
-        tries++
-    }
-    if (!backend()) {
+    if (!(await waitForBackend())) {
         showError('Could not reach the setup program.')
         return
     }

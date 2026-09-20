@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"golang.org/x/sys/windows"
@@ -50,7 +51,12 @@ func WriteUninstallEntry(info UninstallInfo) error {
 	}
 	defer key.Close()
 
-	quoted := fmt.Sprintf("%q", info.UninstallExe)
+	// Quoted the same way the sign-in entry is, deliberately not with %q:
+	// Go's own quoting escapes the separators inside the string, so the Apps
+	// list showed a path with every backslash doubled. Windows collapses those
+	// when it runs the command, so nothing broke, which is exactly why it went
+	// unnoticed until somebody read the entry.
+	quoted := `"` + info.UninstallExe + `"`
 	text := map[string]string{
 		"DisplayName":     AppName,
 		"DisplayVersion":  info.Version,
@@ -116,14 +122,15 @@ func SetLaunchOnBoot(exePath string, enabled bool) error {
 	return nil
 }
 
-// IsLaunchOnBoot reports whether the login entry is present AND names a real
-// file.
+// IsLaunchOnBoot reports whether the login entry is present, names a real file
+// AND carries the flag that keeps the window shut.
 //
-// Presence alone is not enough. An entry left behind by an install that has
-// been moved or removed is present, so the box would read as on while nothing
-// launches, which is the worst of both: the setting says yes and Windows
-// disagrees in silence. Checking the file means such an entry reads as off;
-// turning it on then rewrites it correctly.
+// Presence alone is not enough, twice over. An entry left behind by an install
+// that has been moved or removed is present, so the box would read as on while
+// nothing launches. An entry written before the agent had a window lacks the
+// flag, so a sign-in would open the manager over whatever the user was doing.
+// Both read as off here; turning the setting on then rewrites the entry
+// correctly, which is how a wrong entry heals rather than having to be found.
 func IsLaunchOnBoot() bool {
 	key, err := registry.OpenKey(registry.CURRENT_USER, runKeyPath, registry.QUERY_VALUE)
 	if err != nil {
@@ -132,6 +139,9 @@ func IsLaunchOnBoot() bool {
 	defer key.Close()
 	value, _, err := key.GetStringValue(runValueName)
 	if err != nil {
+		return false
+	}
+	if !strings.Contains(value, HiddenFlag) {
 		return false
 	}
 	_, err = os.Stat(runTarget(value))

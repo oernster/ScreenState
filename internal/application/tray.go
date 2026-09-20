@@ -21,6 +21,8 @@ const (
 	MenuSeparator
 	// MenuCapture opens a capture of the desktop as it stands (FR-010).
 	MenuCapture
+	// MenuManager opens the manager window (EIR-001).
+	MenuManager
 	// MenuReport opens the report of the most recent restore (FR-045).
 	MenuReport
 	// MenuQuit ends the agent.
@@ -28,6 +30,21 @@ const (
 	// MenuMessage is a line that says something and does nothing, such as the
 	// statement that no profiles have been captured yet.
 	MenuMessage
+)
+
+// ManagerRequest says which part of the manager to open. The tray asks for one
+// and the window obeys; deciding it here rather than in the window means the
+// reason a window opened can be asserted by a test.
+type ManagerRequest uint8
+
+const (
+	// ManagerProfiles opens the profile list, which is the manager at rest.
+	ManagerProfiles ManagerRequest = iota
+	// ManagerCapture opens the review of a fresh capture, which is where a
+	// profile is named and confirmed (FR-010, FR-011).
+	ManagerCapture
+	// ManagerReport opens the report of the most recent restore (FR-044).
+	ManagerReport
 )
 
 // MenuItem is one entry in the tray menu.
@@ -71,6 +88,7 @@ func NewTrayService(
 // that the menu reads the same wherever it is drawn, so that a test can
 // name one without reaching into a toolkit.
 const (
+	managerLabel  = "Profiles and settings..."
 	captureLabel  = "Capture the desktop..."
 	quitLabel     = "Quit " + product.Name
 	noProfiles    = "No profiles yet"
@@ -86,6 +104,7 @@ const (
 func (service *TrayService) Menu(ctx context.Context) []MenuItem {
 	items := service.profileItems(ctx)
 	items = append(items, MenuItem{Kind: MenuSeparator})
+	items = append(items, MenuItem{Kind: MenuManager, Label: managerLabel, Enabled: true})
 	items = append(items, MenuItem{Kind: MenuCapture, Label: captureLabel, Enabled: true})
 	items = append(items, service.reportItem())
 	items = append(items, MenuItem{Kind: MenuSeparator})

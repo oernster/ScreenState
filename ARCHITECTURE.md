@@ -53,8 +53,10 @@ undo without anybody noticing.
   `win32` reads and moves real windows and displays, `store` keeps the profiles, `clock` is the real
   clock, `runlog` is the step log and `instance` is the single-instance mutex. Never imported by Domain
   or Application.
-- **UI** (`internal/ui`): the notification area icon, its menu and the message loop that serves them, a
-  client of the Application use cases only. The manager window is not built yet and will be one too.
+- **UI** (`internal/ui`): the notification area icon, its menu, the message loop that serves them and
+  the keyboard handover for the manager's webview, a client of the Application use cases only. The
+  manager window itself is a page under `frontend/dist`, bound to `app.go` and `app_profiles.go`,
+  which are clients of the use cases too and reach no further.
 
 `internal/product` sits beside these holding the product's name and its tagline, which reach a path, a
 mutex, a log line, a menu entry and the setup program's header. A second copy of a name is how a rename
@@ -79,8 +81,7 @@ at all.
 
 ```
             +---------------------+
-      UI    |  tray; manager to   |
-            |  come               |
+      UI    |  tray, manager      |
             +----------+----------+
                        | calls
             +----------v----------+
@@ -217,6 +218,7 @@ minimised, which is reversible and quits nothing.
 | Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
 | Step log | `%LOCALAPPDATA%\ScreenState\Log.txt` |
 | Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup |
+| Webview cache | `%LOCALAPPDATA%\ScreenState\webview`, pinned there so an uninstall knows to look |
 | Apps list entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenState` |
 | Sign-in entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `ScreenState` (FR-046) |
 | Shortcuts | the user's own Start Menu Programs folder and Desktop |
@@ -242,6 +244,46 @@ a delete rather than one act; a copy can be interrupted half way.
 Every profile carries the format version it was written in (DATA-002). A file from a version this build
 does not understand is left exactly as it is, kept out of the listing, with the reason stated
 (DATA-003).
+
+## The manager window
+
+The agent has one window and it is a Wails window, which is why the agent is built by `wails build`
+rather than by `go build`. Wails owns the main thread; the notification area icon keeps a locked
+thread of its own, because a window belongs to the thread that made it. They meet at one point: the
+tray is handed a callback and asks for the manager rather than opening anything itself.
+
+**The window is a client of the use cases and nothing else.** `app.go` holds the window plumbing and
+the shapes crossing the boundary; `app_profiles.go` holds the bound methods, each of which is one
+call into `ManagerService`, `CaptureService` or `RestoreService`. No rule about what a profile means
+lives in either, so none of them can be got wrong there without a test in the application layer
+failing first. The composition-root test proves it: `main.go` is still the only file that knows both
+the application layer and the Windows layer.
+
+**A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
+keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it
+opens the manager, which is what double-clicking a shortcut means. An entry written without that
+flag reads as off, so turning the setting on rewrites it correctly rather than leaving a sign-in
+that opens a window over whatever the user is doing.
+
+**A second launch asks the first for its manager** (FR-054). It finds the running copy's hidden
+window by its class and posts a message registered by name, which is the documented way for two
+programs to agree on one without either inventing a number (EIR-004). It never arranges the desktop
+a second time.
+
+**The restore runs alongside the window rather than before it.** A restore waits for windows to
+appear and may take minutes; a manager that could not be opened until it finished would be shut for
+the whole of the time a user most wants to look at it. FR-048 asks only that the restore complete
+without the window being opened, which it does.
+
+**Nothing is written until a capture is confirmed.** The review is held in the facade between
+reading the desktop and confirming what to keep, so a cancelled capture leaves nothing behind
+(FR-011, FR-016), including on disk. Deleting a profile is a panel of its own naming it (FR-043),
+never a box over the window: the go-ahead there is a button that has never meant anything else.
+
+**The palette and the page furniture have one home.** `assets/theme.css` and `assets/shell.js` are
+copied into both page directories by `build.ps1`, because each window embeds its own page and a copy
+is the only way to share them. A structural test fails when a copy has drifted, which is the only
+thing standing between a copy edited in place and two windows that quietly stop matching.
 
 ## The setup program
 
@@ -361,6 +403,11 @@ is not verifiable as written and wants either rewording or a different matching 
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They
 need a deliberate run.
 
+**The manager has never been opened in the real window.** Its panels have been driven in a browser
+against a stand-in for the agent, which settles the layout, the palette and the wiring and settles
+nothing else. Real keyboard focus, the tray click, the second-launch message, a real capture and a
+real restore all need the built program run on a real machine.
+
 **The setup program has never installed anything.** Its screens have been driven in a browser against a
 stand-in for the program, which settles the layout, the palette and the screen wiring and settles
 nothing else. Real keyboard focus, the registry writes, the shortcuts, the payload extraction and the
@@ -369,6 +416,5 @@ and not proven.
 
 ## Not built yet
 
-The manager window, the review step of a capture as something a user can see, the update check (FR-058,
-FR-059) and the donation link (FR-060). The specification covers all of them; this document will
-describe them when they exist and not before.
+The update check (FR-058, FR-059). The specification covers it; this document will describe it when
+it exists and not before.

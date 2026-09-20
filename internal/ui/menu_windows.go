@@ -6,11 +6,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 	"unsafe"
 
 	"github.com/oernster/ScreenState/internal/application"
-	"github.com/oernster/ScreenState/internal/product"
 )
 
 // iconOf answers the icon this program carries, falling back to the shell's
@@ -160,10 +158,15 @@ func (tray *Tray) chose(command uint32) {
 	switch item.Kind {
 	case application.MenuProfile:
 		tray.applyProfile(item.Profile)
+	case application.MenuManager:
+		tray.manager(application.ManagerProfiles)
 	case application.MenuCapture:
-		tray.showCapture()
+		// The review is where a capture gets its name and its contents
+		// (FR-010, FR-011), so the capture entry opens the manager on it
+		// rather than showing what a capture would have recorded.
+		tray.manager(application.ManagerCapture)
 	case application.MenuReport:
-		tray.showReport()
+		tray.manager(application.ManagerReport)
 	case application.MenuQuit:
 		tray.log.Step("quit from the tray")
 		_, _, _ = pDestroyWindow.Call(tray.hwnd)
@@ -199,77 +202,4 @@ func (tray *Tray) applyProfile(name string) {
 			tray.log.Step(fmt.Sprintf("applying %q: %v", name, err))
 		}
 	}()
-}
-
-// showReport puts the report of the last restore on screen (FR-044, FR-045).
-func (tray *Tray) showReport() {
-	report, held := tray.service.Report()
-	if !held {
-		return
-	}
-	icon := uintptr(mbIconInfo)
-	if tray.service.NeedsAttention() {
-		icon = mbIconWarning
-	}
-	tray.say(reportText(report), product.Name+" report", icon)
-}
-
-// reportText renders a report for a person to read.
-func reportText(report *application.Report) string {
-	var built strings.Builder
-	built.WriteString(report.Summary())
-	built.WriteString("\n")
-	for _, note := range report.SortedNotes() {
-		built.WriteString("\n" + note)
-	}
-	for _, entry := range report.Entries() {
-		if entry.Satisfied {
-			built.WriteString(fmt.Sprintf("\n\nSatisfied: %s", entry.Application))
-		} else {
-			built.WriteString(fmt.Sprintf("\n\nOutstanding: %s\n  %s",
-				entry.Application, entry.Reason))
-		}
-		for _, note := range entry.Notes {
-			built.WriteString("\n  " + note)
-		}
-	}
-	return built.String()
-}
-
-// showCapture reads the desktop and shows what a capture would record.
-//
-// It writes nothing. FR-011 says a profile is written from the entries left in
-// a review the user confirms; there is nowhere yet to hold that review or
-// to name the profile: that is the manager window. Until it exists this says
-// plainly what it can and cannot do, rather than writing a profile the user
-// never reviewed.
-func (tray *Tray) showCapture() {
-	review, err := tray.service.Capture(context.Background(), "")
-	if err != nil {
-		tray.log.Step(fmt.Sprintf("capturing: %v", err))
-		tray.say("The desktop could not be read:\n\n"+err.Error(),
-			product.Name+" capture", mbIconWarning)
-		return
-	}
-	var built strings.Builder
-	built.WriteString(fmt.Sprintf("A capture would record %d application(s):\n",
-		len(review.Entries)))
-	for _, entry := range review.Entries {
-		built.WriteString(fmt.Sprintf("\n%s\n  %d window(s) placed",
-			entry.Application, len(entry.Placements)))
-	}
-	for _, unreadable := range review.Unreadable {
-		built.WriteString("\n\nCould not be read: " + unreadable)
-	}
-	built.WriteString("\n\nNothing has been saved. Naming a profile and choosing" +
-		" what goes into it needs the manager window, which is not built yet.")
-	tray.say(built.String(), product.Name+" capture", mbIconInfo)
-}
-
-// say puts a message on screen. It is shown from the loop's own thread, so the
-// menu is already gone by the time it appears.
-func (tray *Tray) say(text string, title string, icon uintptr) {
-	_, _, _ = pMessageBox.Call(tray.hwnd,
-		uintptr(unsafe.Pointer(wide(text))),
-		uintptr(unsafe.Pointer(wide(title))), icon|mbOK)
 }

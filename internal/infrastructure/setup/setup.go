@@ -185,16 +185,24 @@ func CopyFile(src, dst string) error {
 	return nil
 }
 
-// runValue is what the login entry holds: the path in quotes and nothing else.
+// HiddenFlag asks the agent to wait in the notification area rather than
+// opening its manager.
+//
+// The sign-in entry carries it because a program that opens a window every time
+// the machine is signed into is not waiting quietly, which is what the setting
+// offers. Neighbouring entries in the same key do the same thing under their
+// own spellings: Steam has -silent, Discord has --start-inactive.
+const HiddenFlag = "-hidden"
+
+// runValue is what the login entry holds: the path in quotes, then the flag.
 //
 // It is built here rather than with %q, which is Go's own quoting and escapes
 // the separators inside the string; a Windows path written that way reaches the
 // registry doubled and Windows spends every sign-in looking for a place that
 // does not exist. A quoted path is what every other entry in that key looks
-// like. The agent takes no argument to start quietly because it has no window
-// to suppress: it lives in the notification area from the moment it runs.
+// like.
 func runValue(exePath string) string {
-	return `"` + exePath + `"`
+	return `"` + exePath + `" ` + HiddenFlag
 }
 
 // runTarget reads a login entry back as the path it starts, so the entry can be
