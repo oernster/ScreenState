@@ -49,17 +49,24 @@ function showOnly(kind, name) {
 // safe action. Passing an empty list leaves no buttons at all, which is what a
 // panel with nothing safe to offer offers.
 function setFooter(buttons) {
-    const footer = $('footer')
-    footer.innerHTML = ''
+    setButtons($('footer'), buttons)
+    focusFooter()
+}
+
+// setButtons fills a row with the buttons a panel offers. It is separate from
+// setFooter because a dialog has a row of its own along its foot and the two
+// must be built the same way: two builders would be two chances for a button to
+// look like a different kind of button in one window.
+function setButtons(row, buttons) {
+    row.innerHTML = ''
     buttons.forEach((spec) => {
         const el = document.createElement('button')
         el.className = 'btn' + (spec.kind ? ' ' + spec.kind : '')
         el.textContent = spec.label
         el.disabled = !!spec.disabled
         el.onclick = spec.onClick
-        footer.appendChild(el)
+        row.appendChild(el)
     })
-    focusFooter()
 }
 
 // focusFooter puts focus on the button a panel leads with, so Enter does the

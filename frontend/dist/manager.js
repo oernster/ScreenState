@@ -32,7 +32,82 @@ function show(name, buttons) {
     $('profiles').disabled = name === 'profiles'
 }
 
+/* ---------------------------------------------------------------- dialogs */
+
+// dismissArmMs is how long a freshly opened dialog ignores a press on its
+// backdrop. Without it the second press of a double-click on the control that
+// opened the dialog lands on the backdrop that has just appeared underneath the
+// pointer, so the dialog flashes open and vanishes.
+const dismissArmMs = 400
+
+let dialogArmedAt = 0
+let dialogReturnsTo = null
+
+// The dialog's body is the one surface in this window long enough to want
+// reading to the reader: the guide runs well past the height of any dialog. The
+// cycle is attached once to the body rather than to each sheet, because the body
+// is what scrolls; the actions below it are pinned, so Close never drifts away
+// while the words move.
+const dialogReader = autoScroll($('dialog-body'))
+
+// dialog puts one sheet up over the window that stays where it was. buttons is
+// the row along its foot, the same shape the footer takes, so a dialog and a
+// panel are described the same way.
+function dialog(name, buttons, returnsTo) {
+    showOnly('sheet', name)
+    setButtons($('dialog-actions'), buttons)
+    $('backdrop').hidden = false
+    dialogArmedAt = Date.now()
+    dialogReturnsTo = returnsTo || document.activeElement
+    const first = $('dialog-actions').querySelector('.btn.primary:enabled')
+        || $('dialog-actions').querySelector('.btn:enabled')
+    if (first) first.focus()
+    // After the focus, not before it: the cycle treats the keyboard arriving as
+    // a reader taking hold; the dialog's own opening focus is not one.
+    dialogReader.restart()
+}
+
+// closeDialog puts it away and gives the keyboard back to whatever opened it,
+// so the ring is where the reader left it rather than at the top of the window.
+function closeDialog() {
+    if ($('backdrop').hidden) return
+    $('backdrop').hidden = true
+    dialogReader.stop()
+    const back = dialogReturnsTo
+    dialogReturnsTo = null
+    // What opened it is usually a menu item, which the next open rebuilds, so
+    // the control that is still there is the trigger the menu hangs from.
+    if (back && document.contains(back)) back.focus()
+    else $('help').focus()
+}
+
+function dialogIsOpen() {
+    return !$('backdrop').hidden
+}
+
+$('dialog-close').onclick = closeDialog
+
+// A press on the backdrop closes it, which is what a dialog on this desktop
+// does. A press on the dialog itself is not one: the backdrop is its parent, so
+// the press would otherwise reach it on the way up.
+$('backdrop').onmousedown = (event) => {
+    if (event.target !== $('backdrop')) return
+    if (Date.now() - dialogArmedAt < dismissArmMs) return
+    closeDialog()
+}
+
+// Escape closes the dialog wherever the keyboard happens to be, which is the
+// one key every dialog on this desktop answers.
+document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || !dialogIsOpen()) return
+    event.preventDefault()
+    closeDialog()
+})
+
 function showError(words, back) {
+    // An error belongs to the window rather than to the aside that was open, so
+    // the dialog goes away rather than the message appearing behind it.
+    closeDialog()
     $('error-words').textContent = words
     show('error', [{label: 'Back', kind: 'primary', onClick: back || openProfiles}])
 }
@@ -420,7 +495,7 @@ async function openReport() {
         $('report-title').textContent = 'No restore has run yet'
         $('report-summary').textContent =
             'Apply a profile or sign in with one marked as the default. What happened will then be here.'
-        show('report', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
+        dialog('report', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
         return
     }
     $('report-title').textContent = 'Last restore: ' + report.profile
@@ -446,7 +521,7 @@ async function openReport() {
         row.append(mark, words)
         rows.appendChild(row)
     })
-    show('report', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
+    dialog('report', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
 }
 
 /* ------------------------------------------------------------------ donate */

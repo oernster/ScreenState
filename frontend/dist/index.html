@@ -76,42 +76,10 @@
             <p class="lead small" id="capture-unreadable" hidden></p>
         </section>
 
-        <section class="view" id="view-report">
-            <h1 id="report-title">Report of the last restore</h1>
-            <p class="lead" id="report-summary"></p>
-            <div class="rows tall" id="report-rows"></div>
-        </section>
-
         <section class="view centred" id="view-confirm">
             <div class="verdict" style="color: var(--danger)">&#9888;</div>
             <h1 id="confirm-title">Delete it?</h1>
             <p class="lead" id="confirm-words"></p>
-        </section>
-
-        <section class="view" id="view-guide">
-            <h1>Guide</h1>
-            <p class="lead">Every picture below is the one this window actually
-                draws, so a control can be recognised rather than described.</p>
-            <div class="rows tall" id="guide-rows"></div>
-        </section>
-
-        <section class="view centred" id="view-about">
-            <img class="aboutmark" id="about-mark" src="icon.png" alt=""/>
-            <h1 id="about-title"></h1>
-            <p class="lead" id="about-words"></p>
-            <div class="infobox" id="about-detail"></div>
-        </section>
-
-        <section class="view" id="view-licence">
-            <h1>Licence</h1>
-            <p class="lead" id="licence-words"></p>
-            <div class="infobox" id="licence-detail"></div>
-        </section>
-
-        <section class="view centred" id="view-update">
-            <div class="verdict" id="update-mark"></div>
-            <h1 id="update-title"></h1>
-            <p class="lead" id="update-words"></p>
         </section>
 
         <section class="view centred" id="view-busy">
@@ -124,6 +92,53 @@
             <h1 id="error-title">Something went wrong</h1>
             <p class="lead" id="error-words"></p>
         </section>
+    </div>
+
+    <!--
+      Everything Help offers is a dialog over the window rather than a panel that
+      replaces it: these are asides about the product, so the work stays on
+      screen behind them and closing one puts the reader back exactly where they
+      were. One dialog holds them all and shows one sheet at a time, so the
+      cross, the backdrop and the row of actions are written once.
+    -->
+    <div class="modal-backdrop" id="backdrop" hidden>
+        <div class="modal" id="dialog" role="dialog" aria-modal="true">
+            <button class="modal-close" id="dialog-close" title="Close" aria-label="Close">&times;</button>
+            <div class="modal-body" id="dialog-body">
+                <section class="sheet" id="sheet-guide">
+                    <h1>Guide</h1>
+                    <p class="lead">Every picture below is the one this window actually
+                        draws, so a control can be recognised rather than described.</p>
+                    <div class="rows tall" id="guide-rows"></div>
+                </section>
+
+                <section class="sheet centred" id="sheet-about">
+                    <img class="aboutmark" id="about-mark" src="icon.png" alt=""/>
+                    <h1 id="about-title"></h1>
+                    <p class="lead" id="about-words"></p>
+                    <div class="infobox" id="about-detail"></div>
+                </section>
+
+                <section class="sheet" id="sheet-licence">
+                    <h1>Licence</h1>
+                    <p class="lead" id="licence-words"></p>
+                    <div class="infobox" id="licence-detail"></div>
+                </section>
+
+                <section class="sheet" id="sheet-report">
+                    <h1 id="report-title">Report of the last restore</h1>
+                    <p class="lead" id="report-summary"></p>
+                    <div class="rows tall" id="report-rows"></div>
+                </section>
+
+                <section class="sheet centred" id="sheet-update">
+                    <div class="verdict" id="update-mark"></div>
+                    <h1 id="update-title"></h1>
+                    <p class="lead" id="update-words"></p>
+                </section>
+            </div>
+            <div class="modal-actions" id="dialog-actions"></div>
+        </div>
     </div>
 
     <!--
@@ -140,6 +155,7 @@
 </div>
 
 <script src="shell.js"></script>
+<script src="autoscroll.js"></script>
 <script src="guide.js"></script>
 <script src="manager.js"></script>
 <script src="manager-help.js"></script>

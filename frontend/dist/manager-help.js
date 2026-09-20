@@ -174,7 +174,7 @@ function openGuide() {
         const paragraphs = section.paragraphs || []
         paragraphs.forEach((words) => rows.appendChild(guideLine(named(words))))
     })
-    show('guide', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
+    dialog('guide', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
 }
 
 function guideLine(words) {
@@ -192,9 +192,9 @@ function openAbout() {
         + ' are, puts them back after you sign in and never closes anything.'
     $('about-detail').textContent = 'Copyright Oliver Ernster. Released under the'
         + ' GNU General Public License, version 3.'
-    show('about', [
-        {label: 'Back', onClick: openProfiles},
-        {label: 'Licence', kind: 'primary', onClick: openLicence},
+    dialog('about', [
+        {label: 'Licence', onClick: openLicence},
+        {label: 'Close', kind: 'primary', onClick: closeDialog},
     ])
 }
 
@@ -205,7 +205,7 @@ function openLicence() {
         + ' no warranty.'
     $('licence-detail').textContent = 'The full text is in the file named LICENSE, in the'
         + ' folder this program was installed into.'
-    show('licence', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
+    dialog('licence', [{label: 'Back', onClick: openAbout}, {label: 'Close', kind: 'primary', onClick: closeDialog}])
 }
 
 /* ------------------------------------------------------------------ updates */
@@ -284,7 +284,7 @@ function showUpdateWord(mark, title, words) {
     $('update-mark').style.color = mark === markGood ? 'var(--ring)' : 'var(--danger)'
     $('update-title').textContent = title
     $('update-words').textContent = words
-    show('update', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
+    dialog('update', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
 }
 
 // offerUpdate is the offer itself: download it, pass this one over; or be
@@ -296,8 +296,8 @@ function offerUpdate(found, unbidden) {
     $('update-words').textContent = 'You are running ' + found.current + '.'
     // Every way out of this panel goes to the list, whether the check was asked
     // for from the menu or made itself known once the window was ready.
-    const back = openProfiles
-    show('update', [
+    const back = closeDialog
+    dialog('update', [
         {label: 'Skip this version', onClick: () => void skipVersion(found.latest, back)},
         {label: 'Later', onClick: back},
         {
