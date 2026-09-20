@@ -83,10 +83,6 @@ type Desktop interface {
 	Displays(ctx context.Context) ([]Display, error)
 	// Place sets the window's normal rectangle, then its show state.
 	Place(ctx context.Context, id WindowID, rect domain.Rect, state domain.ShowState) error
-	// RefreshShellIcons tells the shell that its icons may have changed, so it
-	// resolves them again (FR-067). It is a notification and nothing more: no
-	// window is touched by it and nothing can be moved or ended.
-	RefreshShellIcons(ctx context.Context) error
 	// Close asks a window to close, which is a request rather than an order:
 	// the application decides what to do with it and may show a prompt, take
 	// itself to the notification area or end. It is used on a window no

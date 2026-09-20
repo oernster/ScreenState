@@ -159,7 +159,7 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 	restores := application.NewRestoreService(
 		win32.NewDesktop(ticking),
 		win32.NewProcesses(),
-		win32.NewLauncher(),
+		win32.NewLauncher(steps),
 		profiles,
 		ticking,
 		steps,

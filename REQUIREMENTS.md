@@ -394,22 +394,21 @@ Applying panel for work that had finished, with nothing on it to press. The
 list is drawn before the report rather than after it is dismissed, so leaving by
 the cross, by Escape or by the backdrop all land in the same place.
 
-**FR-067 The taskbar after a sign-in restore**
+**FR-067 Starting a packaged application**
 Priority: Should
-Requirement: When a restore that ran because the user signed in has settled,
-the ScreenState agent shall tell the shell that its icons may have changed. It
-shall record in the log that it did so.
-Rationale: reported 2026-09-21. After a sign-in the taskbar buttons of the
-applications the agent had started were drawn without their icons on the
-reference machine; they stayed that way until the user clicked anywhere on the
-taskbar: the icons were there and the drawing of them was stale. A restore the
-user asked for never showed it, which is why this is the sign-in restore alone.
-Asking every taskbar to repaint itself was tried first and measured, on
-2026-09-20: the log recorded four taskbars asked and the buttons were still
-grey, so the shell is not holding a stale drawing of an icon it has. It is
-holding the answer that there was no icon. Telling it that its icons may have
-changed is the documented way to make it work that out again. Whether that is
-enough is not yet known either, which is what the log line is for.
+Requirement: When the ScreenState agent starts an application named by its
+model id, it shall start it through the activation interface Windows provides
+for packaged applications. Where that fails, it shall start it through the
+shell as it starts every other application. It shall record in the log which of
+the two started it.
+Rationale: reported 2026-09-21. After a sign-in the taskbar buttons of the two
+packaged applications the agent had started were drawn grey, without their
+icons, on the reference machine; they stayed that way until the user clicked
+anywhere on the taskbar. Applications started by path or through an updater were
+drawn properly every time, which leaves the way packaged applications are started
+as the one difference. Whether this route draws the buttons properly is not yet
+known; the log line is what lets a boot settle it. Falling back to the shell
+keeps the worst case at the behaviour before.
 
 **FR-068 Reading what a profile arranges**
 Priority: Should

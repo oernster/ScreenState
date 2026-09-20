@@ -299,14 +299,15 @@ path can wrap and be read whole (FR-068). They shared the window before, which l
 a path cut off after a few words, a list one row tall and the settings squeezed under it. The button
 is inert while nothing is selected, since there is then nothing for it to show.
 
-**The shell is told its icons may have changed after a sign-in restore.** The taskbar buttons of the
-applications the agent had started were drawn grey on the reference machine and stayed that way until
-the user clicked anywhere on the taskbar. Asking every taskbar to repaint itself was tried first and
-measured not to fix it, which is what says the shell is not holding a stale drawing of an icon it has:
-it is holding the answer that there was no icon. It is now told that its icons may have changed, which
-is the documented way to make it resolve them again (FR-067). Whether that is enough is unproven, so
-the log records that it was told: a boot that still shows the fault with the line present rules this
-answer out as well.
+**A packaged application is started by the activation manager.** An application named by its model id
+goes to `IApplicationActivationManager` first and to the shell only where that fails, so the worst case
+is the route used before (FR-067). The taskbar buttons of packaged applications were drawn grey after
+a sign-in on the reference machine until the user clicked the taskbar, while every application started
+by path was drawn properly; how packaged applications are started is the one difference left. Whether
+this route cures it is unproven, so the log names the route that started each one. The call is COM with
+no cgo: a hand-written method table on a goroutine locked to its own thread, which is never unlocked,
+so the thread's COM state ends with it. The comment in `activate_windows.go` records what was tried
+and measured not to work, so nobody tries it again.
 
 **A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
 keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it

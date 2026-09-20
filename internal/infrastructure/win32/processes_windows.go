@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	"github.com/oernster/ScreenState/internal/application"
 	"github.com/oernster/ScreenState/internal/domain"
 	"golang.org/x/sys/windows"
 )
@@ -76,10 +77,13 @@ func imageOfProcess(pid uint32) (string, bool) {
 }
 
 // Launcher starts an application by its recorded identity.
-type Launcher struct{}
+type Launcher struct {
+	log application.Log
+}
 
-// NewLauncher returns a launcher.
-func NewLauncher() *Launcher { return &Launcher{} }
+// NewLauncher returns a launcher that records in the log which route started a
+// packaged application, so a boot can be read afterwards.
+func NewLauncher(log application.Log) *Launcher { return &Launcher{log: log} }
 
 // Launch starts an application, each kind of identity in the way that kind is
 // started.
@@ -90,13 +94,33 @@ func NewLauncher() *Launcher { return &Launcher{} }
 // That was measured against NordVPN on 2026-09-20 and is the only mechanism
 // that worked; acting on the hidden window directly produced an empty frame.
 //
-// The shell is used rather than a direct process start for two reasons: a model
-// id can only be reached through it; it applies the working directory and the
-// elevation rules the user's own double-click would.
+// A packaged application goes to the activation manager first (FR-067) and to
+// the shell only where that fails, so the worst case is the route used before.
+// Everything else goes to the shell rather than a direct process start, since
+// it applies the working directory and the elevation rules the user's own
+// double-click would.
 func (launcher *Launcher) Launch(ctx context.Context, application domain.ApplicationIdentity) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
+	if application.Kind == domain.KindAppUserModelID {
+		process, err := activatePackaged(application.Value)
+		if err == nil {
+			launcher.log.Step(fmt.Sprintf(
+				"%s was started by the activation manager, as process %d", application, process))
+			return nil
+		}
+		launcher.log.Step(fmt.Sprintf(
+			"the activation manager did not start %s (%v), so the shell was asked instead",
+			application, err))
+	}
+	return shellOpen(application)
+}
+
+// shellOpen starts an application through ShellExecute, which is how every
+// identity was started before the activation manager and how a packaged
+// application still is when that fails.
+func shellOpen(application domain.ApplicationIdentity) error {
 	program, arguments, err := launchFor(application)
 	if err != nil {
 		return err

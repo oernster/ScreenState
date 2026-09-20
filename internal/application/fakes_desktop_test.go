@@ -39,9 +39,6 @@ type fakeDesktop struct {
 	// application does not act on the request.
 	closed  []WindowID
 	refuses map[WindowID]bool
-	// refreshed counts the times the shell was told its icons may have changed.
-	refreshed  int
-	refreshErr error
 	// afterPlace runs once a window has been placed, which is how a test makes
 	// an application move its own window afterwards.
 	afterPlace func(desktop *fakeDesktop, id WindowID)
@@ -140,24 +137,6 @@ func (desktop *fakeDesktop) Close(_ context.Context, id WindowID) error {
 	}
 	desktop.windows = kept
 	return nil
-}
-
-// RefreshShellIcons records that the shell was told its icons may have changed.
-func (desktop *fakeDesktop) RefreshShellIcons(context.Context) error {
-	desktop.mutex.Lock()
-	defer desktop.mutex.Unlock()
-	if desktop.refreshErr != nil {
-		return desktop.refreshErr
-	}
-	desktop.refreshed++
-	return nil
-}
-
-// refreshCount answers how many times the shell was told.
-func (desktop *fakeDesktop) refreshCount() int {
-	desktop.mutex.Lock()
-	defer desktop.mutex.Unlock()
-	return desktop.refreshed
 }
 
 // closedCount answers how many times a window was asked to close.

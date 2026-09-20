@@ -48,11 +48,6 @@ func (desktop *Desktop) Place(
 	return ErrNotWindows
 }
 
-// RefreshShellIcons refuses: the shell it would speak to belongs to Windows.
-func (desktop *Desktop) RefreshShellIcons(context.Context) error {
-	return ErrNotWindows
-}
-
 // Close refuses.
 func (desktop *Desktop) Close(context.Context, application.WindowID) error {
 	return ErrNotWindows
@@ -73,7 +68,7 @@ func (processes *Processes) Running(context.Context, domain.ApplicationIdentity)
 type Launcher struct{}
 
 // NewLauncher returns a launcher that refuses every call.
-func NewLauncher() *Launcher { return &Launcher{} }
+func NewLauncher(application.Log) *Launcher { return &Launcher{} }
 
 // Launch refuses.
 func (launcher *Launcher) Launch(context.Context, domain.ApplicationIdentity) error {

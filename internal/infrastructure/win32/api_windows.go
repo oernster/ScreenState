@@ -15,6 +15,7 @@ var (
 	kernel32 = windows.NewLazySystemDLL("kernel32.dll")
 	dwmapi   = windows.NewLazySystemDLL("dwmapi.dll")
 	shell32  = windows.NewLazySystemDLL("shell32.dll")
+	ole32    = windows.NewLazySystemDLL("ole32.dll")
 
 	pEnumWindows              = user32.NewProc("EnumWindows")
 	pIsWindow                 = user32.NewProc("IsWindow")
@@ -36,7 +37,7 @@ var (
 	pGetApplicationUserModelID = kernel32.NewProc("GetApplicationUserModelId")
 	pDwmGetWindowAttribute     = dwmapi.NewProc("DwmGetWindowAttribute")
 	pShellExecute              = shell32.NewProc("ShellExecuteW")
-	pSHChangeNotify            = shell32.NewProc("SHChangeNotify")
+	pCoCreateInstance          = ole32.NewProc("CoCreateInstance")
 )
 
 // Window reading and moving.
