@@ -86,6 +86,10 @@ $('help-menu').addEventListener('keydown', (event) => {
     else if (event.key === 'Escape') {
         event.preventDefault()
         closeHelpMenu(true)
+    } else if (event.key === 'Tab') {
+        // Tab leaves a menu rather than walking it: the arrows are the walk;
+        // a ring trapped in a dropdown cannot reach the window behind it.
+        closeHelpMenu(true)
     }
 })
 

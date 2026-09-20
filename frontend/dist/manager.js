@@ -96,12 +96,36 @@ $('backdrop').onmousedown = (event) => {
     closeDialog()
 }
 
-// Escape closes the dialog wherever the keyboard happens to be, which is the
-// one key every dialog on this desktop answers.
+// dialogStops are the controls inside the open dialog, in the order they are
+// drawn: the cross in its corner, then the row of actions along its foot.
+function dialogStops() {
+    return Array.from($('dialog').querySelectorAll('button:enabled'))
+}
+
+// The keyboard while a dialog is open. Escape closes it, which is the one key
+// every dialog on this desktop answers. Tab and Shift+Tab walk its own controls
+// and WRAP: a window behind a dialog is not to be reached over the top of it, so
+// a ring that leaves the dialog leaves the reader pressing Tab at a window that
+// cannot answer. The page behind takes the ring back when the dialog closes.
 document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape' || !dialogIsOpen()) return
+    if (!dialogIsOpen()) return
+    if (event.key === 'Escape') {
+        event.preventDefault()
+        closeDialog()
+        return
+    }
+    if (event.key !== 'Tab') return
+    const stops = dialogStops()
+    if (!stops.length) return
     event.preventDefault()
-    closeDialog()
+    const at = stops.indexOf(document.activeElement)
+    const step = event.shiftKey ? -1 : 1
+    // An unknown starting point means the ring is outside the dialog, so the
+    // next press brings it back to the end the reader is travelling towards.
+    const next = at < 0
+        ? (event.shiftKey ? stops.length - 1 : 0)
+        : (at + step + stops.length) % stops.length
+    stops[next].focus()
 })
 
 function showError(words, back) {
