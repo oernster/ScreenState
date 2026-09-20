@@ -255,9 +255,35 @@ records as running is running; every one with a placement has a window. The
 quiet period is withdrawn, the ceiling is a policy choice rather than a
 measurement; the sign-in timing study is not needed at all.
 
-### Still to measure
+### OQ-6, showing a hidden window: ANSWERED, by asking rather than telling
 
-- **OQ-6**: run `launch` against a tray application while it is running, to see
-  whether it shows its own window. This is the only question left in appendix B
-  and the only one blocking a requirement: FR-036 is unsatisfied until it is
-  answered. It takes two minutes and no reboot.
+Measured on 2026-09-20 against NordVPN, running with its window hidden at hwnd
+0x20754, pid 25156, rect x=1269 y=345 w=902 h=702.
+
+Running NordVPN again started pid 17440. One second later the SAME window,
+hwnd 0x20754 belonging to pid 25156, became visible at the same rectangle;
+pid 17440 then exited by itself. The window passes the candidate rule. Because the
+application showed it rather than being overruled, it is drawing it: no empty
+frame this time.
+
+So A-4 is true in one form and false in the other. A hidden window cannot be
+made useful by acting on it from outside, which is what killed the first
+mechanism. The application can be asked to show it, by running it again, which
+is exactly what a user does from the tray. FR-036 stands with its mechanism
+replaced, now stated as FR-056.
+
+This also forced FR-025 open. It said the agent shall not launch an application
+that is already running, which forbids the only measured way to recover a
+hidden window. It now carries that exception, justified by the measurement: on a single-instance application the second copy signals the
+first and exits rather than becoming a second instance.
+
+### Appendix B is finished
+
+Every question this spike existed for is closed: OQ-1, OQ-2, OQ-3 and OQ-6
+answered, OQ-4 answered and found not to hold in general, OQ-5 and OQ-7
+dissolved by defining settling per entry. Nothing in the specification now
+waits on a measurement.
+
+By its own first paragraph this code can be deleted. It is kept only until the
+owner says otherwise; everything it established lives in this file and in
+REQUIREMENTS.md rather than in the code.

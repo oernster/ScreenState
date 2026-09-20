@@ -65,8 +65,7 @@ Out of scope (each settled with the owner on 2026-09-19):
 | Show state | One of normal, minimised or maximised. |
 | Normal rectangle | The position and size a window occupies when neither minimised nor maximised. |
 | Restore | Driving the desktop towards a profile's end state. |
-| Settled | The condition defined in FR-020 that ends the wait after sign-in. |
-| Ceiling | The maximum span after sign-in that the agent waits for settling. |
+| Ceiling | The maximum span after sign-in that the agent waits for a profile's windows to appear. |
 | Default profile | The one profile marked to be applied after sign-in. |
 | Report | The readable record of what a restore did, including every entry it could not satisfy. |
 
@@ -128,7 +127,7 @@ on an assumption without naming it.
 | A-1 | A display identity exists that survives a reboot and distinguishes three displays of the same model. | Oliver | 2026-09-26 |
 | A-2 | An application identity exists that survives an application's updates, both for Store-packaged applications such as Claude and for applications installed into versioned directories such as Discord. | Oliver | 2026-09-26 |
 | A-3 | Closing the main window of NordVPN, GameGlass and Postal Gambit leaves each application running in the tray. | Oliver | 2026-09-26 |
-| A-4 | An application that starts with no visible window can be made to show one from outside the application. | Oliver | 2026-09-26 |
+| A-4 | CONFIRMED 2026-09-20, in one form only. An application that starts with no visible window can be asked to show one by running it again; it cannot be made to show one by acting on the window from outside. Measured against NordVPN: showing the hidden window directly produced an empty frame the application was not drawing, while a second launch made the running instance show and draw that same window, after which the second process exited by itself. | Oliver | closed 2026-09-20 |
 | A-5 | A window can be moved to a target display and maximised there by a process without administrator rights, across displays with different scaling. | Oliver | 2026-09-26 |
 | A-6 | Confirmed in part on 2026-09-19: the last startup window appeared 5 minutes 34 seconds after boot, under the 15 minute ceiling. A second run is needed to confirm that nothing appears later. | Oliver | 2026-09-26 |
 
@@ -234,53 +233,65 @@ shall name it in the review as unreadable.
 
 #### Sign-in restore
 
-**FR-020 Settled**
-Priority: Must
-Requirement: The ScreenState agent shall treat the startup as settled when every
-application recorded in the profile as running is running and every such
-application that has a placement has at least one top-level window.
-Rationale: Windows gives no signal that startup has finished. The profile itself
-defines what finished means; it defines it completely, since an entry is either
-satisfied or it is not. An earlier draft also waited for a quiet period with no new
-windows, which was dropped because it waited on windows the profile does not
-name and will never place. Waiting for those bought nothing towards the end
-state while making settling depend on a number that differs per machine and
-cannot be measured on a machine somebody is using.
+**FR-020 Settled: WITHDRAWN**
+There is no global settled state. It waited on the whole profile before placing
+any of it, so the slowest entry gated every other one, although whether Stellody
+sits on its display has no bearing on whether Claude has started yet. Replaced
+by FR-055. The number is retired rather than reused.
 
-**FR-021 Wait before applying**
-Priority: Must
-Requirement: While the startup is not settled, the ScreenState agent shall not
-apply any placement.
-Acceptance: Given a default profile naming Discord, when Discord's window has
-not yet appeared, then no window has been moved.
+**FR-021 Wait before applying: WITHDRAWN**
+Withdrawn with FR-020, for the same reason. An entry whose window exists can be
+placed; nothing is gained by holding it back.
 
-**FR-022 Apply on settling**
+**FR-022 Apply on settling: WITHDRAWN**
+Withdrawn with FR-020. Placement is now per entry, so there is no single moment
+at which the profile is applied.
+
+**FR-055 Place each entry as its window appears**
 Priority: Must
-Requirement: When the startup becomes settled, the ScreenState agent shall apply
-the default profile.
+Requirement: During a restore, the ScreenState agent shall place each entry as
+soon as the window that entry names exists, independently of every other entry;
+the entry is satisfied once placed.
+Rationale: the end state is defined per entry, so each one converges on its own.
+Holding every placement until the whole profile is ready made the restore wait
+for its slowest application while the desktop sat wrong; it also required a
+definition of finished that Windows cannot supply.
+Acceptance: Given a profile naming Stellody and Claude, when Stellody's window
+has appeared and Claude's has not, then Stellody is placed and the restore
+continues waiting for Claude.
 
 **FR-023 Ceiling**
 Priority: Must
-Requirement: If the startup has not settled within the ceiling after sign-in,
-then the ScreenState agent shall apply the default profile to the state as it
-stands and shall record every entry it could not satisfy in the report.
+Requirement: When the ceiling passes with entries still unsatisfied, the
+ScreenState agent shall stop waiting for them and shall record every one it
+could not satisfy in the report.
+Rationale: the ceiling bounds how long the agent keeps waiting for a window that
+may never appear. It is a policy choice rather than a measurement of how long
+this machine takes to start.
 Acceptance: Given a default profile naming an application that never starts,
-when the ceiling passes, then the other entries are placed and the report names
-that application as not started.
+when the ceiling passes, then the other entries are already placed and the
+report names that application as not started.
 
 **FR-024 Launch missing applications**
 Priority: Must
 Requirement: When the agent begins a restore, the ScreenState agent shall launch
 every application the profile records as running that is not running.
-Rationale: launching at the start rather than after settling lets those
+Rationale: launching at the start rather than one at a time lets those
 applications load alongside the rest.
 
 **FR-025 No second instance**
 Priority: Must
 Requirement: The ScreenState agent shall not launch an application that is
-already running.
-Acceptance: Given Discord already running, when a restore begins, then no second
-Discord process is started.
+already running, except as FR-036 requires in order to make a running
+application show a window it is holding hidden.
+Rationale: the exception is not a loophole. Running a second copy is the only
+measured way to get a hidden window back; on a single-instance application it
+starts no second instance: the copy signals the one already running and
+exits. Where an application is not single-instance, a second process does
+survive and shows a window of its own, which is a different outcome the agent
+can see.
+Acceptance: Given Discord already running with a visible window, when a restore
+begins, then no second Discord process is started.
 
 **FR-026 Launch failure**
 Priority: Must
@@ -366,13 +377,24 @@ Requirement: When an entry has a placement and the application is running with
 no visible window, the ScreenState agent shall attempt to make the window
 visible before applying the placement.
 Rationale: an application that starts into the tray has no window to move.
-Measured on 2026-09-19 against NordVPN: making its hidden window visible from
-outside produced an empty frame the application was not drawing, so A-4 is
-false in that form and the mechanism is withdrawn. What is left to measure is
-whether running a second copy of the application makes it show its own window,
-which is what a user does from the tray. Until that is measured, this
-requirement is unsatisfied and the report states that the application cannot be
-shown.
+Two mechanisms were measured against NordVPN. Showing the hidden window from
+outside, on 2026-09-19, produced an empty frame the application was not
+drawing, so that mechanism is withdrawn. Running a second copy, on 2026-09-20,
+made the running instance show and draw that same window, at the same handle
+and the same rectangle, after which the second process exited by itself. That
+is what a user does from the tray; it is the mechanism this requirement now
+uses. Where no window appears within the settle-check delay the report
+states that the application could not be shown.
+
+**FR-056 Ask an application to show its own window**
+Priority: Should
+Requirement: To satisfy FR-036, the ScreenState agent shall run the
+application's own launch command again and shall place the window that appears,
+rather than acting on the hidden window directly.
+Rationale: the window belongs to the application and only the application draws
+it. Acting on it from outside produces a frame with nothing in it.
+Acceptance: Given NordVPN running with its window hidden, when the agent runs
+NordVPN again, then the existing window becomes visible and is placed.
 
 **FR-037 Several windows of one application**
 Priority: Should
@@ -404,9 +426,9 @@ default; marking a profile as default clears the mark from any other.
 **FR-041 Apply on demand**
 Priority: Must
 Requirement: When the user selects a profile from the tray menu, the ScreenState
-agent shall restore that profile immediately, without waiting for settling.
-Rationale: during a session the desktop has already settled. Waiting would be a
-delay with no purpose.
+agent shall restore that profile immediately.
+Rationale: during a session the windows are already there, so every entry can be
+placed at once.
 
 **FR-042 Manage profiles**
 Priority: Must
@@ -466,8 +488,8 @@ Priority: Should
 Requirement: When the user cancels a restore in progress, the ScreenState agent
 shall stop before the next action and shall record the cancellation in the
 report.
-Rationale: a restore can run for minutes while waiting for settling. A wait with
-no way out is a hang from the user's point of view.
+Rationale: a restore can run for minutes while waiting for a window to appear. A
+wait with no way out is a hang from the user's point of view.
 
 #### Diagnostics
 
@@ -497,10 +519,9 @@ Every number below is measured on the reference machine in section 2.3.
 
 **NFR-PERF-001 Placement speed**
 Priority: Must
-Requirement: When the startup has settled, the ScreenState agent shall complete
-the placement of up to 20 windows within 3 seconds.
-Method: timestamps in the step log, from the settling event to the last
-placement.
+Requirement: The ScreenState agent shall complete the placement of up to 20
+windows whose windows already exist within 3 seconds.
+Method: timestamps in the step log, from the first placement to the last.
 
 **NFR-PERF-002 Quiet period: WITHDRAWN**
 The agent no longer waits for a quiet period, so there is no such value to set.
@@ -542,8 +563,8 @@ Method: Windows performance counters over a 10 minute idle observation.
 
 **NFR-PERF-006 Startup cost**
 Priority: Should
-Requirement: The ScreenState agent shall reach the point of waiting for settling
-within 2 seconds of being started at sign-in.
+Requirement: The ScreenState agent shall reach the point of watching for the
+profile's windows within 2 seconds of being started at sign-in.
 Rationale: an agent that is itself slow at sign-in adds to the problem it exists
 to solve.
 
@@ -617,9 +638,9 @@ application data directory and shall retain the most recent 10 restores.
 
 **NFR-USE-001 Capture effort**
 Priority: Should
-Requirement: A user shall be able to capture and save a profile from a settled
-desktop in under 60 seconds, measured from opening the tray menu to the profile
-being stored.
+Requirement: A user shall be able to capture and save a profile from the desktop
+as it stands in under 60 seconds, measured from opening the tray menu to the
+profile being stored.
 Method: a timed walkthrough by the owner on the reference machine.
 
 **NFR-USE-002 Keyboard navigation**
@@ -731,8 +752,8 @@ And Stellody does not start by itself
 When the user signs in
 
 Then the agent launches Stellody and launches nothing else
-And no window is moved until every one of the seven applications is running
-  and every one of the four placed applications has a window
+And each of the four placed applications is placed as its own window appears,
+  without waiting for the others
 And Claude is maximised on display 1
 And Stellody is maximised on display 4
 And Discord is maximised on display 3
@@ -792,7 +813,7 @@ that settles it. The first five form the spike.
 | OQ-3 | Can a window be moved and maximised on a target display by a process without administrator rights, across displays with different scaling? Measure: move a window to each of the four displays and read back its position. | Oliver | 2026-09-26 |
 | OQ-4 | Does closing the main window of NordVPN, GameGlass and Postal Gambit leave each running? Measure: close each and read the process list. | Oliver | 2026-09-26 |
 | OQ-5 | CLOSED, dissolved rather than answered. It existed to supply two things: the quiet period, which FR-020 no longer has, plus the ceiling, which is a policy choice about how long to keep trying rather than a fact about this machine. Settling is now defined entirely by whether the profile's own entries are satisfied, so no timing needs measuring. | Oliver | closed 2026-09-20 |
-| OQ-6 | Can an application that starts with no visible window be made to show one from outside it? Decides whether FR-036 stands or is withdrawn. Measure: attempt it against Discord and NordVPN. | Oliver | 2026-09-26 |
+| OQ-6 | CLOSED 2026-09-20. Not from outside the window: that produced an empty frame. By asking the application, yes. Running NordVPN again while it was running made the running instance show its own hidden window at the same handle and rectangle; the second process then exited by itself. FR-036 stands, with its mechanism changed to FR-056. | Oliver | closed 2026-09-20 |
 | OQ-7 | CLOSED, no longer load-bearing. FR-033 re-applies a placement once when the window no longer matches; FR-034 gives up rather than fight. Both hold whether or not applications move their own windows, so the answer changes no requirement. The one run that recorded movement recorded the owner dragging windows, which is also why this cannot be measured on a machine in use. | Oliver | closed 2026-09-20 |
 | OQ-8 | What happens when a restore is requested while one is already running? | Oliver | before baselining |
 | OQ-9 | Is Windows 10 a supported target? | Oliver | before baselining |
@@ -816,12 +837,16 @@ that question is closed.
 
 ## Appendix D: MoSCoW distribution
 
+Counted from this document rather than carried forward, because the previous
+figures had drifted about ten below the requirements actually written.
+
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 49 | The product does not work without any one of them. |
-| Should | 8 | FR-014, FR-036, FR-037, FR-049, NFR-PERF-006, NFR-USE-001, NFR-USE-002 and the second half of FR-045. |
+| Must | 57 | The product does not work without any one of them. |
+| Should | 8 | FR-014, FR-036, FR-037, FR-049, FR-056, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
+| Withdrawn | 4 | FR-020, FR-021, FR-022 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
 
 The Must proportion is high for a first release of a utility whose whole purpose
 is one behaviour. The check that keeps it honest: every Must names a failure the
