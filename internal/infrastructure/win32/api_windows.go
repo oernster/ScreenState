@@ -28,8 +28,6 @@ var (
 	pSetWindowPos             = user32.NewProc("SetWindowPos")
 	pShowWindow               = user32.NewProc("ShowWindow")
 	pPostMessage              = user32.NewProc("PostMessageW")
-	pFindWindowEx             = user32.NewProc("FindWindowExW")
-	pRedrawWindow             = user32.NewProc("RedrawWindow")
 	pEnumDisplayMonitors      = user32.NewProc("EnumDisplayMonitors")
 	pGetMonitorInfo           = user32.NewProc("GetMonitorInfoW")
 	pEnumDisplayDevices       = user32.NewProc("EnumDisplayDevicesW")
