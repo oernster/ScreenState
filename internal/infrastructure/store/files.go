@@ -5,10 +5,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-)
 
-// productName is the one place this product's name appears in a path.
-const productName = "ScreenState"
+	"github.com/oernster/ScreenState/internal/product"
+)
 
 // profilesDirectory is the folder holding the profiles inside it.
 const profilesDirectory = "profiles"
@@ -25,13 +24,13 @@ const localAppData = "LOCALAPPDATA"
 // machine that is not Windows. On Windows the two answer the same place.
 func DefaultDirectory() (string, error) {
 	if local := strings.TrimSpace(os.Getenv(localAppData)); local != "" {
-		return filepath.Join(local, productName, profilesDirectory), nil
+		return filepath.Join(local, product.Name, profilesDirectory), nil
 	}
 	base, err := os.UserCacheDir()
 	if err != nil {
 		return "", fmt.Errorf("finding this user's application data directory: %w", err)
 	}
-	return filepath.Join(base, productName, profilesDirectory), nil
+	return filepath.Join(base, product.Name, profilesDirectory), nil
 }
 
 // safe is the set of characters a profile name may contribute to a filename

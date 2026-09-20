@@ -16,12 +16,14 @@ import (
 	"path/filepath"
 
 	"github.com/oernster/ScreenState/internal/application"
+	"github.com/oernster/ScreenState/internal/domain"
 	"github.com/oernster/ScreenState/internal/infrastructure/clock"
 	"github.com/oernster/ScreenState/internal/infrastructure/instance"
 	"github.com/oernster/ScreenState/internal/infrastructure/runlog"
 	"github.com/oernster/ScreenState/internal/infrastructure/store"
 	"github.com/oernster/ScreenState/internal/infrastructure/win32"
 	"github.com/oernster/ScreenState/internal/product"
+	"github.com/oernster/ScreenState/internal/ui"
 )
 
 // version is stamped in at build time from the VERSION file. It is a var and
@@ -120,14 +122,41 @@ func signIn(steps *runlog.Steps, directory string) error {
 	if err != nil {
 		return err
 	}
-	if !marked {
-		// FR-039: no default is an answer rather than a fault. The restore
-		// service has already said so in the log, so nothing is added here; the
-		// manager is where a user will read it once there is one.
-		return nil
+	if marked {
+		write(steps, report)
 	}
-	write(steps, report)
-	return nil
+	// FR-039 needs nothing more where no profile is marked: the restore service
+	// has already said so in the log; the tray then offers the capture that
+	// gets the user started.
+
+	captures := application.NewCaptureService(
+		win32.NewDesktop(ticking), win32.NewProcesses(), profiles, steps, self())
+	tray := application.NewTrayService(profiles, restores, captures, steps)
+
+	// The agent stays for the session from here. A restore at sign-in is only
+	// half of what the product does; FR-041 lets the user apply a profile
+	// whenever they like, which needs something on screen to ask.
+	return ui.NewTray(tray, steps).Run(ctx)
+}
+
+// self is this product's own identity, which every capture excludes so that a
+// profile never tries to arrange the agent that is arranging it (FR-013).
+//
+// It is the running program's own path. Reading it rather than writing it down
+// means it stays right through a rename or a move.
+func self() domain.ApplicationIdentity {
+	path, err := os.Executable()
+	if err != nil {
+		// An agent that cannot name itself would capture itself into every
+		// profile. An identity that matches nothing is the safer wrong answer:
+		// it excludes nothing rather than arranging this program.
+		return domain.ApplicationIdentity{}
+	}
+	identity, err := domain.NewApplicationIdentity(domain.KindPath, path)
+	if err != nil {
+		return domain.ApplicationIdentity{}
+	}
+	return identity
 }
 
 // write puts the report of a restore into the log, entry by entry, so that a
