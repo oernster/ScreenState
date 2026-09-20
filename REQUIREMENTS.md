@@ -1,7 +1,6 @@
 # ScreenState: Software Requirements Specification
 
-Status: DRAFT, not baselined. Open questions in appendix B must be closed before
-baselining.
+Status: BASELINED 2026-09-20. Every open question in appendix B is closed.
 
 ---
 
@@ -28,8 +27,6 @@ In scope:
 - Launch of applications that a profile records as running.
 - Placement of windows on a named display at a recorded size, position and
   show state.
-- Closing of windows for applications a profile records as running without a
-  visible window.
 - Automatic application of one default profile after sign-in.
 - Application of any profile on demand.
 - A tray presence and a profile management window.
@@ -100,8 +97,12 @@ There is one user class. ScreenState has no administrator role.
 
 ### 2.3 Operating environment
 
-- Windows 11, 64 bit, as the supported target. Windows 10 support is an open
-  question (OQ-9).
+- Windows 11, 64 bit, is the supported target. ScreenState will very likely run
+  on Windows 10, since it calls nothing Windows 11 introduced, though that is
+  untested and therefore unsupported. Supported means tested; the owner has no
+  Windows 10 machine to test on. Nothing is done to prevent it running there.
+- No network access is required for any of the product's own behaviour. The one
+  exception is the update check (FR-058), which the user can turn off.
 - Reference machine for every measured requirement: the owner's desktop, four
   displays, one 3440x1440 primary plus three 3840x2400, mixed positions.
 - No network access is required at any point.
@@ -113,7 +114,11 @@ There is one user class. ScreenState has no administrator role.
 - **C-2** All files it writes live under the signed-in user's profile
   directories. No machine-wide registry keys, no machine-wide files.
 - **C-3** ScreenState never terminates a process it did not start.
-- **C-4** ScreenState makes no network connection. Nothing is sent off the
+- **C-4** ScreenState makes exactly one kind of network connection: the update
+  check in FR-058, an anonymous request asking a release feed what the latest
+  version is. It carries no identifier and no profile data, it can be turned
+  off, plus everything else the product does works with the machine offline. No
+  profile, no window layout and nothing about the desktop ever leaves the
   machine.
 
 ### 2.5 Assumptions and dependencies
@@ -178,9 +183,11 @@ it lands when it is restored down.
 Priority: Must
 Requirement: When an application in a capture is running with no visible window,
 the ScreenState agent shall record that entry as running with no placement.
-Rationale: this is how the owner's NordVPN, GameGlass and Postal Gambit windows
-come to be closed on restore, without a separate concept of dismissal.
-Acceptance: Given NordVPN running with its window closed, when the user captures
+Rationale: an application can be wanted without any of its windows being wanted
+anywhere in particular, which is how the owner's tray applications are usually
+left. The entry says the application should run and says nothing about where,
+so a restore launches it if absent and then leaves its windows alone.
+Acceptance: Given NordVPN running with its window hidden, when the user captures
 a profile, then the NordVPN entry records running with no placement.
 
 **FR-006 Atomic write**
@@ -310,26 +317,30 @@ Acceptance: Given a placement naming the left display and the maximised show
 state, when it is applied, then the window is maximised on the left display; restoring
 it down places it within that display.
 
-**FR-028 Close an unwanted window**
-Priority: Must
-Requirement: When an entry records running with no placement and that
-application has a visible top-level window, the ScreenState agent shall request
-that the window close.
-Acceptance: Given NordVPN showing its window after sign-in, when the restore
-applies, then the NordVPN window is closed and the NordVPN process is still
-running.
+**FR-028 Close an unwanted window: WITHDRAWN**
+A restore closes nothing. This required the agent to ask a window to close when
+its entry recorded the application as running with no placement. It was drafted
+while closing was believed to be uniformly safe. OQ-4 measured that it
+is not: NordVPN and GameGlass survive their windows closing, Postal Gambit is
+ended by it. Nothing about a window says which kind it is, so the agent would
+have been quitting applications and taking whatever was unsaved in them with
+it, in the name of tidying a desktop.
+
+An application that should be present but out of the way is recorded with the
+minimised show state, which is reversible, loses nothing and quits nothing. The
+number is retired rather than reused.
 
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
-start.
-Rationale: C-3. Closing a window is a request the application may refuse.
+start; it shall not close any window either.
+Rationale: C-3, widened by measurement. Terminating was never allowed. Closing
+was, until OQ-4 showed that closing a window ends some applications outright,
+which is a termination reached by another route and destroys unsaved work just
+as surely.
 
-**FR-030 Window refused to close**
-Priority: Must
-Requirement: If a window the profile records as unwanted is still present after
-the close request, then the ScreenState agent shall record it in the report and
-shall leave it alone.
+**FR-030 Window refused to close: WITHDRAWN**
+Withdrawn with FR-028. There is no close request to be refused.
 
 **FR-031 Missing display**
 Priority: Must
@@ -339,6 +350,47 @@ record the substitution in the report.
 Acceptance: Given a profile placing Stellody on the left display, when that
 display is disconnected, then Stellody is maximised on the primary display and
 the report names the substitution.
+
+**FR-057 Displays changing during a restore**
+Priority: Must
+Requirement: If the set of connected displays changes while a restore is in
+progress, then the ScreenState agent shall continue the restore, shall place
+every remaining entry against the displays as they then stand and shall record
+the change in the report.
+Rationale: abandoning the restore would leave the desktop half arranged, which
+is worse than the state it started from. A placement naming a display that is
+no longer there is already handled by FR-031, so the change needs no rule of
+its own beyond continuing and saying that it happened.
+Acceptance: Given a restore in progress with two entries outstanding, when a
+display is disconnected, then both remaining entries are placed and the report
+names the display that went away.
+
+**FR-058 Update check**
+Priority: Should
+Requirement: The ScreenState agent shall check once per run whether a newer
+version has been released, shall offer the user the download when there is one
+and shall not raise a version the user has chosen to skip.
+Rationale: every other released application of the owner's carries this; a user
+who never hears about a fix does not get it. It is the only reason the
+product touches the network, which is why C-4 names it.
+Acceptance: Given a release newer than the running version, when the agent
+starts, then the user is offered the download once, with the choice to skip
+that version or be reminded later.
+
+**FR-059 Turning the update check off**
+Priority: Should
+Requirement: A user shall be able to turn the update check off, after which the
+ScreenState agent shall make no network connection at all.
+Rationale: C-4 promises that everything else works offline. A user who wants
+that promise absolute is entitled to it.
+
+**FR-060 Supporting the project**
+Priority: Should
+Requirement: The ScreenState manager shall show a donation link to
+https://www.paypal.com/ncp/payment/6FMTGJYFJXFTE, stating that ScreenState is
+free and stays free with no paid tier, no licence key and no feature held back.
+Rationale: the owner's released applications carry this. The wording matters as
+much as the link: an ask that implies something is withheld would be false.
 
 **FR-032 Window off the visible desktop**
 Priority: Must
@@ -491,6 +543,24 @@ report.
 Rationale: a restore can run for minutes while waiting for a window to appear. A
 wait with no way out is a hang from the user's point of view.
 
+**FR-061 A restore requested during a restore**
+Priority: Must
+Requirement: When a restore is requested while a restore is already running, the
+ScreenState agent shall stop the restore in progress before its next action,
+shall leave every window already placed exactly where it is and shall then carry
+out the newly requested restore.
+Requirement: The ScreenState agent shall record in the report of the replaced
+restore that it was replaced; it shall record in the report of the new restore
+that it replaced one in progress.
+Rationale: a restore is a statement of what the desktop should look like now, so
+the newest request is the one that is true. Refusing it leaves the user looking
+at a desktop that neither profile describes, with no way to get the one they just
+asked for until the first finishes. Undoing the windows already placed is worse
+still: it moves windows twice to reach the same end; FR-029 has already ruled
+that a restore closes and undoes nothing. Silence about the replacement would
+leave two reports that each look like a restore that simply stopped, which is the
+failure FR-050 exists to prevent.
+
 #### Diagnostics
 
 **FR-050 Step log**
@@ -534,13 +604,16 @@ Requirement: The ScreenState agent shall treat 15 minutes after sign-in as the
 ceiling, configurable by the user between 1 and 60 minutes.
 Method: the value is read from configuration and asserted in a test over a fake
 clock.
-Rationale: measured on the reference machine, windows were still appearing 7
-minutes 12 seconds into a sign-in run on 2026-09-20 and the last one in an
-earlier run arrived 5 minutes 34 seconds after boot; the owner reports roughly
-10 minutes before the machine is usable. The first draft of 5 minutes would have
-given up while startup was still running. The ceiling is a policy choice about
-how long to keep trying rather than a measurement of how long startup takes:
-nothing here needs to know that.
+Rationale: the ceiling is a policy choice about how long to keep waiting for a
+window that may never appear. It is deliberately not derived from how long this
+machine takes to start; the attempts to measure that are a caution rather than a
+source. On the reference machine the applications that start by
+themselves all had windows within about 90 seconds of sign-in. Every later
+appearance in those runs, at 3, 4, 5 and 7 minutes, was the owner launching
+applications by hand while the measurement ran, which was mistaken for slow
+startup twice before he said so. Fifteen minutes is therefore generous by an
+order of magnitude against the only figure that was ever clean, which is what a
+ceiling should be: the point at which waiting is abandoned, not a prediction.
 
 **NFR-PERF-004 Settle-check delay**
 Priority: Must
@@ -745,20 +818,21 @@ Given profile "Desk" is marked as default and records:
   NordVPN         running, no window
   GameGlass       running, no window
   Postal Gambit   running, no window
-And Claude, Discord, PigeonPost, NordVPN, GameGlass and Postal Gambit start at
-  sign-in by themselves
-And Stellody does not start by itself
+And Claude, Discord, PigeonPost, NordVPN and GameGlass start at sign-in by
+  themselves
+And neither Stellody nor Postal Gambit starts by itself
 
 When the user signs in
 
-Then the agent launches Stellody and launches nothing else
+Then the agent launches Stellody and Postal Gambit; it launches nothing else
 And each of the four placed applications is placed as its own window appears,
   without waiting for the others
 And Claude is maximised on display 1
 And Stellody is maximised on display 4
 And Discord is maximised on display 3
 And PigeonPost is maximised on display 2
-And the NordVPN, GameGlass and Postal Gambit windows are closed
+And the NordVPN, GameGlass and Postal Gambit windows are not touched, since
+  their entries record no placement
 And all seven applications are still running
 And the report lists seven entries satisfied and none outstanding
 ```
@@ -791,7 +865,7 @@ requirement or is recorded as deliberately unaddressed.
 | A display arrangement that has changed since capture | FR-031 and FR-032. |
 | The largest plausible input | An entry per running application, a placement per window. NFR-PERF-001 fixes the number tested at 20 windows. |
 | A restore interrupted part way | FR-049 and FR-052. The report records how far it got. |
-| Two restores at once | FR-047 gives one agent per user. A restore requested while one is running is refused with a statement. Recorded as OQ-8, since the behaviour has not been specified. |
+| Two restores at once | FR-047 gives one agent per user. FR-061 settles what that one agent does: the newer request replaces the running restore, undoing nothing already placed; both reports say so. |
 | Upgrade from a previous version | DATA-002 and DATA-003. |
 | The user having no permission | OOS-5 and FR-035. |
 | Disk unavailable or store unreadable | NFR-REL-002. |
@@ -815,11 +889,11 @@ that settles it. The first five form the spike.
 | OQ-5 | CLOSED, dissolved rather than answered. It existed to supply two things: the quiet period, which FR-020 no longer has, plus the ceiling, which is a policy choice about how long to keep trying rather than a fact about this machine. Settling is now defined entirely by whether the profile's own entries are satisfied, so no timing needs measuring. | Oliver | closed 2026-09-20 |
 | OQ-6 | CLOSED 2026-09-20. Not from outside the window: that produced an empty frame. By asking the application, yes. Running NordVPN again while it was running made the running instance show its own hidden window at the same handle and rectangle; the second process then exited by itself. FR-036 stands, with its mechanism changed to FR-056. | Oliver | closed 2026-09-20 |
 | OQ-7 | CLOSED, no longer load-bearing. FR-033 re-applies a placement once when the window no longer matches; FR-034 gives up rather than fight. Both hold whether or not applications move their own windows, so the answer changes no requirement. The one run that recorded movement recorded the owner dragging windows, which is also why this cannot be measured on a machine in use. | Oliver | closed 2026-09-20 |
-| OQ-8 | What happens when a restore is requested while one is already running? | Oliver | before baselining |
-| OQ-9 | Is Windows 10 a supported target? | Oliver | before baselining |
-| OQ-10 | What happens when a display is connected or disconnected mid restore? | Oliver | before baselining |
-| OQ-11 | Does ScreenState carry an update check, as the owner's other applications do? | Oliver | before baselining |
-| OQ-12 | Does ScreenState carry a donation button, as the owner's other released applications do? | Oliver | before baselining |
+| OQ-8 | CLOSED 2026-09-20. The newer request wins. The agent stops the restore in progress before its next action, leaves every window already placed where it is and then carries out the new one; both reports record the replacement. Written as FR-061. | Oliver | closed 2026-09-20 |
+| OQ-9 | CLOSED 2026-09-20. Windows 11 is the supported target. Windows 10 will very likely work, since nothing Windows 11 introduced is used, though it is untested and therefore unsupported. Nothing is done to prevent it running there. | Oliver | closed 2026-09-20 |
+| OQ-10 | CLOSED 2026-09-20. The restore continues against the displays as they then stand and the report records the change. Abandoning it would leave the desktop half arranged, which is worse than where it started. See FR-057. | Oliver | closed 2026-09-20 |
+| OQ-11 | CLOSED 2026-09-20. Yes, as every other released application of the owner's carries one. C-4 is reworded to name it as the single outbound call; FR-059 lets the user turn it off and have C-4 absolutely. See FR-058. | Oliver | closed 2026-09-20 |
+| OQ-12 | CLOSED 2026-09-20. Yes. FR-060 carries the link in the manager. | Oliver | closed 2026-09-20 |
 
 ---
 
@@ -838,15 +912,19 @@ that question is closed.
 ## Appendix D: MoSCoW distribution
 
 Counted from this document rather than carried forward, because the previous
-figures had drifted about ten below the requirements actually written.
+figures had drifted about ten below the requirements actually written. Recounted
+on 2026-09-20 by scanning every `Priority:` line: the Must figure had been
+written as 56 against 65 actually present, a transposition that the earlier
+recount did not catch. FR-061 takes it to 66. Withdrawn requirements carry no
+`Priority:` line, so they are not in the Must or Should figures.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 57 | The product does not work without any one of them. |
-| Should | 8 | FR-014, FR-036, FR-037, FR-049, FR-056, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Must | 66 | The product does not work without any one of them. |
+| Should | 11 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
-| Withdrawn | 4 | FR-020, FR-021, FR-022 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
+| Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
 
 The Must proportion is high for a first release of a utility whose whole purpose
 is one behaviour. The check that keeps it honest: every Must names a failure the
