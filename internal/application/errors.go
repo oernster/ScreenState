@@ -14,6 +14,9 @@ var (
 	ErrNoSuchProfile = errors.New("no such profile")
 	// ErrProfileNameInUse is a save under a name already stored (FR-002).
 	ErrProfileNameInUse = errors.New("profile name is already in use")
+	// ErrOnlyProfile is an attempt to unmark the default where there is one
+	// profile, which FR-062 does not allow: the single profile is the default.
+	ErrOnlyProfile = errors.New("the only profile is always the default")
 	// ErrNoSuchEntry is a request to remove an application a profile does not
 	// hold. It is told apart from a successful removal on purpose: a silent
 	// success would let the manager report a change that never happened.

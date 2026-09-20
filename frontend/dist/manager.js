@@ -214,6 +214,18 @@ function drawProfiles() {
         words.append(name, note)
         row.append(art, words)
 
+        // With one profile the marking is a fact rather than a choice (FR-062),
+        // so it is drawn as a label: a button that cannot do anything else is a
+        // button that lies about what pressing it would achieve.
+        if (profiles.length === 1) {
+            const only = document.createElement('span')
+            only.className = 'badge'
+            only.textContent = '✓ Default'
+            only.title = 'The only profile there is, so it is the one applied when you sign in'
+            row.appendChild(only)
+            rows.appendChild(row)
+            return
+        }
         const badge = document.createElement('button')
         badge.className = 'badge' + (profile.isDefault ? '' : ' quiet')
         // "Set default" was read as a statement that this one IS the default,

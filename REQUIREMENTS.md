@@ -468,16 +468,23 @@ Requirement: If no profile is marked as default, then the ScreenState agent
 shall apply no profile at sign-in and shall state in the manager that no default
 is set.
 
-**FR-062 The first profile is the default**
+**FR-062 One profile is always the default**
 Priority: Must
-Requirement: When a capture is saved while no stored profile is marked as
-default, the ScreenState agent shall mark the saved profile as the default.
+Requirement: While exactly one profile is stored, the ScreenState agent shall
+keep that profile marked as the default and shall refuse a request to unmark it.
+When a capture is saved while no stored profile is marked as default, the agent
+shall mark the saved profile as the default.
 Rationale: reported 2026-09-20. The only profile stored was unmarked, so a
 restart arranged nothing and the user had to open the manager and press Apply.
 A capture is the user saying this is how the desktop should look; a marking
-they were never told was owed is not a decision they made. It fills an empty
-marking only: a later capture never moves the marking off the profile the user
-chose, which FR-040 and FR-042 leave to them.
+they were never told was owed is not a decision they made. One profile and no
+marking has nothing to recommend it: signing in arranges nothing while the only
+answer to what should be arranged sits in the list. The marking is settled
+wherever the set of profiles is read or changed, so a profile stored by an
+earlier version is put right on the next sign-in rather than the one after it.
+With two profiles or more the marking is the user's and FR-039 governs: none
+marked stays a choice they are entitled to make; a later capture never moves the
+marking off the profile they chose.
 
 #### Profile management
 

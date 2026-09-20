@@ -177,7 +177,7 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 	defer stop()
 
 	app := NewApp(manager, tray, restores, captures, updates, steps, version)
-	go signIn(ctx, restores, steps)
+	go signIn(ctx, manager, restores, steps)
 	go runTray(ctx, tray, steps, app)
 
 	background := light
@@ -221,12 +221,23 @@ func webviewData() string {
 // finished would be shut for the whole of the time a user most wants to look at
 // it. FR-048 asks only that the restore complete without the window being
 // opened, which it does.
-func signIn(ctx context.Context, restores *application.RestoreService, steps *runlog.Steps) {
+func signIn(
+	ctx context.Context,
+	manager *application.ManagerService,
+	restores *application.RestoreService,
+	steps *runlog.Steps,
+) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			steps.Step(fmt.Sprintf("the sign-in restore failed unexpectedly: %v", recovered))
 		}
 	}()
+	// The only profile there is, is the one to apply (FR-062). Settled before
+	// the restore rather than after it, so a profile stored by an earlier
+	// version is arranged on this sign-in rather than the next one.
+	if err := manager.SettleDefault(ctx); err != nil {
+		steps.Step(fmt.Sprintf("the default marking was left as it was: %v", err))
+	}
 	report, marked, err := restores.RestoreDefault(ctx)
 	if err != nil {
 		steps.Step(fmt.Sprintf("the sign-in restore stopped: %v", err))

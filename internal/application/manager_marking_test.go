@@ -69,6 +69,81 @@ func TestClearDefaultLeavesNoneMarked(t *testing.T) {
 	}
 }
 
+// The only profile there is, is the default (FR-062): a lone profile left
+// unmarked means signing in arranges nothing while the only answer to what
+// should be arranged sits in the list.
+func TestTheOnlyProfileIsMarkedWhereverTheListIsRead(t *testing.T) {
+	t.Parallel()
+	store := newFakeStore(profileOf(t, "Work", claude))
+	manager, _, log := managerOver(store)
+
+	summaries, err := manager.Profiles(context.Background())
+	if err != nil {
+		t.Fatalf("listing: %v", err)
+	}
+	if len(summaries) != 1 || !summaries[0].Default {
+		t.Fatalf("the list says %v", summaries)
+	}
+	if marked := markedProfiles(t, store); len(marked) != 1 || marked[0] != "Work" {
+		t.Errorf("the store holds %v as marked", marked)
+	}
+	if !log.saying("only profile") {
+		t.Error("the marking was not recorded")
+	}
+}
+
+// Deleting the marked profile can leave one behind that is not marked, which is
+// the state the rule exists to remove.
+func TestDeletingTheMarkedProfileLeavesTheSurvivorMarked(t *testing.T) {
+	t.Parallel()
+	store := newFakeStore(
+		profileOf(t, "Work", claude).WithDefault(true),
+		profileOf(t, "Gaming", nordvpn),
+	)
+	manager, _, _ := managerOver(store)
+
+	if err := manager.Delete(context.Background(), "Work"); err != nil {
+		t.Fatalf("deleting: %v", err)
+	}
+	if marked := markedProfiles(t, store); len(marked) != 1 || marked[0] != "Gaming" {
+		t.Errorf("the store holds %v as marked", marked)
+	}
+}
+
+// Unmarking the only profile is refused rather than undone behind the user's
+// back the next time anything reads the list.
+func TestTheOnlyProfileCannotBeUnmarked(t *testing.T) {
+	t.Parallel()
+	store := newFakeStore(profileOf(t, "Work", claude).WithDefault(true))
+	manager, _, _ := managerOver(store)
+
+	err := manager.ClearDefault(context.Background())
+	if !errors.Is(err, ErrOnlyProfile) {
+		t.Fatalf("expected ErrOnlyProfile, got %v", err)
+	}
+	if marked := markedProfiles(t, store); len(marked) != 1 {
+		t.Errorf("the marking was changed anyway: %v", marked)
+	}
+}
+
+// With two profiles the marking is the user's: FR-039 keeps none marked as a
+// choice they are entitled to make.
+func TestTheMarkingStaysTheUsersWhereThereAreTwoProfiles(t *testing.T) {
+	t.Parallel()
+	store := newFakeStore(
+		profileOf(t, "Work", claude),
+		profileOf(t, "Gaming", nordvpn),
+	)
+	manager, _, _ := managerOver(store)
+
+	if _, err := manager.Profiles(context.Background()); err != nil {
+		t.Fatalf("listing: %v", err)
+	}
+	if marked := markedProfiles(t, store); len(marked) != 0 {
+		t.Errorf("%v was marked without being asked for", marked)
+	}
+}
+
 func TestSetDefaultReportsEveryFailureItMeets(t *testing.T) {
 	t.Parallel()
 	cases := map[string]func(store *fakeStore){

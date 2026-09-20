@@ -67,9 +67,50 @@ func NewManagerService(store ProfileStore, startup Startup, log Log) *ManagerSer
 	return &ManagerService{store: store, startup: startup, log: log}
 }
 
+// SettleDefault marks the only profile there is as the default (FR-062).
+//
+// One profile and no marking is a state with nothing to recommend it: signing
+// in arranges nothing while the only answer to what should be arranged sits
+// right there. It is settled wherever the set of profiles is read or changed,
+// rather than only where one is made, so a profile stored by an earlier version
+// is put right the first time the agent runs.
+//
+// With two profiles or more the marking is the user's: FR-039 keeps none marked
+// as a choice they are entitled to make.
+func (service *ManagerService) SettleDefault(ctx context.Context) error {
+	names, err := service.store.Names(ctx)
+	if err != nil {
+		return fmt.Errorf("listing the profiles: %w", err)
+	}
+	if len(names) != 1 {
+		return nil
+	}
+	profile, err := service.store.Load(ctx, names[0])
+	if err != nil {
+		return fmt.Errorf("reading profile %q: %w", names[0], err)
+	}
+	if profile.Default {
+		return nil
+	}
+	if err := service.store.Save(ctx, profile.WithDefault(true)); err != nil {
+		return fmt.Errorf("marking profile %q as the default: %w", profile.Name, err)
+	}
+	service.log.Step(fmt.Sprintf(
+		"%q is the only profile, so it is the one applied at sign-in", profile.Name))
+	return nil
+}
+
 // Profiles lists the stored profiles for the manager, the default one marked
 // and the rest in the order a reader expects to find them.
+//
+// The marking is settled first: a list is the one place a user looks at all of
+// them, so it is where the single-profile rule has to hold.
 func (service *ManagerService) Profiles(ctx context.Context) ([]ProfileSummary, error) {
+	if err := service.SettleDefault(ctx); err != nil {
+		// A marking that could not be settled costs the marking rather than the
+		// list: the user came here to see their profiles.
+		service.log.Step(fmt.Sprintf("the default marking was left as it was: %v", err))
+	}
 	names, err := service.store.Names(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("listing the profiles: %w", err)
@@ -174,6 +215,11 @@ func (service *ManagerService) Delete(ctx context.Context, name string) error {
 		return err
 	}
 	service.log.Step(fmt.Sprintf("profile %q was deleted", name))
+	// Deleting the marked one can leave a single unmarked profile behind, which
+	// is the state this rule exists to remove.
+	if err := service.SettleDefault(ctx); err != nil {
+		service.log.Step(fmt.Sprintf("the default marking was left as it was: %v", err))
+	}
 	return nil
 }
 
@@ -202,7 +248,18 @@ func (service *ManagerService) SetDefault(ctx context.Context, name string) erro
 // what makes the marking a toggle rather than a one-way door: FR-039 says an
 // agent with no default applies nothing at sign-in, so having none is a choice
 // a user is entitled to make.
+//
+// It is refused where there is one profile (FR-062), since the marking would
+// come straight back the next time anything read the list. A rule that undoes
+// what the user just did, silently, is worse than one that says no.
 func (service *ManagerService) ClearDefault(ctx context.Context) error {
+	names, err := service.store.Names(ctx)
+	if err != nil {
+		return fmt.Errorf("listing the profiles: %w", err)
+	}
+	if len(names) == 1 {
+		return fmt.Errorf("%w: it is the only profile there is", ErrOnlyProfile)
+	}
 	if err := service.clearDefaults(ctx, ""); err != nil {
 		return err
 	}
