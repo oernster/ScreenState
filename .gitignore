@@ -46,3 +46,4 @@ go.work.sum
 # the program through the runtime rather than through them, so nothing imports
 # these and they are an output like any other.
 /installer/frontend/wailsjs/
+/frontend/wailsjs/

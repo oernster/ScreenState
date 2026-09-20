@@ -30,6 +30,37 @@ $floored = @(
 )
 $floor = 100.0
 
+# A test binary that never ran is not a pass. While this product was being
+# written, Malwarebytes quarantined instance.test.exe five times in six minutes,
+# and a quarantined binary makes go test report its package ok with no test in
+# it. The gate would then go green over a package it never exercised. So every
+# package that owns test files has to be SEEN running at least one of them. The
+# list comes from go list, which applies the build constraints for this platform,
+# so a package whose tests all belong to another one is never expected here.
+function Invoke-Tests {
+    param(
+        [Parameter(Mandatory)][string[]]$Arguments,
+        [Parameter(Mandatory)][string[]]$Expected
+    )
+    $ran = @{}
+    & go test -json @Arguments | ForEach-Object {
+        $event = $null
+        try { $event = $_ | ConvertFrom-Json } catch { Write-Host $_; return }
+        if ($event.Action -eq 'output' -and $event.Output) { Write-Host $event.Output -NoNewline }
+        if ($event.Action -eq 'run' -and $event.Test) { $ran[$event.Package] = $true }
+    }
+    $code = $LASTEXITCODE
+    # A run that already failed says why on its own; the silence check would only
+    # bury that behind a second complaint about packages the failure stopped.
+    if ($code -eq 0) {
+        $silent = @($Expected | Where-Object { -not $ran.ContainsKey($_) })
+        if ($silent) {
+            throw "these packages own tests and ran none of them, which is what a missing or quarantined test binary looks like:`n$($silent -join "`n")"
+        }
+    }
+    return $code
+}
+
 Write-Host 'Checking formatting...'
 $unformatted = & gofmt -l .
 if ($unformatted) { throw "gofmt would change these files:`n$($unformatted -join "`n")" }
@@ -60,17 +91,20 @@ if ($buildResult -ne 0) { throw "the product no longer builds off Windows (exit 
 # Running only the race pass would leave the shipping configuration untested;
 # running only the other would drop a detector that has already earned its place
 # here by finding a race in a test of the restore replacement.
+$expected = @(& go list -f '{{if or .TestGoFiles .XTestGoFiles}}{{.ImportPath}}{{end}}' ./... | Where-Object { $_ })
+if ($LASTEXITCODE -ne 0) { throw "go list failed with exit code $LASTEXITCODE" }
+if (-not $expected) { throw 'go list found no package with test files, which cannot be right' }
+
 Write-Host 'Running the tests with the race detector...'
 $env:CGO_ENABLED = '1'
-& go test -race -count=1 ./...
-$raceResult = $LASTEXITCODE
+$raceResult = Invoke-Tests -Arguments @('-race', '-count=1', './...') -Expected $expected
 $env:CGO_ENABLED = '0'
 if ($raceResult -ne 0) { throw "the race pass failed with exit code $raceResult" }
 
 Write-Host 'Running the tests as the product ships, with cgo off...'
 $coverage = Join-Path $root 'coverage.out'
-& go test -count=1 -covermode=set "-coverprofile=$coverage" ./...
-if ($LASTEXITCODE -ne 0) { throw "go test failed with exit code $LASTEXITCODE" }
+$shipResult = Invoke-Tests -Arguments @('-count=1', '-covermode=set', "-coverprofile=$coverage", './...') -Expected $expected
+if ($shipResult -ne 0) { throw "go test failed with exit code $shipResult" }
 
 # The two arguments above are quoted on purpose. An unquoted -flag=$variable is
 # handed to the program with the dollar sign still in it, so the coverage output
