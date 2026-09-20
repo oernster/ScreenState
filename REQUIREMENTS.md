@@ -350,8 +350,9 @@ Requirement: The ScreenState agent shall offer a setting, off unless the user
 turns it on, under which the restore that runs at sign-in asks each window that
 FR-063 would put away to close instead. Where such a window is still open once
 the settle time has passed, the agent shall minimise it and shall record in the
-report that it did not close. A restore the user asked for shall minimise those
-windows whatever the setting says. The agent shall never close a window the
+report that it did not close. Every other restore shall minimise those windows
+whatever the setting says, including the one that runs when the agent is started
+by hand. The agent shall never close a window the
 profile names and shall never close one of its own.
 Rationale: reported 2026-09-20 by the owner, having watched FR-063 work. Most of
 the applications that start with Windows go to the notification area when their
@@ -364,7 +365,11 @@ a request rather than an order, so a refusal is an ordinary answer and is met by
 the act the setting replaced. It is the sign-in restore alone because that is
 the one that builds a desktop from nothing: pressing Apply happens in the middle
 of a session, where a window being asked to close is a surprise the user did not
-ask for (ruled by the owner, 2026-09-20).
+ask for (ruled by the owner, 2026-09-20). The agent restores the default profile
+whenever it starts with no copy of it already running, which is a launch from
+the shortcut as well as a sign-in, so the two are told apart by the flag the
+sign-in entry carries (FR-046) rather than by the fact that a restore is
+running.
 
 **FR-029 Never terminate**
 Priority: Must

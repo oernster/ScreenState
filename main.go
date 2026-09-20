@@ -180,7 +180,7 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 	defer stop()
 
 	app := NewApp(manager, tray, restores, captures, updates, steps, version, hidden)
-	go signIn(ctx, manager, restores, steps)
+	go signIn(ctx, manager, restores, steps, hidden)
 	go runTray(ctx, tray, steps, app)
 
 	background := light
@@ -229,6 +229,7 @@ func signIn(
 	manager *application.ManagerService,
 	restores *application.RestoreService,
 	steps *runlog.Steps,
+	signedIn bool,
 ) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -241,7 +242,7 @@ func signIn(
 	if err := manager.SettleDefault(ctx); err != nil {
 		steps.Step(fmt.Sprintf("the default marking was left as it was: %v", err))
 	}
-	report, marked, err := restores.RestoreDefault(ctx)
+	report, marked, err := restores.RestoreDefault(ctx, signedIn)
 	if err != nil {
 		steps.Step(fmt.Sprintf("the sign-in restore stopped: %v", err))
 		return

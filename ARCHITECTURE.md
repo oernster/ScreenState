@@ -208,7 +208,9 @@ Every one of those is exercised against fakes in `internal/application`, which h
 
 It never terminates a process it did not start (FR-029, C-3). It closes a window only during the restore that runs at
 sign-in, only where the user has turned FR-064 on and only a window no profile names. Apply
-minimises whatever the setting says.
+minimises whatever the setting says; so does the restore that runs when the agent is started by
+hand. The two are told apart by the flag the sign-in entry passes, since the agent restores the
+default profile on any start where no copy of it is already running.
 
 Closing was forbidden outright until the owner asked for it back. NordVPN and GameGlass survive their
 windows closing; Postal Gambit is ended by it. Nothing about a window says which kind it is, so an
@@ -474,16 +476,24 @@ stand-in; every outcome the window can show was driven in a browser. No request 
 machine: there is no published release to find, so the happy path is proved only in the shape the
 adapter promises to produce.
 
-**The manager has never been opened in the real window.** Its panels have been driven in a browser
+**The manager is proved by use rather than by test.** It has been run for real on the reference
+machine: the log records captures that read the desktop, a capture cancelled without writing
+anything, a profile written, a profile deleted, the default marking settled, restores at start and
+the quit from both the manager and the tray. The panels themselves are still driven in a browser
 against a stand-in for the agent, which settles the layout, the palette and the wiring and settles
-nothing else. Real keyboard focus, the tray click, the second-launch message, a real capture and a
-real restore all need the built program run on a real machine.
+nothing else. What neither has settled: real keyboard focus and the ring, the second-launch message,
+the tray opening a named panel, the donate link and the update offer on screen. Those are read off a
+run, not off a suite, so they are checked by the list in TESTING.md.
 
-**The setup program has never installed anything.** Its screens have been driven in a browser against a
-stand-in for the program, which settles the layout, the palette and the screen wiring and settles
-nothing else. Real keyboard focus, the registry writes, the shortcuts, the payload extraction and the
-scheduled removal all need the packaged program run on a real machine. Until that happens it is written
-and not proven.
+**The setup program has installed and nothing else.** It has installed on the reference machine
+twice, the second time over an existing install of the same version: the files are in
+`%LOCALAPPDATA%\Programs\ScreenState`, the Apps list entry carries its uninstall and modify
+commands, the sign-in entry names the installed file with the flag that keeps the window shut and
+both shortcuts are where they belong. So the payload extraction, the registry writes and the
+shortcuts are proved for that one path. Everything else is written and not proven: an update to a
+newer version, going back to an older one, repair, uninstall, the scheduled removal and the cleanup
+of an install under a name the product used to carry. Its screens are still driven in a browser
+against a stand-in, which settles the layout and the wiring and settles nothing else.
 
 ## Not built yet
 

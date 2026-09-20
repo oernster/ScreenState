@@ -166,7 +166,7 @@ beside each requirement.
 | A capture reads the desktop as it is (FR-010) | Open a handful of windows, capture, compare the review against the screen. |
 | A restore puts them back (FR-041) | Move the windows, apply the profile, look. |
 | No program is ever ended (FR-029) | Apply a profile with unsaved work open, the setting for unnamed windows off; nothing is lost. |
-| Closing the windows a profile does not name (FR-064) | Turn the setting on, sign out and in again, watch where the unnamed applications go: the ones that live in the notification area should be there rather than on the taskbar. Then press Apply with the setting still on: nothing should close. |
+| Closing the windows a profile does not name (FR-064) | Turn the setting on, sign out and in again, watch where the unnamed applications go: the ones that live in the notification area should be there rather than on the taskbar. Then press Apply with the setting still on; then quit from the tray and start it from the shortcut. Neither should close anything. |
 | A window that refuses to close is minimised (FR-064) | With the setting on, leave an unsaved document open in an application no profile names, sign out and in again, then answer the prompt it puts up. |
 | The report names what it could not do (FR-044) | Apply a profile naming an application that is not installed. |
 | Sign-in (FR-053) | Tick the option, sign out and in again. |

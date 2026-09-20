@@ -42,10 +42,11 @@ type RestoreService struct {
 // It decides one thing and nothing else: whether the windows the profile does
 // not name may be closed rather than minimised (FR-064). Closing belongs to the
 // sign-in restore, where the desktop is being made from nothing and the
-// applications in the way are the ones that started with Windows. Pressing
-// Apply is a different act: the user is looking at a desktop they are working
+// applications in the way are the ones that started with Windows. Every other
+// restore is a different act: the user is looking at a desktop they are working
 // in, so a window of theirs being asked to close is a surprise nobody signed up
-// for.
+// for. That covers Apply and it covers the restore that runs when the agent is
+// started by hand, which is the same restore reached by a different route.
 type trigger int
 
 const (
@@ -98,10 +99,18 @@ func (service *RestoreService) Last() (*Report, bool) {
 }
 
 // RestoreDefault restores the profile marked as the default, which is what
-// happens at sign-in (FR-038). The second result is false where no profile is
-// marked, which is an answer rather than a fault: the manager then states that
-// no default is set (FR-039).
-func (service *RestoreService) RestoreDefault(ctx context.Context) (*Report, bool, error) {
+// happens at sign-in (FR-038) and also what happens when the agent is started
+// by hand with no copy of it already running. The second result is false where
+// no profile is marked, which is an answer rather than a fault: the manager
+// then states that no default is set (FR-039).
+//
+// atSignIn says which of the two this is, because it decides whether the
+// windows the profile does not name may be closed (FR-064). The agent knows:
+// the entry Windows starts it from passes a flag no other launch carries.
+func (service *RestoreService) RestoreDefault(
+	ctx context.Context,
+	signedIn bool,
+) (*Report, bool, error) {
 	profile, marked, err := service.store.Default(ctx)
 	if err != nil {
 		return nil, false, fmt.Errorf("reading the default profile: %w", err)
@@ -110,7 +119,11 @@ func (service *RestoreService) RestoreDefault(ctx context.Context) (*Report, boo
 		service.log.Step("no profile is marked as the default, so nothing was restored")
 		return nil, false, nil
 	}
-	report, err := service.restore(ctx, profile, atSignIn)
+	why := byHand
+	if signedIn {
+		why = atSignIn
+	}
+	report, err := service.restore(ctx, profile, why)
 	return report, true, err
 }
 
