@@ -153,6 +153,14 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
     border-color: var(--border);
 }
 
+/* It is a button, so it behaves like one under the pointer: a pill that never
+   reacts reads as a label saying what this profile IS, which is how the marking
+   came to look like something already done rather than something to press. */
+.badge:enabled { cursor: pointer; }
+
+.badge:enabled:hover,
+.badge:enabled:focus { border-color: var(--ring); color: var(--ring); }
+
 .rowbtn {
     flex: 0 0 auto;
     border: 2px solid transparent;

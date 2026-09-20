@@ -216,10 +216,14 @@ function drawProfiles() {
 
         const badge = document.createElement('button')
         badge.className = 'badge' + (profile.isDefault ? '' : ' quiet')
-        badge.textContent = profile.isDefault ? 'Default' : 'Set default'
+        // "Set default" was read as a statement that this one IS the default,
+        // which is fair: set is a past participle as readily as a verb. The
+        // unmarked wording is an instruction now; the marked one is a state
+        // with a tick rather than words that could be read either way.
+        badge.textContent = profile.isDefault ? '✓ Default' : 'Make default'
         badge.title = profile.isDefault
             ? 'Applied after you sign in. Press to stop applying any profile.'
-            : 'Apply this profile after you sign in'
+            : 'Press to apply this profile after you sign in'
         badge.onclick = (event) => {
             event.stopPropagation()
             void toggleDefault(profile)
@@ -227,6 +231,13 @@ function drawProfiles() {
         row.appendChild(badge)
         rows.appendChild(row)
     })
+    // FR-039 in as many words. A list where nothing is marked looks exactly like
+    // a list where something is, so a sign-in that arranges nothing arrives as a
+    // surprise: it did on 2026-09-20, after a reboot, with one profile stored.
+    if (!profiles.some((profile) => profile.isDefault)) {
+        rows.appendChild(emptyLine('None of these is marked, so signing in arranges'
+            + ' nothing. Press Make default on the one you want.'))
+    }
 }
 
 // toggleDefault makes a profile the default; where it already is, it leaves
