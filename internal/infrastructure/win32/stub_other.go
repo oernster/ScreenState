@@ -48,6 +48,11 @@ func (desktop *Desktop) Place(
 	return ErrNotWindows
 }
 
+// Close refuses.
+func (desktop *Desktop) Close(context.Context, application.WindowID) error {
+	return ErrNotWindows
+}
+
 // Processes refuses everything on a machine that is not Windows.
 type Processes struct{}
 

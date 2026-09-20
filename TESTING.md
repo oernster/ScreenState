@@ -165,9 +165,12 @@ beside each requirement.
 |---|---|
 | A capture reads the desktop as it is (FR-010) | Open a handful of windows, capture, compare the review against the screen. |
 | A restore puts them back (FR-041) | Move the windows, apply the profile, look. |
-| Nothing is ever closed or ended (FR-029) | Apply a profile with unsaved work open; nothing is lost. |
+| No program is ever ended (FR-029) | Apply a profile with unsaved work open, the setting for unnamed windows off; nothing is lost. |
+| Closing the windows a profile does not name (FR-064) | Turn the setting on, apply a profile, watch where the unnamed applications go: the ones that live in the notification area should be there rather than on the taskbar. |
+| A window that refuses to close is minimised (FR-064) | With the setting on, leave an unsaved document open in an application no profile names, apply, then answer the prompt it puts up. |
 | The report names what it could not do (FR-044) | Apply a profile naming an application that is not installed. |
 | Sign-in (FR-053) | Tick the option, sign out and in again. |
+| A sign-in start opens no window (FR-048) | Sign in with the option ticked: the agent should be in the notification area only. The log says so where the page asked for the keyboard and was left alone. |
 | Several displays, mixed scaling | Capture and restore across monitors at different scales. |
 | The update check (FR-058, FR-059) | Once per run against the real release feed, then again with the setting off, where nothing should reach the network. |
 | Setup, including what an uninstall removes (DATA-005) | Install, update, go back a version, repair and uninstall, each once, then inspect the registry and the folders. |

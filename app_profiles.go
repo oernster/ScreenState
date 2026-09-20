@@ -168,6 +168,13 @@ func (a *App) SetStartsWithWindows(enabled bool) error {
 	return a.manager.SetStartsWithWindows(enabled)
 }
 
+// SetCloseUnnamedWindows chooses what a restore does with the windows a profile
+// does not name: asks them to close where the setting is on, minimises them
+// where it is not (FR-064).
+func (a *App) SetCloseUnnamedWindows(closing bool) error {
+	return a.restores.SetCloseStrangers(closing)
+}
+
 // noReport is the answer when no restore has run. Held says so; the two lists
 // are stated as empty rather than left nil, so the page reads the same shapes
 // whether or not there is anything to read.

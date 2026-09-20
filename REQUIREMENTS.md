@@ -131,7 +131,7 @@ on an assumption without naming it.
 |---|---|---|---|
 | A-1 | CONFIRMED 2026-09-19. The monitor id serves, for example `DISPLAY#HSJ1340#5&14514d51&0&UID4356`. Every one was unchanged after a reboot and still sat on the same device name. The UID is what distinguishes displays of the same model: the left and the right screen both report model `HSJ1340` and differ only by `UID4356` against `UID4354`. See appendix E. | Oliver | closed 2026-09-19 |
 | A-2 | CONFIRMED 2026-09-19, as three rules rather than one value. A Store-packaged application is identified by its application user model id, which carries no version. An application installed under a versioned directory is identified by the updater command that does not move. Every other application is identified by its path. See appendix E. | Oliver | closed 2026-09-19 |
-| A-3 | FALSE AS STATED, measured 2026-09-20. It holds for NordVPN and GameGlass, whose processes were alive 43 minutes after their windows were closed. It does not hold for Postal Gambit, which is an ordinary windowed application: closing its window ends it. The agent therefore cannot treat closing as harmless without knowing which kind it is dealing with. | Oliver | closed 2026-09-20 |
+| A-3 | FALSE AS STATED, measured 2026-09-20. It holds for NordVPN and GameGlass, whose processes were alive 43 minutes after their windows were closed. It does not hold for Postal Gambit, which is an ordinary windowed application: closing its window ends it. The agent therefore cannot treat closing as harmless without knowing which kind it is dealing with. FR-064 answers that by not deciding: closing is a setting the user turns on, off until they do. | Oliver | closed 2026-09-20 |
 | A-4 | CONFIRMED 2026-09-20, in one form only. An application that starts with no visible window can be asked to show one by running it again; it cannot be made to show one by acting on the window from outside. Measured against NordVPN: showing the hidden window directly produced an empty frame the application was not drawing, while a second launch made the running instance show and draw that same window, after which the second process exited by itself. | Oliver | closed 2026-09-20 |
 | A-5 | CONFIRMED 2026-09-19. A window was moved to each of four displays in turn and maximised there, from a process holding no administrator rights, including from a 96 dpi display to a 240 dpi one. Every move landed where it was told. The sequence that works: restore the window, set its rectangle to the target display's work area, then maximise. See appendix E. | Oliver | closed 2026-09-19 |
 | A-6 | NO LONGER LOAD-BEARING. It asked whether startup finishes inside the ceiling, which mattered only while placement waited on the whole profile. FR-055 places each entry as its own window appears, so a late application delays nothing but itself and the ceiling merely bounds how long the agent keeps waiting. | Oliver | closed 2026-09-20 |
@@ -333,24 +333,48 @@ number is retired rather than reused.
 **FR-063 Windows the profile does not name**
 Priority: Must
 Requirement: When a restore has satisfied every entry it can, the ScreenState
-agent shall minimise every visible window whose application the profile does not
-name, excluding its own windows, then shall name each one in the report.
+agent shall put away every visible window whose application the profile does not
+name, excluding its own windows, then shall name each one in the report. Putting
+a window away means minimising it, unless FR-064 says it is to be closed.
 Rationale: reported 2026-09-20. Applications that start with Windows and take no
 part in a session, NordVPN and GameGlass on the reference machine, arrived on top
 of the arrangement and had to be put away by hand, which is the work this product
-exists to remove. Minimising is the whole of the act: FR-029 forbids closing and
-A-3 measured why, since closing ends some applications outright. A window already
+exists to remove. Minimising is what happens where the user has chosen nothing:
+it asks the application for nothing at all and loses nothing. A window already
 minimised is left alone, having nothing left to do. The agent's own windows are
 never put away: the manager is where Apply was pressed.
+
+**FR-064 Closing the windows the profile does not name**
+Priority: Should
+Requirement: The ScreenState agent shall offer a setting, off unless the user
+turns it on, under which a restore asks each window that FR-063 would put away
+to close instead. Where such a window is still open once the settle time has
+passed, the agent shall minimise it and shall record in the report that it did
+not close. The agent shall never close a window the profile names and shall
+never close one of its own.
+Rationale: reported 2026-09-20 by the owner, having watched FR-063 work. Most of
+the applications that start with Windows go to the notification area when their
+window is closed, which is where their owner wanted them; minimising leaves them
+on the taskbar instead, which is tidier than before and is not what was asked
+for. A-3 measured that an ordinary windowed application ends when its window
+closes, so this is the user's decision to make and not the agent's: the setting
+is off until they turn it on and says in as many words what it costs. Closing is
+a request rather than an order, so a refusal is an ordinary answer and is met by
+the act the setting replaced.
 
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
-start; it shall not close any window either.
-Rationale: C-3, widened by measurement. Terminating was never allowed. Closing
-was, until OQ-4 showed that closing a window ends some applications outright,
-which is a termination reached by another route and destroys unsaved work just
-as surely.
+start. It shall not close any window either, with one exception: a window the
+profile does not name, while the user has turned FR-064 on.
+Rationale: C-3, widened by measurement, then narrowed by a decision. Terminating
+is never allowed and never will be. Closing was forbidden too, once OQ-4 showed
+that closing a window ends some applications outright, which is a termination
+reached by another route. The owner then asked for closing back as a setting,
+knowing that measurement, because the applications it is aimed at go to the
+notification area rather than ending. So closing is not something the agent
+decides: it happens only where the user has said so, only to a window no profile
+names and never to a process.
 
 **FR-030 Window refused to close: WITHDRAWN**
 Withdrawn with FR-028. There is no close request to be refused.
@@ -959,7 +983,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 | Priority | Count | Notes |
 |---|---|---|
 | Must | 68 | The product does not work without any one of them. |
-| Should | 11 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Should | 12 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |

@@ -83,6 +83,22 @@ type Desktop interface {
 	Displays(ctx context.Context) ([]Display, error)
 	// Place sets the window's normal rectangle, then its show state.
 	Place(ctx context.Context, id WindowID, rect domain.Rect, state domain.ShowState) error
+	// Close asks a window to close, which is a request rather than an order:
+	// the application decides what to do with it and may show a prompt, take
+	// itself to the notification area or end. It is used on a window no
+	// profile names and only where the user has asked for it (FR-064).
+	Close(ctx context.Context, id WindowID) error
+}
+
+// StrangerPreferences is the one thing a restore has to ask the user about: what
+// to do with a window the profile does not name (FR-064).
+//
+// It is read at the moment the restore needs it rather than held, so a setting
+// changed while the agent waits in the notification area is the setting that
+// governs the next sign-in without anything having to be restarted.
+type StrangerPreferences interface {
+	CloseStrangers() (bool, error)
+	SetCloseStrangers(closing bool) error
 }
 
 // Processes answers whether an application is running, which a window cannot:

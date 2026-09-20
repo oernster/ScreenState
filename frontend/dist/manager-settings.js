@@ -1,6 +1,6 @@
 /*
- * The settings panel: the two things the product does on its own, starting
- * when you sign in and asking whether a newer version exists.
+ * The settings panel: starting when you sign in, what a restore does with the
+ * windows a profile does not name and asking whether a newer version exists.
  */
 
 // drawSettings puts the sign-in setting in the same window as everything else
@@ -11,6 +11,10 @@ function drawSettings() {
     const trouble = [
         state.startupError ? 'The sign-in setting could not be read: ' + state.startupError : '',
         state.updateError ? 'The update setting could not be read: ' + state.updateError : '',
+        state.closeUnnamedError
+            ? 'The setting for windows a profile does not name could not be read: '
+                + state.closeUnnamedError
+            : '',
     ].filter((line) => line !== '')
     note.textContent = trouble.join('  ')
     note.hidden = trouble.length === 0
@@ -25,6 +29,19 @@ function drawSettings() {
             onChange: (on) => void setStartup(on),
         },
         {
+            key: 'close-unnamed',
+            label: 'Close the windows a profile does not name',
+            hint: 'A restore puts every other window out of the way. Off, they are'
+                + ' minimised. On, they are asked to close, which is what pressing'
+                + ' the cross does: most applications that start with Windows go to'
+                + ' the notification area, while an ordinary one ends and takes'
+                + ' anything unsaved with it. One that refuses is minimised instead'
+                + ' and the report says which.',
+            checked: state.closeUnnamed,
+            disabled: !!state.closeUnnamedError,
+            onChange: (on) => void setCloseUnnamed(on),
+        },
+        {
             key: 'updates',
             label: 'Check for updates',
             hint: 'Asks a public release feed once per run whether a newer version'
@@ -35,6 +52,15 @@ function drawSettings() {
             onChange: (on) => void setUpdateCheck(on),
         },
     ])
+}
+
+async function setCloseUnnamed(closing) {
+    try {
+        await backend().SetCloseUnnamedWindows(closing)
+        state.closeUnnamed = closing
+    } catch (e) {
+        showError(String(e))
+    }
 }
 
 async function setStartup(enabled) {

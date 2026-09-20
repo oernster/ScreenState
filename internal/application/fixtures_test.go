@@ -72,6 +72,10 @@ func aPlacement(display domain.DisplayIdentity, rect domain.Rect) domain.Placeme
 // test can reason about: a poll of one second, a settle check of ten and a
 // ceiling of one minute, so a ceiling is reached in sixty polls rather than in
 // sixty seconds of a test run.
+//
+// The setting for the windows a profile does not name is optional, since almost
+// no test is about it: one that does not state a setting gets minimising, which
+// is what a user who has chosen nothing gets (FR-064).
 func restoreUnder(
 	desktop *fakeDesktop,
 	processes *fakeProcesses,
@@ -79,9 +83,15 @@ func restoreUnder(
 	store *fakeStore,
 	clock *fakeClock,
 	log *fakeLog,
+	strangers ...*fakeStrangers,
 ) *RestoreService {
 	policy := Policy{Ceiling: time.Minute, SettleCheck: 10 * time.Second, Poll: time.Second}
-	return NewRestoreService(desktop, processes, launcher, store, clock, log, policy, screenst)
+	choice := &fakeStrangers{}
+	if len(strangers) > 0 {
+		choice = strangers[0]
+	}
+	return NewRestoreService(
+		desktop, processes, launcher, store, clock, log, policy, screenst, choice)
 }
 
 // reportOf returns the entry report for one application, failing the test where

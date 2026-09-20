@@ -40,6 +40,9 @@ func TestEachSettingSurvivesTheOther(t *testing.T) {
 	if err := prefs.SetSkippedVersion("1.2.0"); err != nil {
 		t.Fatalf("SetSkippedVersion: %v", err)
 	}
+	if err := prefs.SetCloseStrangers(true); err != nil {
+		t.Fatalf("SetCloseStrangers: %v", err)
+	}
 
 	// Read through a second reader over the same file, so what is asserted is
 	// the file rather than anything the first one happens to hold.
@@ -57,6 +60,29 @@ func TestEachSettingSurvivesTheOther(t *testing.T) {
 	}
 	if skipped != "1.2.0" {
 		t.Errorf("the version passed over reads back as %q", skipped)
+	}
+	closing, err := reader.CloseStrangers()
+	if err != nil {
+		t.Fatalf("CloseStrangers: %v", err)
+	}
+	if !closing {
+		t.Error("the choice about unnamed windows did not survive the other two")
+	}
+}
+
+// TestAFreshInstallMinimisesTheWindowsItDoesNotKnow holds the default arm of
+// FR-064: a user who has chosen nothing gets the one that asks nothing of any
+// application, since closing a window is a decision only they can make.
+func TestAFreshInstallMinimisesTheWindowsItDoesNotKnow(t *testing.T) {
+	t.Parallel()
+	prefs := New(t.TempDir())
+
+	closing, err := prefs.CloseStrangers()
+	if err != nil {
+		t.Fatalf("CloseStrangers: %v", err)
+	}
+	if closing {
+		t.Error("a fresh install closes the windows a profile does not name")
 	}
 }
 

@@ -31,7 +31,7 @@ every plant restored afterwards. An assertion never seen to fail is not yet a gu
 | No Go source file exceeds the module-size limit | `TestNoFileExceedsLineLimit` | `boundary_test.go` |
 | No source file sits in the danger band below the limit | `TestNoFileInDangerBand` | `boundary_test.go` |
 | Every exported type carries a doc comment | `TestEveryExportedTypeIsDocumented` | `boundary_test.go` |
-| No port above the Windows layer can close, terminate or kill anything | `TestNothingAboveInfrastructureCanEndAProgram` | `rulings_test.go` |
+| No port above the Windows layer can terminate or kill anything; only the three methods FR-064 names may close a window | `TestNothingAboveInfrastructureCanEndAProgram` | `rulings_test.go` |
 | Domain and application import no Windows API | `TestTheDecisionsStayPortable` | `rulings_test.go` |
 | Every timing has one home in `ports.go` | `TestEveryTimingHasOneHome` | `rulings_test.go` |
 
@@ -63,7 +63,8 @@ mutex, a log line, a menu entry and the setup program's header. A second copy of
 leaves one surface still announcing the old one.
 
 `internal/infrastructure/settings` keeps the few choices remembered between runs: whether the update
-check is wanted (FR-059) and which released version the user passed over (FR-058). It is deliberately
+check is wanted (FR-059), which released version the user passed over (FR-058) and whether a restore
+closes the windows a profile does not name rather than minimising them (FR-064). It is deliberately
 apart from the profile store, because a profile is the user's work and a setting is a preference.
 `internal/infrastructure/update` is the release feed.
 
@@ -205,16 +206,22 @@ Every one of those is exercised against fakes in `internal/application`, which h
 
 ## What a restore never does
 
-It never terminates a process it did not start; it never closes a window either (FR-029, C-3).
+It never terminates a process it did not start (FR-029, C-3). It closes a window only where the user
+has turned FR-064 on; even then, only a window no profile names.
 
-Closing was allowed until it was measured. NordVPN and GameGlass survive their windows closing; Postal
-Gambit is ended by it. Nothing about a window says which kind it is, so an agent that tidied a desktop
-by closing windows would be quitting applications and taking whatever was unsaved in them.
+Closing was forbidden outright until the owner asked for it back. NordVPN and GameGlass survive their
+windows closing; Postal Gambit is ended by it. Nothing about a window says which kind it is, so an
+agent that decided by itself to tidy a desktop by closing windows would be quitting applications and
+taking whatever was unsaved in them. What changed is who decides: the setting is off until the user
+turns it on and states what it costs beside the control, because the applications it is aimed at are
+the ones that go to the notification area rather than ending.
 
-This is held by the shape of the code rather than by a rule someone has to remember. The `Desktop` port
-offers no method that can close or end anything; `TestNothingAboveInfrastructureCanEndAProgram`
-fails any port that grows one. An application that should be present but out of the way is recorded
-minimised, which is reversible and quits nothing.
+The bound is held by the shape of the code rather than by a rule someone has to remember.
+`TestNothingAboveInfrastructureCanEndAProgram` fails any port above the Windows layer that grows a
+method to terminate anything; it allows exactly three that speak of closing: `Desktop.Close`, which
+asks one window, plus the two halves of the setting that decide whether it is asked at all. A fourth
+fails the suite. A window that is asked and does not go is minimised instead, which is what the
+setting's other arm would have done; the report says which windows those were.
 
 ## Data locations
 
@@ -223,7 +230,7 @@ minimised, which is reversible and quits nothing.
 | Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
 | Step log | `%LOCALAPPDATA%\ScreenState\Log.txt` |
 | Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup |
-| Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting and the skipped version |
+| Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting, the skipped version and what a restore does with the windows a profile does not name |
 | Webview cache | `%LOCALAPPDATA%\ScreenState\webview`, pinned there so an uninstall knows to look |
 | Apps list entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenState` |
 | Sign-in entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `ScreenState` (FR-046) |
@@ -339,8 +346,8 @@ stays a renderer and the words stay one readable document. Every entry carries t
 window draws: the image files the window loads, plus the window's own classes for the drawn ones, so
 the guide cannot come to show something the window does not. A guide showing anything else is worse
 than no guide. It names the furniture first, then states the rules the window cannot say for itself:
-what is kept locally, that nothing is ever closed or ended, the single network call and what cannot be
-undone.
+what is kept locally, that no program is ever ended and a window is closed only where the setting
+says so, the single network call and what cannot be undone.
 
 ## The setup program
 

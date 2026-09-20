@@ -68,7 +68,7 @@ const guideSections = [
         rules: [
             {title: 'Capture the desktop', text: 'reads every window you have open and offers them for review. Nothing is written until you name it and confirm.'},
             {title: 'Rename and Delete', text: 'act on the selected profile. A delete names it and asks first.'},
-            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now. Anything the profile does not name is minimised out of the way; nothing is ever closed.'},
+            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now. Anything the profile does not name is put out of the way afterwards: minimised, else asked to close where the settings say so.'},
             {title: 'Close', text: 'puts the window away. %s keeps running in the notification area.'},
             {title: 'Quit', text: 'ends it altogether, after which nothing is arranged at your next sign-in until you start it again.'},
         ],
@@ -77,8 +77,8 @@ const guideSections = [
         heading: 'What it will and will not do',
         rules: [
             {
-                title: 'It never closes a window and never ends a program',
-                text: 'a restore moves windows and starts applications that are not running. Nothing it does can lose you unsaved work.',
+                title: 'It never ends a program; it closes a window only if you ask it to',
+                text: 'a restore moves windows and starts applications that are not running. The windows a profile does not name are minimised out of the way. Turn on closing them in the settings and they are asked to close instead, which is exactly what pressing the cross does: most of the applications that start with Windows go to the notification area, while an ordinary one ends and takes anything unsaved with it. Nothing is ever forced.',
             },
             {
                 title: 'Everything is kept on this machine, under your own account',

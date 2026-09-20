@@ -102,6 +102,11 @@ type fakeDesktop struct {
 	displaysErr error
 	windowErr   error
 	placeErr    map[WindowID]error
+	closeErr    map[WindowID]error
+	// closed records every window asked to close; refuses names the ones whose
+	// application does not act on the request.
+	closed  []WindowID
+	refuses map[WindowID]bool
 	// afterPlace runs once a window has been placed, which is how a test makes
 	// an application move its own window afterwards.
 	afterPlace func(desktop *fakeDesktop, id WindowID)
@@ -173,6 +178,73 @@ func (desktop *fakeDesktop) Place(
 	if hook != nil {
 		hook(desktop, id)
 	}
+	return nil
+}
+
+// Close is the request FR-064 makes of a window, answered the way the test
+// says an application would answer it.
+//
+// A window goes by default, which is what closing one usually does. A test
+// naming it in refuses keeps it, which is the application that puts up a
+// prompt about unsaved work or ignores the request outright.
+func (desktop *fakeDesktop) Close(_ context.Context, id WindowID) error {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	if err, refused := desktop.closeErr[id]; refused {
+		return err
+	}
+	desktop.closed = append(desktop.closed, id)
+	if desktop.refuses[id] {
+		return nil
+	}
+	kept := desktop.windows[:0]
+	for _, window := range desktop.windows {
+		if window.ID != id {
+			kept = append(kept, window)
+		}
+	}
+	desktop.windows = kept
+	return nil
+}
+
+// closedCount answers how many times a window was asked to close.
+func (desktop *fakeDesktop) closedCount(id WindowID) int {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	var seen int
+	for _, asked := range desktop.closed {
+		if asked == id {
+			seen++
+		}
+	}
+	return seen
+}
+
+// fakeStrangers is the setting for the windows a profile does not name, as a
+// test states it.
+type fakeStrangers struct {
+	mutex    sync.Mutex
+	closing  bool
+	readErr  error
+	writeErr error
+}
+
+func (strangers *fakeStrangers) CloseStrangers() (bool, error) {
+	strangers.mutex.Lock()
+	defer strangers.mutex.Unlock()
+	if strangers.readErr != nil {
+		return false, strangers.readErr
+	}
+	return strangers.closing, nil
+}
+
+func (strangers *fakeStrangers) SetCloseStrangers(closing bool) error {
+	strangers.mutex.Lock()
+	defer strangers.mutex.Unlock()
+	if strangers.writeErr != nil {
+		return strangers.writeErr
+	}
+	strangers.closing = closing
 	return nil
 }
 

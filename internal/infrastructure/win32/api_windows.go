@@ -27,6 +27,7 @@ var (
 	pGetWindowPlacement       = user32.NewProc("GetWindowPlacement")
 	pSetWindowPos             = user32.NewProc("SetWindowPos")
 	pShowWindow               = user32.NewProc("ShowWindow")
+	pPostMessage              = user32.NewProc("PostMessageW")
 	pEnumDisplayMonitors      = user32.NewProc("EnumDisplayMonitors")
 	pGetMonitorInfo           = user32.NewProc("GetMonitorInfoW")
 	pEnumDisplayDevices       = user32.NewProc("EnumDisplayDevicesW")
@@ -59,6 +60,11 @@ const (
 
 	swpNoZOrder   = 0x0004
 	swpNoActivate = 0x0010
+
+	// wmClose is the message a title bar's cross sends. It is a request the
+	// application answers however it likes, which is the whole reason FR-064
+	// offers it rather than the agent ending anything itself.
+	wmClose = 0x0010
 
 	// maxTitle bounds a window title read into memory. A title is used to tell
 	// a window apart in the review, never to identify anything, so a long one

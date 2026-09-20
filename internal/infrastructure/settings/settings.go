@@ -1,6 +1,7 @@
 // Package settings keeps the small number of choices this product remembers
-// between runs: whether the update check is wanted (FR-059) and which released
-// version the user has chosen to pass over (FR-058).
+// between runs: whether the update check is wanted (FR-059), which released
+// version the user has chosen to pass over (FR-058) and what a restore does
+// with the windows a profile does not name (FR-064).
 //
 // It is deliberately separate from the profile store. A profile is the user's
 // work and a setting is a preference; a file holding both would mean an
@@ -27,9 +28,16 @@ const FileName = "settings.json"
 // or one a user has edited, can be told from a file that says no. Absent means
 // the user has not chosen, which is on: a check they never turned off is one
 // they never declined.
+//
+// CloseUnnamedWindows needs no pointer: absent means minimise, which is what a
+// user who has chosen nothing gets and is the arm that asks nothing of any
+// application. The name in the file says what the setting does in the words the
+// manager uses, while the Go name beside it keeps the word the restore uses for
+// a window no profile names.
 type document struct {
-	UpdateCheck    *bool  `json:"updateCheck,omitempty"`
-	SkippedVersion string `json:"skippedVersion,omitempty"`
+	UpdateCheck         *bool  `json:"updateCheck,omitempty"`
+	SkippedVersion      string `json:"skippedVersion,omitempty"`
+	CloseUnnamedWindows bool   `json:"closeUnnamedWindows,omitempty"`
 }
 
 // Preferences is the settings file as the application layer sees it.
@@ -79,6 +87,26 @@ func (prefs *Preferences) UpdateCheckEnabled() (bool, error) {
 // SetUpdateCheckEnabled records whether the update check is wanted (FR-059).
 func (prefs *Preferences) SetUpdateCheckEnabled(enabled bool) error {
 	return prefs.change(func(held *document) { held.UpdateCheck = &enabled })
+}
+
+// CloseStrangers reports whether a restore should ask the windows a profile
+// does not name to close rather than minimising them (FR-064). It is off where
+// the file says nothing: putting a window away is the user's instruction, while
+// closing one is a decision only they can make.
+func (prefs *Preferences) CloseStrangers() (bool, error) {
+	prefs.mutex.Lock()
+	defer prefs.mutex.Unlock()
+	held, err := prefs.read()
+	if err != nil {
+		return false, err
+	}
+	return held.CloseUnnamedWindows, nil
+}
+
+// SetCloseStrangers records what to do with the windows a profile does not name
+// (FR-064).
+func (prefs *Preferences) SetCloseStrangers(closing bool) error {
+	return prefs.change(func(held *document) { held.CloseUnnamedWindows = closing })
 }
 
 // SkippedVersion returns the released version the user has chosen to pass over,

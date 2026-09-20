@@ -230,3 +230,26 @@ func (desktop *Desktop) Place(
 	}
 	return nil
 }
+
+// Close asks a window to close, which is what pressing the cross on its title
+// bar does (FR-064).
+//
+// It is posted rather than sent, so this thread is never held while another
+// application decides what to do: an application that puts up a prompt about
+// unsaved work would otherwise stop the restore until somebody answered it.
+// Success here means the request reached the window's queue and nothing more;
+// whether the window goes is read afterwards, by looking for it again.
+func (desktop *Desktop) Close(ctx context.Context, id application.WindowID) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	handle := uintptr(id)
+	if alive, _, _ := pIsWindow.Call(handle); alive == 0 {
+		return application.ErrWindowGone
+	}
+	posted, _, err := pPostMessage.Call(handle, wmClose, 0, 0)
+	if posted == 0 {
+		return fmt.Errorf("asking the window to close: %w", err)
+	}
+	return nil
+}

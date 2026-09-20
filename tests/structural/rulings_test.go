@@ -17,7 +17,23 @@ import (
 // terminationVerbs are the things a restore may never do to a window or a process
 // (FR-029). The interface is the place to stop it: a method that does not exist
 // cannot be called, so no reviewer has to catch the call.
-var terminationVerbs = []string{"close", "terminate", "kill", "quit", "exit", "destroy"}
+var terminationVerbs = []string{"terminate", "kill", "quit", "exit", "destroy"}
+
+// mayClose names the only methods above the Windows layer allowed to speak of
+// closing.
+//
+// Closing was forbidden outright until FR-064, when the user asked for it: most
+// of the applications that start with Windows go to the notification area when
+// their window closes, which is where they were wanted. It stayed a decision
+// rather than becoming a habit, so the exemption is a list of three names: one
+// that asks a window to close and two that carry the setting deciding whether
+// it is asked at all. A fourth is closing spreading through the product, which
+// is what this list exists to stop.
+var mayClose = map[string]bool{
+	"Close":             true,
+	"CloseStrangers":    true,
+	"SetCloseStrangers": true,
+}
 
 // terminationCalls name the ways a Go program ends somebody else's program. None
 // of them belongs above the Windows layer; none belongs in this product at all.
@@ -36,9 +52,15 @@ var windowsOnly = []string{"syscall", "unsafe", "golang.org/x/sys"}
 var portableLayers = map[string]bool{"domain": true, "application": true}
 
 // TestNothingAboveInfrastructureCanEndAProgram is FR-029 expressed as a shape
-// rather than as a rule: the ruling that a restore closes nothing came from a
-// measurement, that closing a window ends some applications outright and takes
-// whatever was unsaved in them, so it must not be reachable by accident later.
+// rather than as a rule: ending somebody else's program is not reachable from
+// the two layers that decide what a profile means, because a method that does
+// not exist cannot be called.
+//
+// Closing a window is now reachable, by three named methods and no others
+// (FR-064). The measurement behind the old blanket ban still stands, that
+// closing a window ends some applications outright and takes whatever was
+// unsaved in them, which is why closing is something the user turns on and why
+// the exemption is a list rather than a relaxation.
 func TestNothingAboveInfrastructureCanEndAProgram(t *testing.T) {
 	root := repoRoot(t)
 	for _, path := range goFiles(t) {
@@ -49,9 +71,13 @@ func TestNothingAboveInfrastructureCanEndAProgram(t *testing.T) {
 			lowered := strings.ToLower(method)
 			for _, verb := range terminationVerbs {
 				if strings.Contains(lowered, verb) {
-					t.Errorf("%s: the port offers %s: a restore closes and terminates nothing (FR-029)",
+					t.Errorf("%s: the port offers %s: a restore terminates nothing (FR-029)",
 						filepath.Base(path), method)
 				}
+			}
+			if strings.Contains(lowered, "close") && !mayClose[method] {
+				t.Errorf("%s: the port offers %s: only the three methods FR-064 names may close a window",
+					filepath.Base(path), method)
 			}
 		}
 		raw := readSource(t, path)
