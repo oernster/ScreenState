@@ -48,6 +48,11 @@ func (desktop *Desktop) Place(
 	return ErrNotWindows
 }
 
+// RefreshTaskbar refuses: the shell whose taskbar this is belongs to Windows.
+func (desktop *Desktop) RefreshTaskbar(context.Context) (int, error) {
+	return 0, ErrNotWindows
+}
+
 // Close refuses.
 func (desktop *Desktop) Close(context.Context, application.WindowID) error {
 	return ErrNotWindows

@@ -293,6 +293,17 @@ through every layer between the desktop and the webview, while one reading half 
 harmless. The report then goes up over the profile list rather than over the Applying panel, so
 closing it leaves the user somewhere they can act (FR-066).
 
+**The taskbar is asked to redraw itself after a sign-in restore.** Its buttons for the applications
+the agent had started were drawn without their icons on the reference machine and stayed that way
+until the user clicked anywhere on the taskbar, so the icons were resolved while the drawing of them
+was stale. The restore asks for the same invalidation that click causes: every `Shell_TrayWnd` and
+`Shell_SecondaryTrayWnd`, one per display, is marked as needing paint and painted now (FR-067). It is
+a repaint asked of another process and nothing more; it can move nothing and end nothing. It happens
+only after a sign-in restore has settled, since a restore the user asked for never showed the fault.
+Whether a repaint is what that click actually achieves is unproven, which is what the log line is
+for: a boot that still shows the fault with the line present says the click does something a repaint
+does not.
+
 **A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
 keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it
 opens the manager, which is what double-clicking a shortcut means. An entry written without that

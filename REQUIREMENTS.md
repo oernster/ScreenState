@@ -394,6 +394,21 @@ Applying panel for work that had finished, with nothing on it to press. The
 list is drawn before the report rather than after it is dismissed, so leaving by
 the cross, by Escape or by the backdrop all land in the same place.
 
+**FR-067 The taskbar after a sign-in restore**
+Priority: Should
+Requirement: When a restore that ran because the user signed in has settled,
+the ScreenState agent shall ask every taskbar to paint itself again. It shall
+record in the log how many it asked.
+Rationale: reported 2026-09-21. After a sign-in the taskbar buttons of the
+applications the agent had started were drawn without their icons on the
+reference machine; they stayed that way until the user clicked anywhere on the
+taskbar: the icons were there and the drawing of them was stale. A restore the
+user asked for never showed it, which is why this is the sign-in restore alone.
+The act is a repaint and nothing else: it moves no window, ends nothing and
+tells the shell nothing. Whether it is enough is not yet known, which is what
+the log line is for: a boot that still shows the fault with the line present
+says the click does something a repaint does not.
+
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
@@ -1015,7 +1030,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 | Priority | Count | Notes |
 |---|---|---|
 | Must | 68 | The product does not work without any one of them. |
-| Should | 14 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Should | 15 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |

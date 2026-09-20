@@ -83,6 +83,10 @@ type Desktop interface {
 	Displays(ctx context.Context) ([]Display, error)
 	// Place sets the window's normal rectangle, then its show state.
 	Place(ctx context.Context, id WindowID, rect domain.Rect, state domain.ShowState) error
+	// RefreshTaskbar asks the shell's own taskbars to paint themselves again,
+	// answering how many were asked (FR-067). It is a repaint and nothing more:
+	// it moves nothing, closes nothing and tells the shell nothing.
+	RefreshTaskbar(ctx context.Context) (int, error)
 	// Close asks a window to close, which is a request rather than an order:
 	// the application decides what to do with it and may show a prompt, take
 	// itself to the notification area or end. It is used on a window no
