@@ -1,38 +1,102 @@
 /*
  * Everything in the manager that is about the product rather than about your
- * profiles: the help panel, the guide, About, the licence and the update check.
+ * profiles: the Help menu, the guide, About, the licence and the update check.
  */
 
-// openHelp is the way in to all of it. It is a panel of rows rather than a
-// menu, because this window has no menu bar and a made-up one would be
-// furniture nobody expects.
-function openHelp() {
-    const rows = $('help-rows')
-    rows.innerHTML = ''
-    const offers = [
-        {name: 'Guide', note: 'every control in this window, named', open: openGuide},
-        {name: 'About', note: 'what this is and which version you are running', open: openAbout},
-        {name: 'Licence', note: 'the terms it is released under', open: openLicence},
-        {
-            name: 'Check for updates',
-            note: state.updateCheck
-                ? 'ask whether a newer version has been released'
-                : 'turned off in the settings, so nothing is asked of the network',
-            open: () => void runUpdateCheck(false),
-            off: !state.updateCheck,
-        },
-        {name: 'The last restore', note: 'what it satisfied and what it could not', open: openReport},
+// helpItems is what the Help menu offers, in the house order: the guide leads,
+// because it is what somebody meeting the window reaches for; the report of the
+// last restore is next, being about your desktop rather than about the product;
+// then a rule, then the three that are about the product itself.
+//
+// Check for updates is present and inert while the setting is off, rather than
+// absent: a menu that changes shape teaches nobody where anything is, while the
+// grey entry says the setting exists.
+function helpItems() {
+    return [
+        {label: 'Guide', onChoose: openGuide},
+        {label: 'The last restore', onChoose: openReport},
+        {separator: true},
+        {label: 'About ' + state.appName, onChoose: openAbout},
+        {label: 'Licence', onChoose: openLicence},
+        {label: 'Check for updates', onChoose: () => void runUpdateCheck(false), off: !state.updateCheck},
     ]
-    offers.forEach((offer) => {
-        const row = document.createElement('button')
-        row.className = 'row'
-        row.disabled = !!offer.off
-        row.onclick = offer.open
-        row.appendChild(twoLines(offer.name, offer.note))
-        rows.appendChild(row)
-    })
-    show('help', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
 }
+
+// openHelpMenu drops the menu under its trigger and puts the keyboard on the
+// first thing it offers, so a press of Enter does something rather than nothing.
+function openHelpMenu() {
+    const menu = $('help-menu')
+    menu.innerHTML = ''
+    helpItems().forEach((item) => menu.appendChild(menuEntry(item)))
+    menu.hidden = false
+    $('help').setAttribute('aria-expanded', 'true')
+    const first = menu.querySelector('.menu-item:enabled')
+    if (first) first.focus()
+}
+
+// closeHelpMenu puts it away and hands the keyboard back to the trigger, so the
+// ring is where the user left it rather than at the top of the window.
+function closeHelpMenu(toTrigger) {
+    const menu = $('help-menu')
+    if (menu.hidden) return
+    menu.hidden = true
+    $('help').setAttribute('aria-expanded', 'false')
+    if (toTrigger) $('help').focus()
+}
+
+function helpMenuIsOpen() {
+    return !$('help-menu').hidden
+}
+
+// menuEntry draws one item; failing that, the rule between two groups of them.
+function menuEntry(item) {
+    if (item.separator) {
+        const rule = document.createElement('div')
+        rule.className = 'menu-sep'
+        rule.setAttribute('role', 'separator')
+        return rule
+    }
+    const entry = document.createElement('button')
+    entry.className = 'menu-item'
+    entry.setAttribute('role', 'menuitem')
+    entry.textContent = item.label
+    entry.disabled = !!item.off
+    entry.onclick = () => {
+        closeHelpMenu(false)
+        item.onChoose()
+    }
+    return entry
+}
+
+// The keyboard inside the menu: the arrows walk it and wrap, Home and End jump
+// to the ends, Escape closes it and gives the trigger back the ring. Every key
+// it answers is consumed, so nothing behind the menu acts on the same press.
+$('help-menu').addEventListener('keydown', (event) => {
+    const items = Array.from($('help-menu').querySelectorAll('.menu-item:enabled'))
+    if (!items.length) return
+    const at = items.indexOf(document.activeElement)
+    const step = (to) => {
+        event.preventDefault()
+        items[(to + items.length) % items.length].focus()
+    }
+    if (event.key === 'ArrowDown') step(at + 1)
+    else if (event.key === 'ArrowUp') step(at - 1)
+    else if (event.key === 'Home') step(0)
+    else if (event.key === 'End') step(items.length - 1)
+    else if (event.key === 'Escape') {
+        event.preventDefault()
+        closeHelpMenu(true)
+    }
+})
+
+// A press anywhere else closes it, which is what every menu on this desktop
+// does. The trigger is left out: its own handler toggles, so closing here first
+// would reopen it on the same press.
+document.addEventListener('mousedown', (event) => {
+    if (!helpMenuIsOpen()) return
+    if ($('help-menu').contains(event.target) || $('help').contains(event.target)) return
+    closeHelpMenu(false)
+})
 
 // twoLines is a name over a note, which is the shape of every row in this
 // window: a heading you scan and a line you read if the heading was not enough.
@@ -51,10 +115,11 @@ function twoLines(name, note) {
 
 /* -------------------------------------------------------------------- guide */
 
-// named fills the product's name into a line of the guide, so the guide can
-// talk about the product without writing its name down.
+// named fills the product's name and its donation address into a line of the
+// guide, so the guide can talk about both without writing either down. The
+// address has one home, in the program, exactly as the name does.
 function named(words) {
-    return words.split('%s').join(state.appName)
+    return words.split('%s').join(state.appName).split('%u').join(state.donateUrl)
 }
 
 // guideArt returns the picture for one guide entry.
@@ -109,7 +174,7 @@ function openGuide() {
         const paragraphs = section.paragraphs || []
         paragraphs.forEach((words) => rows.appendChild(guideLine(named(words))))
     })
-    show('guide', [{label: 'Back', kind: 'primary', onClick: openHelp}])
+    show('guide', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
 }
 
 function guideLine(words) {
@@ -128,7 +193,7 @@ function openAbout() {
     $('about-detail').textContent = 'Copyright Oliver Ernster. Released under the'
         + ' GNU General Public License, version 3.'
     show('about', [
-        {label: 'Back', onClick: openHelp},
+        {label: 'Back', onClick: openProfiles},
         {label: 'Licence', kind: 'primary', onClick: openLicence},
     ])
 }
@@ -140,7 +205,7 @@ function openLicence() {
         + ' no warranty.'
     $('licence-detail').textContent = 'The full text is in the file named LICENSE, in the'
         + ' folder this program was installed into.'
-    show('licence', [{label: 'Back', kind: 'primary', onClick: openHelp}])
+    show('licence', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
 }
 
 /* ------------------------------------------------------------------ updates */
@@ -170,7 +235,7 @@ async function runUpdateCheck(unbidden) {
         found = await backend().CheckForUpdates(unbidden)
     } catch (e) {
         if (unbidden) return
-        showError(String(e), openHelp)
+        showError(String(e), openProfiles)
         return
     }
     if (found.available) {
@@ -200,7 +265,7 @@ function reportCheck(found) {
         showUpdateWord(markGood, 'Version ' + found.latest + ' is available',
             'You chose to pass over this one. Download it below or leave it.')
         setFooter([
-            {label: 'Back', onClick: openHelp},
+            {label: 'Back', onClick: openProfiles},
             {
                 label: 'Download', kind: 'primary',
                 onClick: () => backend().OpenInBrowser(found.downloadUrl),
@@ -219,7 +284,7 @@ function showUpdateWord(mark, title, words) {
     $('update-mark').style.color = mark === markGood ? 'var(--ring)' : 'var(--danger)'
     $('update-title').textContent = title
     $('update-words').textContent = words
-    show('update', [{label: 'Back', kind: 'primary', onClick: openHelp}])
+    show('update', [{label: 'Back', kind: 'primary', onClick: openProfiles}])
 }
 
 // offerUpdate is the offer itself: download it, pass this one over; or be
@@ -229,7 +294,9 @@ function offerUpdate(found, unbidden) {
     $('update-mark').style.color = 'var(--accent)'
     $('update-title').textContent = state.appName + ' ' + found.latest + ' is available'
     $('update-words').textContent = 'You are running ' + found.current + '.'
-    const back = unbidden ? openProfiles : openHelp
+    // Every way out of this panel goes to the list, whether the check was asked
+    // for from the menu or made itself known once the window was ready.
+    const back = openProfiles
     show('update', [
         {label: 'Skip this version', onClick: () => void skipVersion(found.latest, back)},
         {label: 'Later', onClick: back},
@@ -261,4 +328,9 @@ async function setUpdateCheck(enabled) {
     }
 }
 
-$('help').onclick = openHelp
+// The trigger toggles, so a second press on an open menu puts it away rather
+// than rebuilding it under the pointer.
+$('help').onclick = () => {
+    if (helpMenuIsOpen()) closeHelpMenu(true)
+    else openHelpMenu()
+}

@@ -50,3 +50,11 @@ in; marking none means nothing is applied.
 
 Started by Windows at sign-in it opens no window at all, which is the point of it: it puts your
 windows back and waits.
+
+## Supporting the project
+
+The donation button sits at the far left of the row along the foot of the manager. ScreenState is
+free and stays free: there is no paid tier, no licence key and no feature held back behind a
+donation. Pressing the button hands the address to the desktop and your browser does the asking, so
+the application itself still makes no connection of its own beyond the update check you can turn
+off.

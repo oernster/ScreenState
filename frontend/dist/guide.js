@@ -34,7 +34,7 @@ const guideSections = [
             },
             {
                 art: 'help', name: 'Help',
-                text: 'this guide, About, the licence and the check for a newer version.',
+                text: 'drops a menu: this guide, the report of the last restore, About, the licence and the check for a newer version.',
             },
         ],
     },
@@ -62,7 +62,7 @@ const guideSections = [
         entries: [
             {
                 art: 'donate.png', name: 'Donate',
-                text: 'what this costs, which is nothing, plus where to put something in if you would like to.',
+                text: '%s is free and stays free: no paid tier, no licence key, no feature held back. If it saves you time and you would like to put something in, this opens %u in your browser.',
             },
         ],
         rules: [

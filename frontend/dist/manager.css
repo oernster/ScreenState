@@ -239,26 +239,70 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
     border-top: 0;
 }
 
-.donatebtn {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px;
-    border: 2px solid transparent;
-    border-radius: 12px;
-    background: transparent;
-    cursor: pointer;
+/* The donation button wears the header's own button class, so the two bars match
+   by construction rather than by a second set of numbers kept in step by hand.
+   Only the picture differs: this one is wider than it is tall, so it is sized by
+   height and left to find its own width. */
+.donatebtn img {
+    height: 46px;
+    width: auto;
+    display: block;
+}
+
+/* --------------------------------------------------------------- menu */
+
+/* Help is a trigger with a menu under it. The wrapper is what the menu is
+   positioned against, so the menu hangs from the button rather than from the
+   bar. It takes no part in the ring: a container is never a stop. */
+.menuwrap {
+    position: relative;
     flex: 0 0 auto;
 }
 
-.donatebtn:enabled:hover,
-.donatebtn:enabled:focus { border-color: var(--ring); }
+/* Right aligned, because this trigger is the last thing on the bar: a menu
+   opening leftwards from the right edge is the only one that stays on screen. */
+.menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 210px;
+    padding: 5px;
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    z-index: 20;
+}
 
-.donatebtn img { height: 46px; width: auto; display: block; }
+.menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    border: 2px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+    cursor: pointer;
+}
 
-.donateart {
-    width: 220px;
-    height: auto;
-    margin-bottom: 14px;
+/* The three-state ring, on a menu item as on anything else: nothing at rest, the
+   ring under the pointer or the keyboard, the danger colour while inert. */
+.menu-item:enabled:hover,
+.menu-item:enabled:focus { border-color: var(--ring); }
+
+.menu-item:disabled {
+    color: var(--muted);
+    border-color: var(--danger);
+    cursor: default;
+}
+
+.menu-sep {
+    height: 1px;
+    margin: 5px 7px;
+    background: var(--border);
 }
 
 /* -------------------------------------------------------------- about */

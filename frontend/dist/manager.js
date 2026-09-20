@@ -451,22 +451,13 @@ async function openReport() {
 
 /* ------------------------------------------------------------------ donate */
 
-// openDonate states what FR-060 requires it to state. The wording matters as
-// much as the link: nothing is held back, so an ask implying otherwise would be
-// false.
-function openDonate() {
-    $('donate-words').textContent = state.appName + ' is free and stays free.'
-        + ' There is no paid tier, no licence key and no feature held back.'
-        + ' If it saves you time and you would like to put something in, the'
-        + ' page below is where it goes.'
-    $('donate-url').textContent = state.donateUrl
-    show('donate', [
-        {label: 'Back', onClick: openProfiles},
-        {
-            label: 'Open the page', kind: 'primary',
-            onClick: () => window.runtime.BrowserOpenURL(state.donateUrl),
-        },
-    ])
+// openDonatePage opens the donation page in the browser (FR-060). It takes the
+// user straight there rather than through a panel of its own: a button that
+// says what it is does not need a screen asking whether it was meant. What
+// FR-060 requires the manager to STATE, that nothing is held back, is said in
+// the guide's entry for this button, where it is read rather than stepped past.
+function openDonatePage() {
+    window.runtime.BrowserOpenURL(state.donateUrl)
 }
 
 /* -------------------------------------------------------------------- odds */
@@ -485,7 +476,7 @@ function prefersDark() {
     return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
 }
 
-$('donate').onclick = openDonate
+$('donate').onclick = openDonatePage
 
 // The profile button is the way back to the list from anywhere that is not
 // mid-decision. It is in the bar rather than the footer because it belongs to

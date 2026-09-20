@@ -26,9 +26,18 @@
         <button class="themebtn" id="theme" title="Switch between light and dark">
             <img id="theme-icon" src="dark-mode.png" alt="" aria-hidden="true"/>
         </button>
-        <button class="themebtn" id="help" title="The guide, About, the licence and the update check">
-            <img id="help-icon" src="help.png" alt="" aria-hidden="true"/>
-        </button>
+        <!--
+          Help is a trigger with a menu under it, the house shape, rather than a
+          panel of its own: what it offers is a handful of destinations, so a
+          panel to choose a panel was a step nobody wanted.
+        -->
+        <div class="menuwrap">
+            <button class="themebtn" id="help" title="The guide, About, the licence and the update check"
+                    aria-haspopup="menu" aria-expanded="false">
+                <img id="help-icon" src="help.png" alt="" aria-hidden="true"/>
+            </button>
+            <div class="menu" id="help-menu" role="menu" hidden></div>
+        </div>
     </div>
 
     <div class="body">
@@ -73,24 +82,10 @@
             <div class="rows tall" id="report-rows"></div>
         </section>
 
-        <section class="view centred" id="view-donate">
-            <img class="donateart" id="donate-art" src="donate.png" alt=""/>
-            <h1 id="donate-title">Free today and tomorrow</h1>
-            <p class="lead" id="donate-words"></p>
-            <div class="infobox"><span class="path" id="donate-url"></span></div>
-        </section>
-
         <section class="view centred" id="view-confirm">
             <div class="verdict" style="color: var(--danger)">&#9888;</div>
             <h1 id="confirm-title">Delete it?</h1>
             <p class="lead" id="confirm-words"></p>
-        </section>
-
-        <section class="view" id="view-help">
-            <h1>Help</h1>
-            <p class="lead">The guide names every control in this window. About says
-                what this is and which version you are running.</p>
-            <div class="rows" id="help-rows"></div>
         </section>
 
         <section class="view" id="view-guide">
@@ -137,7 +132,7 @@
       owns every time a panel changes; anything living there would go with it.
     -->
     <div class="footerbar">
-        <button class="donatebtn" id="donate" title="Open the donation page in your browser">
+        <button class="themebtn donatebtn" id="donate" title="Buy the author a drink (opens your browser)">
             <img id="donate-icon" src="donate.png" alt="Donate"/>
         </button>
         <div class="footer" id="footer"></div>
