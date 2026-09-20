@@ -276,6 +276,13 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
     z-index: 40;
 }
 
+/* The cross is measured once here, because the body's top inset is derived from
+   it: two literals would drift apart and put the scrollbar back under it. */
+:root {
+    --modal-close-size: 32px;
+    --modal-close-inset: 10px;
+}
+
 .modal {
     position: relative;
     display: flex;
@@ -289,18 +296,24 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
     max-height: calc(100vh - 80px);
 }
 
+/* The body starts below the cross rather than beside it. Its scrollbar runs the
+   full height of the body along its right edge, which is where the cross sits,
+   so a body starting level with the cross puts a moving bar straight through the
+   only control the corner has. The inset is the cross's own height plus its
+   offset, so the two cannot be brought back into contact by resizing either. */
 .modal-body {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    margin-top: calc(var(--modal-close-size) + var(--modal-close-inset));
 }
 
 .modal-close {
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
+    top: var(--modal-close-inset);
+    right: var(--modal-close-inset);
+    width: var(--modal-close-size);
+    height: var(--modal-close-size);
     display: flex;
     align-items: center;
     justify-content: center;
