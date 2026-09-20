@@ -3,6 +3,7 @@ package structural
 import (
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -80,6 +81,48 @@ func TestTheManagerPageNamesNothing(t *testing.T) {
 	}
 	if seen == 0 {
 		t.Fatal("no manager page files were found, the walk is wrong")
+	}
+}
+
+// scriptSrc is what a page names when it loads a script.
+var scriptSrc = regexp.MustCompile(`<script src="([^"]+)"`)
+
+// TestEveryManagerScriptIsLoadedByThePage holds the halves of a page that is
+// spread over several files to each other.
+//
+// Nothing compiles a page here, so a script no tag names is dead weight that
+// nothing reports, while a tag naming a file that is not there is a window that
+// comes up half wired. The manager was one file until it was split into five,
+// which is what makes this worth guarding: the sixth is the one that gets
+// written and never loaded.
+func TestEveryManagerScriptIsLoadedByThePage(t *testing.T) {
+	root := repoRoot(t)
+	dir := filepath.Join(root, "frontend", "dist")
+	loaded := map[string]bool{}
+	for _, match := range scriptSrc.FindAllStringSubmatch(
+		readSource(t, filepath.Join(dir, "index.html")), -1) {
+		loaded[match[1]] = true
+	}
+	if len(loaded) == 0 {
+		t.Fatal("index.html loads no script at all, so this check would pass over anything")
+	}
+	for name := range loaded {
+		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
+			t.Errorf("index.html loads %s, which is not in frontend/dist", name)
+		}
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("reading the manager page: %v", err)
+	}
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".js") {
+			continue
+		}
+		if !loaded[name] {
+			t.Errorf("frontend/dist/%s is loaded by nothing: index.html has no tag for it", name)
+		}
 	}
 }
 

@@ -88,7 +88,7 @@ Both windows are plain HTML, CSS and JavaScript with no build step and no
 framework. `frontend/dist` is the manager, `installer/frontend/dist` is the
 setup program.
 
-Two rules follow from there being no compiler behind them; a structural test
+Three rules follow from there being no compiler behind them; a structural test
 holds each:
 
 - **`theme.css` and `shell.js` are edited in `assets/` and nowhere else.** The
@@ -97,6 +97,9 @@ holds each:
 - **No page file writes the product's name or its tagline.** Both arrive on
   the state the program hands over, so a rename cannot leave a window
   announcing a product that no longer exists.
+- **Every script in `frontend/dist` is loaded by `index.html`; every tag names
+  a file that is there.** The manager is spread over a script per subject,
+  so a new one that nothing loads is dead weight nothing else would report.
 
 The wire between a program and its page is stated twice, as Go structs with
 json tags and as the names the page reads, with a test comparing the two. Add

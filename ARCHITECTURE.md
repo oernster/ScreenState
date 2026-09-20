@@ -265,6 +265,15 @@ lives in either, so none of them can be got wrong there without a test in the ap
 failing first. The composition-root test proves it: `main.go` is still the only file that knows both
 the application layer and the Windows layer.
 
+**The page is a script per subject, not one file.** `manager.js` holds what the panels share, the
+buttons that belong to the window and the start of a run; beside it sit the interrupting surfaces
+(`manager-dialogs.js`), the profile list and everything done to a profile (`manager-profiles.js`),
+the capture review with the restore report (`manager-capture.js`), the settings panel
+(`manager-settings.js`) and everything about the product rather than the desktop
+(`manager-help.js`), with the guide's words apart again in `guide.js`. They are plain scripts sharing
+one scope, so `index.html` loads `manager.js` first and a structural test holds the tags and the
+files to each other.
+
 **A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
 keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it
 opens the manager, which is what double-clicking a shortcut means. An entry written without that
