@@ -151,6 +151,10 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 		steps.Step(fmt.Sprintf("%s is not being offered: %s", exclusion.File, exclusion.Reason))
 	}
 
+	// The settings sit beside the profiles rather than inside them: a profile is
+	// the user's work and a setting is a preference.
+	preferences := settings.New(filepath.Dir(directory))
+
 	ticking := clock.New()
 	restores := application.NewRestoreService(
 		win32.NewDesktop(ticking),
@@ -161,15 +165,13 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 		steps,
 		application.DefaultPolicy(),
 		self(),
+		preferences,
 	)
 	captures := application.NewCaptureService(
 		win32.NewDesktop(ticking), win32.NewProcesses(), profiles, steps, self())
 	manager := application.NewManagerService(profiles, startup.New(), steps)
 	tray := application.NewTrayService(profiles, restores, captures, steps)
 
-	// The settings sit beside the profiles rather than inside them: a profile is
-	// the user's work and a setting is a preference.
-	preferences := settings.New(filepath.Dir(directory))
 	updates := application.NewUpdateService(
 		update.New(), preferences, steps, version,
 		application.PlatformKeyFor(runtime.GOOS))
@@ -177,7 +179,7 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	app := NewApp(manager, tray, restores, captures, updates, steps, version)
+	app := NewApp(manager, tray, restores, captures, updates, steps, version, hidden)
 	go signIn(ctx, manager, restores, steps)
 	go runTray(ctx, tray, steps, app)
 

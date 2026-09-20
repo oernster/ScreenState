@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"sync"
+	"sync/atomic"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -37,6 +38,15 @@ type App struct {
 	log      application.Log
 	version  string
 
+	// onScreen says whether the window is meant to be on screen at all.
+	//
+	// A run started at sign-in carries the hidden flag and begins with it
+	// false; nothing but a deliberate ask (the tray, a second launch, an
+	// update offer) turns it true. It is read from the Wails thread, from the
+	// tray's own thread and from the page, so it is atomic rather than guarded
+	// by the mutex below, which belongs to the review.
+	onScreen atomic.Bool
+
 	// review holds the capture the user is looking at, between reading the
 	// desktop and confirming what to keep. It lives here because a review is
 	// not stored anywhere until it is confirmed (FR-011): a cancelled one
@@ -54,8 +64,9 @@ func NewApp(
 	updates *application.UpdateService,
 	log application.Log,
 	version string,
+	hidden bool,
 ) *App {
-	return &App{
+	app := &App{
 		manager:  manager,
 		tray:     tray,
 		restores: restores,
@@ -64,6 +75,8 @@ func NewApp(
 		log:      log,
 		version:  version,
 	}
+	app.onScreen.Store(!hidden)
+	return app
 }
 
 func (a *App) startup(ctx context.Context) { a.ctx = ctx }
@@ -81,7 +94,20 @@ func (a *App) domReady(context.Context) {
 
 // takeFocus gives the webview the keyboard. See the window package for the race
 // it loses without this.
+//
+// It does nothing at all while the window is not meant to be on screen, which
+// is the whole of FR-048 in one guard. A sign-in start still builds the window
+// and still loads the page; the page then finds it has no keyboard, which is
+// true and is not a fault, then asks for it. The repair ends in WindowShow,
+// so a run that was supposed to wait in the notification area put its manager
+// up over whatever the user was doing, a few hundred milliseconds after they
+// signed in. The step is logged rather than passed over in silence: a guard
+// nobody can see working is a guard nobody can tell has stopped.
 func (a *App) takeFocus() {
+	if !a.onScreen.Load() {
+		a.log.Step("the page asked for the keyboard while the window was not on screen: left as it was")
+		return
+	}
 	if ui.TakeWindowFocus() {
 		return
 	}
@@ -102,6 +128,7 @@ func (a *App) ShowManager(request application.ManagerRequest) {
 	if a.ctx == nil {
 		return
 	}
+	a.onScreen.Store(true)
 	wailsruntime.WindowShow(a.ctx)
 	wailsruntime.WindowUnminimise(a.ctx)
 	wailsruntime.EventsEmit(a.ctx, "open", viewNames[request])
@@ -127,6 +154,13 @@ type StateDTO struct {
 	StartupError string `json:"startupError"`
 	// UpdateError says the same about the update setting, for the same reason.
 	UpdateError string `json:"updateError"`
+	// CloseUnnamed is what a restore does with the windows a profile does not
+	// name: close them when it is true, minimise them when it is false
+	// (FR-064).
+	CloseUnnamed bool `json:"closeUnnamed"`
+	// CloseUnnamedError says why that setting could not be read, for the same
+	// reason as the two above.
+	CloseUnnamedError string `json:"closeUnnamedError"`
 }
 
 // DetectState reads what the page opens on.
@@ -147,6 +181,11 @@ func (a *App) DetectState(prefersDark bool) StateDTO {
 		state.UpdateError = err.Error()
 	} else {
 		state.UpdateCheck = enabled
+	}
+	if closing, err := a.restores.CloseStrangers(); err != nil {
+		state.CloseUnnamedError = err.Error()
+	} else {
+		state.CloseUnnamed = closing
 	}
 	return state
 }
@@ -241,6 +280,7 @@ func (a *App) Surface() {
 	if a.ctx == nil {
 		return
 	}
+	a.onScreen.Store(true)
 	wailsruntime.WindowShow(a.ctx)
 	wailsruntime.WindowUnminimise(a.ctx)
 	a.takeFocus()
@@ -278,6 +318,7 @@ func (a *App) endRun() {
 // Hide puts the window away without ending the run, which is what closing the
 // manager means: the agent goes on waiting in the notification area.
 func (a *App) Hide() {
+	a.onScreen.Store(false)
 	if a.ctx != nil {
 		wailsruntime.WindowHide(a.ctx)
 	}
