@@ -98,18 +98,36 @@ func TestTheManagerWireIsStatedTwiceAndAgrees(t *testing.T) {
 	root := repoRoot(t)
 	tags := jsonTagsOf(t, filepath.Join(root, "app.go"), "StateDTO")
 	bound := managerMethods(t, root)
-	path := filepath.Join(root, "frontend", "dist", "manager.js")
-	text := readSource(t, path)
-
-	for _, match := range stateField.FindAllStringSubmatch(text, -1) {
-		if !tags[match[1]] {
-			t.Errorf("manager.js reads state.%s, which the agent never sends", match[1])
+	dir := filepath.Join(root, "frontend", "dist")
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("reading the manager page: %v", err)
+	}
+	// Every script of the page, not one named file: the page grew a second one
+	// and a test that knew only the first would have stopped guarding half of
+	// it without saying so.
+	var seen int
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".js") {
+			continue
+		}
+		seen++
+		text := readSource(t, filepath.Join(dir, entry.Name()))
+		for _, match := range stateField.FindAllStringSubmatch(text, -1) {
+			if !tags[match[1]] {
+				t.Errorf("%s reads state.%s, which the agent never sends",
+					entry.Name(), match[1])
+			}
+		}
+		for _, match := range boundCall.FindAllStringSubmatch(text, -1) {
+			if !bound[match[1]] {
+				t.Errorf("%s calls %s, which the agent does not bind",
+					entry.Name(), match[1])
+			}
 		}
 	}
-	for _, match := range boundCall.FindAllStringSubmatch(text, -1) {
-		if !bound[match[1]] {
-			t.Errorf("manager.js calls %s, which the agent does not bind", match[1])
-		}
+	if seen == 0 {
+		t.Fatal("no manager scripts were found, the walk is wrong")
 	}
 }
 

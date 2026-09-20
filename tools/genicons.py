@@ -42,14 +42,37 @@ MASTER = "application-icon.png"
 # looks soft.
 ICO_SIZES = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
 
-# HEADER_SIZE is the setup window's header mark. It is roughly twice the 126
-# pixels it is drawn at, so it stays crisp on a high-density display without
-# carrying detail nothing shows.
+# HEADER_SIZE is the header mark. It is roughly twice the 126 pixels it is drawn
+# at, so it stays crisp on a high-density display without carrying detail
+# nothing shows.
 HEADER_SIZE = 256
+
+# BADGE_SIZE is the artwork inside a header button, drawn at 42 pixels, plus the
+# profile picture on a row in the manager, drawn at 34. One size covers both at
+# roughly three times the larger, which is what a high-density display wants.
+BADGE_SIZE = 128
+
+# DONATE_WIDTH is the donation artwork on its own panel, drawn at 220 pixels.
+DONATE_WIDTH = 440
+
+# PAGE_ICONS are the pictures a page loads as it finds them, since neither page
+# has a bundler. Each is named by the file it comes from and the windows that
+# want it: the marks and the theme artwork are shared, the profile picture and
+# the donation artwork belong to the manager alone.
+PAGE_ICONS = {
+    "light-mode.png": ("manager", "setup"),
+    "dark-mode.png": ("manager", "setup"),
+    "help.png": ("manager",),
+    "profile.png": ("manager",),
+    "donate.png": ("manager",),
+}
 
 REPO = pathlib.Path(__file__).resolve().parent.parent
 MASTERS = REPO / "assets"
-HEADER = REPO / "installer" / "frontend" / "dist" / "icon.png"
+PAGES = {
+    "manager": REPO / "frontend" / "dist",
+    "setup": REPO / "installer" / "frontend" / "dist",
+}
 
 
 def trimmed(master: pathlib.Path) -> Image.Image:
@@ -65,10 +88,22 @@ def write_ico(artwork: Image.Image, target: pathlib.Path) -> None:
     print(f"{target.relative_to(REPO)}  {target.stat().st_size:,} bytes")
 
 
-def write_header(artwork: Image.Image, target: pathlib.Path) -> None:
-    """Write the setup window's header mark."""
+def write_page_image(artwork: Image.Image, target: pathlib.Path, size: int) -> None:
+    """Write one square page image at the size the page draws it from."""
     target.parent.mkdir(parents=True, exist_ok=True)
-    artwork.resize((HEADER_SIZE, HEADER_SIZE), Image.LANCZOS).save(target, optimize=True)
+    artwork.resize((size, size), Image.LANCZOS).save(target, optimize=True)
+    print(f"{target.relative_to(REPO)}  {target.stat().st_size:,} bytes")
+
+
+def write_wide_image(artwork: Image.Image, target: pathlib.Path, width: int) -> None:
+    """Write one page image that is not square, keeping its proportions.
+
+    The donation artwork is wider than it is tall. Squaring it would stretch a
+    drawing somebody made, which is a worse answer than carrying two functions.
+    """
+    target.parent.mkdir(parents=True, exist_ok=True)
+    height = max(1, round(artwork.height * width / artwork.width))
+    artwork.resize((width, height), Image.LANCZOS).save(target, optimize=True)
     print(f"{target.relative_to(REPO)}  {target.stat().st_size:,} bytes")
 
 
@@ -80,7 +115,21 @@ def main() -> int:
         return 1
     artwork = trimmed(master)
     write_ico(artwork, master.with_suffix(".ico"))
-    write_header(artwork, HEADER)
+    for page in PAGES.values():
+        write_page_image(artwork, page / "icon.png", HEADER_SIZE)
+
+    for name, windows in PAGE_ICONS.items():
+        source = MASTERS / name
+        if not source.exists():
+            print(f"missing {source.relative_to(REPO)}", file=sys.stderr)
+            return 1
+        picture = trimmed(source)
+        for window in windows:
+            target = PAGES[window] / name
+            if name == "donate.png":
+                write_wide_image(picture, target, DONATE_WIDTH)
+                continue
+            write_page_image(picture, target, BADGE_SIZE)
     return 0
 
 

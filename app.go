@@ -33,6 +33,7 @@ type App struct {
 	tray     *application.TrayService
 	restores *application.RestoreService
 	captures *application.CaptureService
+	updates  *application.UpdateService
 	log      application.Log
 	version  string
 
@@ -50,6 +51,7 @@ func NewApp(
 	tray *application.TrayService,
 	restores *application.RestoreService,
 	captures *application.CaptureService,
+	updates *application.UpdateService,
 	log application.Log,
 	version string,
 ) *App {
@@ -58,6 +60,7 @@ func NewApp(
 		tray:     tray,
 		restores: restores,
 		captures: captures,
+		updates:  updates,
 		log:      log,
 		version:  version,
 	}
@@ -117,10 +120,13 @@ type StateDTO struct {
 	DonateURL    string `json:"donateUrl"`
 	PrefersDark  bool   `json:"prefersDark"`
 	LaunchOnBoot bool   `json:"launchOnBoot"`
+	UpdateCheck  bool   `json:"updateCheck"`
 	// StartupError says why the sign-in setting could not be read, empty where
 	// it could. A setting shown as off because the registry refused is a lie
 	// the user would act on.
 	StartupError string `json:"startupError"`
+	// UpdateError says the same about the update setting, for the same reason.
+	UpdateError string `json:"updateError"`
 }
 
 // DetectState reads what the page opens on.
@@ -132,12 +138,16 @@ func (a *App) DetectState(prefersDark bool) StateDTO {
 		DonateURL:   donateURL,
 		PrefersDark: prefersDark,
 	}
-	enabled, err := a.manager.StartsWithWindows()
-	if err != nil {
+	if enabled, err := a.manager.StartsWithWindows(); err != nil {
 		state.StartupError = err.Error()
-		return state
+	} else {
+		state.LaunchOnBoot = enabled
 	}
-	state.LaunchOnBoot = enabled
+	if enabled, err := a.updates.Enabled(); err != nil {
+		state.UpdateError = err.Error()
+	} else {
+		state.UpdateCheck = enabled
+	}
 	return state
 }
 
@@ -192,6 +202,42 @@ type ReportDTO struct {
 	Summary string           `json:"summary"`
 	Notes   []string         `json:"notes"`
 	Entries []EntryReportDTO `json:"entries"`
+}
+
+// UpdateDTO is what one update check found, as the page shows it.
+type UpdateDTO struct {
+	// Enabled is false where the user has turned the check off, in which case
+	// nothing was asked of the network at all (FR-059).
+	Enabled bool `json:"enabled"`
+	// Reached is false where the feed could not be reached, which is told apart
+	// from finding nothing: those two mean opposite things to a user who asked.
+	Reached     bool   `json:"reached"`
+	Current     string `json:"current"`
+	Latest      string `json:"latest"`
+	Available   bool   `json:"available"`
+	Skipped     bool   `json:"skipped"`
+	DownloadURL string `json:"downloadUrl"`
+	PageURL     string `json:"pageUrl"`
+}
+
+// Surface brings the window up without moving it to another panel. The page
+// calls it when a check it ran by itself found something, so an offer reaches a
+// user whose agent has been waiting in the notification area since sign-in.
+func (a *App) Surface() {
+	if a.ctx == nil {
+		return
+	}
+	wailsruntime.WindowShow(a.ctx)
+	wailsruntime.WindowUnminimise(a.ctx)
+	a.takeFocus()
+}
+
+// OpenInBrowser opens a link in the user's own browser, which is where a
+// download belongs: this product does not fetch it.
+func (a *App) OpenInBrowser(url string) {
+	if a.ctx != nil {
+		wailsruntime.BrowserOpenURL(a.ctx, url)
+	}
 }
 
 // Quit ends the agent, which is the same act the tray's own Quit performs.

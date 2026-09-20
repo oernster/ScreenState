@@ -141,11 +141,10 @@ body {
 
 .themebtn:disabled { border-color: var(--danger); cursor: default; }
 
-/* The toggle shows the appearance it would switch TO, so the sun appears while
-   you are in the dark. Exactly one of the two is ever displayed. */
-.themeart { width: 42px; height: 42px; display: none; }
-
-.themeart.showing { display: block; }
+/* The toggle wears the product's own sun and moon artwork and shows the
+   appearance it would switch TO, so the sun appears while you are in the
+   dark. */
+.themebtn img { width: 46px; height: 46px; }
 
 /* -------------------------------------------------------------- type */
 

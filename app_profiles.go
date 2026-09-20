@@ -190,3 +190,37 @@ func reportOf(profile string, report *application.Report) ReportDTO {
 		Entries: entries,
 	}
 }
+
+// CheckForUpdates asks whether a newer version has been released (FR-058).
+//
+// unbidden is true for the check the agent runs by itself and false for one the
+// user pressed a button for. Skipping silences the first, never the second: a
+// user who asks is entitled to the answer either way.
+func (a *App) CheckForUpdates(unbidden bool) (UpdateDTO, error) {
+	status, err := a.updates.Check(context.Background(), unbidden)
+	if err != nil {
+		return UpdateDTO{}, err
+	}
+	return UpdateDTO{
+		Enabled:     status.Enabled,
+		Reached:     status.Reached,
+		Current:     status.Current,
+		Latest:      status.Latest,
+		Available:   status.Available,
+		Skipped:     status.Skipped,
+		DownloadURL: status.DownloadURL,
+		PageURL:     status.PageURL,
+	}, nil
+}
+
+// SkipVersion records a released version the user does not want offered again
+// (FR-058).
+func (a *App) SkipVersion(version string) error { return a.updates.Skip(version) }
+
+// UpdateCheckEnabled reports whether the update check is on (FR-059).
+func (a *App) UpdateCheckEnabled() (bool, error) { return a.updates.Enabled() }
+
+// SetUpdateCheckEnabled turns the update check on or off. Turned off, the
+// product makes no network connection at all, which is what FR-059 promises and
+// what C-4 rests on.
+func (a *App) SetUpdateCheckEnabled(enabled bool) error { return a.updates.SetEnabled(enabled) }

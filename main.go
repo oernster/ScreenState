@@ -15,15 +15,18 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 
 	"github.com/oernster/ScreenState/internal/application"
 	"github.com/oernster/ScreenState/internal/domain"
 	"github.com/oernster/ScreenState/internal/infrastructure/clock"
 	"github.com/oernster/ScreenState/internal/infrastructure/instance"
 	"github.com/oernster/ScreenState/internal/infrastructure/runlog"
+	"github.com/oernster/ScreenState/internal/infrastructure/settings"
 	"github.com/oernster/ScreenState/internal/infrastructure/setup"
 	"github.com/oernster/ScreenState/internal/infrastructure/startup"
 	"github.com/oernster/ScreenState/internal/infrastructure/store"
+	"github.com/oernster/ScreenState/internal/infrastructure/update"
 	"github.com/oernster/ScreenState/internal/infrastructure/win32"
 	"github.com/oernster/ScreenState/internal/product"
 	"github.com/oernster/ScreenState/internal/ui"
@@ -158,10 +161,17 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 	manager := application.NewManagerService(profiles, startup.New(), steps)
 	tray := application.NewTrayService(profiles, restores, captures, steps)
 
+	// The settings sit beside the profiles rather than inside them: a profile is
+	// the user's work and a setting is a preference.
+	preferences := settings.New(filepath.Dir(directory))
+	updates := application.NewUpdateService(
+		update.New(), preferences, steps, version,
+		application.PlatformKeyFor(runtime.GOOS))
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	app := NewApp(manager, tray, restores, captures, steps, version)
+	app := NewApp(manager, tray, restores, captures, updates, steps, version)
 	go signIn(ctx, restores, steps)
 	go runTray(ctx, tray, steps, app)
 

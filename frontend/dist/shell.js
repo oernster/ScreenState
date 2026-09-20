@@ -16,15 +16,14 @@ function backend() {
 
 /* ------------------------------------------------------------------ theme */
 
-// applyTheme sets the theme and re-faces the button to the theme it would
-// switch TO, so the sun shows while you are in the dark. Both happen here: a
+// applyTheme sets the theme and re-faces the button with the artwork for the
+// theme it would switch TO, so the sun shows while you are in the dark. Both happen here: a
 // repaint that left the button showing the mode just departed invites a second
 // press.
 function applyTheme(theme) {
     document.documentElement.setAttribute('data-theme', theme)
     const dark = theme === 'dark'
-    $('theme-sun').classList.toggle('showing', dark)
-    $('theme-moon').classList.toggle('showing', !dark)
+    $('theme-icon').src = dark ? 'light-mode.png' : 'dark-mode.png'
     $('theme').title = dark ? 'Switch to light' : 'Switch to dark'
 }
 

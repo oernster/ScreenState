@@ -224,3 +224,30 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
     height: auto;
     margin-bottom: 14px;
 }
+
+/* -------------------------------------------------------------- about */
+
+.aboutmark {
+    width: 126px;
+    height: 126px;
+    margin-bottom: 12px;
+}
+
+/* A guide row names a control and shows the picture the window actually draws
+   for it, at the size the window draws it. A picture at another size is a
+   different picture as far as recognising it goes. */
+.row .guideart {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    object-fit: contain;
+}
+
+/* A heading inside the guide, which is a document rather than a list. */
+.guidehead {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 16px 0 4px;
+}
+
+.guidehead:first-child { margin-top: 0; }

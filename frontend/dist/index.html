@@ -21,20 +21,11 @@
             <div class="sub" id="tagline"></div>
         </div>
         <button class="linkbtn" id="donate" title="Open the donation page in your browser">Donate</button>
+        <button class="themebtn" id="help" title="The guide, About, the licence and the update check">
+            <img id="help-icon" src="help.png" alt="" aria-hidden="true"/>
+        </button>
         <button class="themebtn" id="theme" title="Switch between light and dark">
-            <svg id="theme-sun" class="themeart" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="2"/>
-                <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
-                    <path d="M12 2v2.6"/><path d="M12 19.4V22"/>
-                    <path d="M2 12h2.6"/><path d="M19.4 12H22"/>
-                    <path d="M4.9 4.9l1.9 1.9"/><path d="M17.2 17.2l1.9 1.9"/>
-                    <path d="M19.1 4.9l-1.9 1.9"/><path d="M6.8 17.2l-1.9 1.9"/>
-                </g>
-            </svg>
-            <svg id="theme-moon" class="themeart" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"
-                      stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
-            </svg>
+            <img id="theme-icon" src="dark-mode.png" alt="" aria-hidden="true"/>
         </button>
     </div>
 
@@ -93,6 +84,39 @@
             <p class="lead" id="confirm-words"></p>
         </section>
 
+        <section class="view" id="view-help">
+            <h1>Help</h1>
+            <p class="lead">The guide names every control in this window. About says
+                what this is and which version you are running.</p>
+            <div class="rows" id="help-rows"></div>
+        </section>
+
+        <section class="view" id="view-guide">
+            <h1>Guide</h1>
+            <p class="lead">Every picture below is the one this window actually
+                draws, so a control can be recognised rather than described.</p>
+            <div class="rows tall" id="guide-rows"></div>
+        </section>
+
+        <section class="view centred" id="view-about">
+            <img class="aboutmark" id="about-mark" src="icon.png" alt=""/>
+            <h1 id="about-title"></h1>
+            <p class="lead" id="about-words"></p>
+            <div class="infobox" id="about-detail"></div>
+        </section>
+
+        <section class="view" id="view-licence">
+            <h1>Licence</h1>
+            <p class="lead" id="licence-words"></p>
+            <div class="infobox" id="licence-detail"></div>
+        </section>
+
+        <section class="view centred" id="view-update">
+            <div class="verdict" id="update-mark"></div>
+            <h1 id="update-title"></h1>
+            <p class="lead" id="update-words"></p>
+        </section>
+
         <section class="view centred" id="view-busy">
             <h1 id="busy-title">Working...</h1>
             <p class="lead" id="busy-words"></p>
@@ -109,6 +133,8 @@
 </div>
 
 <script src="shell.js"></script>
+<script src="guide.js"></script>
 <script src="manager.js"></script>
+<script src="manager-help.js"></script>
 </body>
 </html>

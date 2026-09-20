@@ -214,12 +214,12 @@ async function removeEntry(application) {
 // this panel for it to wait on.
 function drawSettings() {
     const note = $('settings-note')
-    if (state.startupError) {
-        note.textContent = 'The sign-in setting could not be read: ' + state.startupError
-        note.hidden = false
-    } else {
-        note.hidden = true
-    }
+    const trouble = [
+        state.startupError ? 'The sign-in setting could not be read: ' + state.startupError : '',
+        state.updateError ? 'The update setting could not be read: ' + state.updateError : '',
+    ].filter((line) => line !== '')
+    note.textContent = trouble.join('  ')
+    note.hidden = trouble.length === 0
     renderOptions($('settings-options'), [
         {
             key: 'boot',
@@ -229,6 +229,16 @@ function drawSettings() {
             checked: state.launchOnBoot,
             disabled: !!state.startupError,
             onChange: (on) => void setStartup(on),
+        },
+        {
+            key: 'updates',
+            label: 'Check for updates',
+            hint: 'Asks a public release feed once per run whether a newer version'
+                + ' exists. It carries nothing about you. Turned off, nothing is'
+                + ' asked of the network at all.',
+            checked: state.updateCheck,
+            disabled: !!state.updateError,
+            onChange: (on) => void setUpdateCheck(on),
         },
     ])
 }
@@ -497,6 +507,10 @@ async function init() {
 
     await openProfiles()
     settleKeyboard()
+
+    // FR-058: once per run, a moment after the window is ready. It is silent
+    // unless there is something to say.
+    window.setTimeout(() => void runUpdateCheck(true), updateDelayMs)
 }
 
 window.addEventListener('DOMContentLoaded', init)

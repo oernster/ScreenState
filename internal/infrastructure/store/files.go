@@ -65,15 +65,24 @@ func (store *Store) pathFor(name string) string {
 // else replaces it.
 var rename = os.Rename
 
-// write puts bytes at a path so that an interruption leaves the previous
+// write puts bytes at a path inside this store's own directory.
+func (store *Store) write(path string, raw []byte) error {
+	return WriteAtomic(store.directory, path, raw)
+}
+
+// WriteAtomic puts bytes at a path so that an interruption leaves the previous
 // contents or the new ones, never a mixture (FR-006).
 //
-// The temporary file is created in the same directory as the target, because a
-// move between directories is a copy and a delete rather than one act; a copy
-// can be interrupted half way. It is removed on every path out, so a
-// failure leaves no litter behind for the next listing to trip over.
-func (store *Store) write(path string, raw []byte) (err error) {
-	temporary, err := os.CreateTemp(store.directory, "."+filepath.Base(path)+".*")
+// The temporary file is created in the given directory, which must be the
+// target's own: a move between directories is a copy and a delete rather than
+// one act; a copy can be interrupted half way. It is removed on every path
+// out, so a failure leaves no litter behind for the next listing to trip over.
+//
+// It is exported because the profiles are not the only thing this product
+// writes. The settings file wants the same promise; two copies of an atomic
+// write is how one of them comes to be the careless one.
+func WriteAtomic(directory, path string, raw []byte) (err error) {
+	temporary, err := os.CreateTemp(directory, "."+filepath.Base(path)+".*")
 	if err != nil {
 		return fmt.Errorf("preparing to write %s: %w", filepath.Base(path), err)
 	}

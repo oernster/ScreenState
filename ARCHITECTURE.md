@@ -62,6 +62,11 @@ undo without anybody noticing.
 mutex, a log line, a menu entry and the setup program's header. A second copy of a name is how a rename
 leaves one surface still announcing the old one.
 
+`internal/infrastructure/settings` keeps the few choices remembered between runs: whether the update
+check is wanted (FR-059) and which released version the user passed over (FR-058). It is deliberately
+apart from the profile store, because a profile is the user's work and a setting is a preference.
+`internal/infrastructure/update` is the release feed.
+
 Two further packages serve the setup program rather than the agent. `internal/infrastructure/setup`
 holds the install policy: the per-user paths, the payload extraction, the registry entries, the
 shortcuts and the process work. `internal/infrastructure/window` gives a WebView page the keyboard,
@@ -218,6 +223,7 @@ minimised, which is reversible and quits nothing.
 | Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
 | Step log | `%LOCALAPPDATA%\ScreenState\Log.txt` |
 | Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup |
+| Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting and the skipped version |
 | Webview cache | `%LOCALAPPDATA%\ScreenState\webview`, pinned there so an uninstall knows to look |
 | Apps list entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenState` |
 | Sign-in entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `ScreenState` (FR-046) |
@@ -284,6 +290,48 @@ never a box over the window: the go-ahead there is a button that has never meant
 copied into both page directories by `build.ps1`, because each window embeds its own page and a copy
 is the only way to share them. A structural test fails when a copy has drifted, which is the only
 thing standing between a copy edited in place and two windows that quietly stop matching.
+
+## The update check
+
+The one outbound connection this product makes, which is what C-4 names: an anonymous request to a
+public release feed, asking one question and carrying nothing about the user or the desktop.
+
+**It runs once per run** (FR-058), a moment after the window is ready rather than during startup. It
+says nothing unless there is something to say. A feed that cannot be reached, a machine that is
+offline and a release that is not newer are all silence: the user did not ask, so they hear nothing.
+A check the USER asked for, from Help, reports every outcome including the two that are not news,
+because a button that sometimes does nothing visible is a button people stop trusting.
+
+**The endpoint's own contract is the guard.** GitHub's releases/latest answers only a published
+release that is neither a draft nor a pre-release, so a tag pushed mid-development is structurally
+invisible and work in progress can never raise a prompt. Nothing re-checks those flags here.
+
+**Anything unreadable compares as not newer.** A malformed tag can never raise an offer. That
+direction is deliberate: a missed offer costs a user a day, while a spurious one costs the credibility
+of every later offer.
+
+**Skipping silences the check that speaks unbidden, never the one the user pressed a button for.**
+That is the whole of what skipping is for, so a manual check reports a skipped version as available
+and offers the download anyway.
+
+**Turned off, nothing is asked of the network at all** (FR-059). The setting is read before the feed
+is touched, so the promise is a shape rather than an intention. The manual entry in Help is switched
+off with it: an entry that reached the network while the setting said otherwise would make
+the setting a lie.
+
+## Help, the guide and the licence
+
+Help is a panel of rows rather than a menu, because this window has no menu bar and a made-up one
+would be furniture nobody expects. It offers the guide, About, the licence, the update check and the
+report of the last restore.
+
+The guide's words live in `frontend/dist/guide.js`, apart from the panel that draws them, so the panel
+stays a renderer and the words stay one readable document. Every entry carries the REAL control this
+window draws: the image files the window loads, plus the window's own classes for the drawn ones, so
+the guide cannot come to show something the window does not. A guide showing anything else is worse
+than no guide. It names the furniture first, then states the rules the window cannot say for itself:
+what is kept locally, that nothing is ever closed or ended, the single network call and what cannot be
+undone.
 
 ## The setup program
 
@@ -403,6 +451,11 @@ is not verifiable as written and wants either rewording or a different matching 
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They
 need a deliberate run.
 
+**The update check has never asked the real feed.** Its rules are covered end to end against a
+stand-in; every outcome the window can show was driven in a browser. No request has left this
+machine: there is no published release to find, so the happy path is proved only in the shape the
+adapter promises to produce.
+
 **The manager has never been opened in the real window.** Its panels have been driven in a browser
 against a stand-in for the agent, which settles the layout, the palette and the wiring and settles
 nothing else. Real keyboard focus, the tray click, the second-launch message, a real capture and a
@@ -416,5 +469,5 @@ and not proven.
 
 ## Not built yet
 
-The update check (FR-058, FR-059). The specification covers it; this document will describe it when
-it exists and not before.
+Nothing. Every requirement in the specification is built. What remains is proving it: see the known
+limits above.
