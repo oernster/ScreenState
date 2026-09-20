@@ -141,8 +141,10 @@ func TestAProfileFromANewerFormatIsLeftAlone(t *testing.T) {
 	if !strings.Contains(excluded[0].Reason, "newer format") {
 		t.Fatalf("the reason reads %q", excluded[0].Reason)
 	}
-	if !log.saying("was left out of the profile list") {
-		t.Fatal("the exclusion was not recorded")
+	// The store records the exclusion rather than narrating it. Listing runs
+	// several times a run, so the log line belongs to whoever asked, once.
+	if log.saying("future.json") {
+		t.Fatal("the store narrated an exclusion it only needed to record")
 	}
 }
 

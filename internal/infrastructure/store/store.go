@@ -102,10 +102,11 @@ func (store *Store) readAll(ctx context.Context) ([]domain.Profile, []Exclusion,
 		}
 		profile, err := store.read(filepath.Join(store.directory, entry.Name()))
 		if err != nil {
-			reason := err.Error()
-			store.log.Step(fmt.Sprintf("%s was left out of the profile list: %s",
-				entry.Name(), reason))
-			excluded = append(excluded, Exclusion{File: entry.Name(), Reason: reason})
+			// Recorded, not narrated. This runs on every listing; a run
+			// that says the same thing three times teaches a reader to skim
+			// the log. The caller states it once; DATA-003 asks that it be
+			// stated, not that it be repeated.
+			excluded = append(excluded, Exclusion{File: entry.Name(), Reason: err.Error()})
 			continue
 		}
 		profiles = append(profiles, profile)
