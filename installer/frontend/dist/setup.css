@@ -93,7 +93,6 @@ body {
     width: 126px;
     height: 126px;
     flex: 0 0 auto;
-    color: var(--accent);
 }
 
 .head .who { flex: 1 1 auto; min-width: 0; }

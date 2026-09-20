@@ -37,6 +37,7 @@ go.work.sum
 # Build outputs. The setup program and the agent are both produced by
 # build.ps1; the resource object is linked into the agent and then removed, so
 # one left behind is the sign of a run that stopped part way.
+/build/
 /dist-installer/
 /installer/build/bin/
 *.syso

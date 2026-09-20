@@ -161,27 +161,10 @@ async function init() {
     settleKeyboard()
 }
 
-// The drawn mark is the fallback. A real icon.png beside this page replaces it;
-// a missing one leaves the drawing rather than a broken image, so the header is
-// right either way.
-//
-// The drawing is REMOVED rather than hidden. An SVG element is not an
-// HTMLElement, so setting .hidden on it assigns a plain JavaScript property and
-// reaches the document not at all: no attribute, no change of display. That is
-// measured; it is why both marks once appeared side by side.
-//
-// The image may also have finished loading before this runs, in which case no
-// load event is ever fired, so the already-complete case is handled directly.
-const markImage = $('markimg')
-const showImage = () => {
-    markImage.hidden = false
-    $('mark').remove()
-}
-if (markImage.complete && markImage.naturalWidth > 0) {
-    showImage()
-} else {
-    markImage.onload = showImage
-    markImage.onerror = () => { markImage.remove() }
-}
+// The mark is the product's artwork, written beside this page by the icon
+// generator and committed. Nothing stands in for it: where it cannot be loaded
+// the badge goes altogether, leaving the name and its tagline to say which
+// program this is, rather than a broken image or a drawing of something else.
+$('mark').onerror = () => { $('mark').remove() }
 
 window.addEventListener('DOMContentLoaded', init)
