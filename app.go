@@ -173,6 +173,20 @@ type EntryDTO struct {
 	Placements  []PlacementDTO `json:"placements"`
 }
 
+// stated answers a slice the page can rely on being a list. A nil slice is
+// marshalled as null rather than as an empty array, so a page that reads a
+// length or walks it throws where nothing is wrong at all. Measured on
+// 2026-09-20: a capture with nothing unreadable handed the manager a null, the
+// throw left its promise rejected with nobody to catch it and the window sat on
+// "Reading the desktop" with the capture already read and waiting behind it.
+// Every slice leaving here for the page goes through this.
+func stated[T any](values []T) []T {
+	if values == nil {
+		return []T{}
+	}
+	return values
+}
+
 // ReviewEntryDTO is one candidate in a capture the user is reviewing.
 type ReviewEntryDTO struct {
 	Application string `json:"application"`

@@ -108,7 +108,7 @@ func (a *App) Capture(basedOn string) (ReviewDTO, error) {
 			Windows:     len(entry.Placements),
 		})
 	}
-	return ReviewDTO{Entries: entries, Unreadable: review.Unreadable}, nil
+	return ReviewDTO{Entries: entries, Unreadable: stated(review.Unreadable)}, nil
 }
 
 // CancelCapture drops the review without writing anything (FR-016). It is
@@ -155,7 +155,7 @@ func (a *App) SaveCapture(name string, keep []string, replace bool) error {
 func (a *App) Report() ReportDTO {
 	report, held := a.restores.Last()
 	if !held {
-		return ReportDTO{}
+		return noReport()
 	}
 	return reportOf(report.Profile, report)
 }
@@ -168,10 +168,17 @@ func (a *App) SetStartsWithWindows(enabled bool) error {
 	return a.manager.SetStartsWithWindows(enabled)
 }
 
+// noReport is the answer when no restore has run. Held says so; the two lists
+// are stated as empty rather than left nil, so the page reads the same shapes
+// whether or not there is anything to read.
+func noReport() ReportDTO {
+	return ReportDTO{Notes: stated[string](nil), Entries: stated[EntryReportDTO](nil)}
+}
+
 // reportOf turns a report into what the page shows for it.
 func reportOf(profile string, report *application.Report) ReportDTO {
 	if report == nil {
-		return ReportDTO{}
+		return noReport()
 	}
 	entries := make([]EntryReportDTO, 0)
 	for _, entry := range report.Entries() {
@@ -179,14 +186,14 @@ func reportOf(profile string, report *application.Report) ReportDTO {
 			Application: entry.Application.Value,
 			Satisfied:   entry.Satisfied,
 			Reason:      entry.Reason,
-			Notes:       entry.Notes,
+			Notes:       stated(entry.Notes),
 		})
 	}
 	return ReportDTO{
 		Held:    true,
 		Profile: profile,
 		Summary: report.Summary(),
-		Notes:   report.SortedNotes(),
+		Notes:   stated(report.SortedNotes()),
 		Entries: entries,
 	}
 }

@@ -65,7 +65,6 @@ function named(words) {
 function guideArt(art) {
     if (art === 'badge') return sample('badge', 'Default')
     if (art === 'remove') return sample('rowbtn', 'Remove')
-    if (art === 'donate') return sample('rowbtn', 'Donate')
     const picture = document.createElement('img')
     picture.className = 'guideart'
     picture.src = art === 'help' ? 'help.png' : art

@@ -61,12 +61,12 @@ async function openProfiles() {
 function profileFooter() {
     const none = selected === ''
     return [
-        {label: 'Quit', kind: 'danger', onClick: () => backend().Quit()},
-        {label: 'Close', onClick: () => backend().Hide()},
-        {label: 'Delete', disabled: none, onClick: () => confirmDelete(selected)},
-        {label: 'Rename', disabled: none, onClick: () => renameSelected()},
         {label: 'Capture the desktop', onClick: () => openCapture()},
+        {label: 'Rename', disabled: none, onClick: () => renameSelected()},
+        {label: 'Delete', disabled: none, onClick: () => confirmDelete(selected)},
         {label: 'Apply', kind: 'primary', disabled: none, onClick: () => applySelected()},
+        {label: 'Close', onClick: () => backend().Hide()},
+        {label: 'Quit', kind: 'danger', onClick: () => backend().Quit()},
     ]
 }
 
@@ -478,6 +478,22 @@ function prefersDark() {
 }
 
 $('donate').onclick = openDonate
+
+// The profile button is the way back to the list from anywhere that is not
+// mid-decision. It is in the bar rather than the footer because it belongs to
+// the window rather than to a panel.
+$('profiles').onclick = () => void openProfiles()
+
+// A failure while a panel is being drawn happens after the call it was waiting
+// on has already answered, so it is outside the try that guards the call. Left
+// alone it rejects a promise nobody is holding; the window then keeps saying the
+// words it was waiting with: a capture with nothing unreadable did exactly that
+// on 2026-09-20. Anything that gets this far is a defect, so it says so rather
+// than being swallowed.
+window.addEventListener('unhandledrejection', (event) => {
+    event.preventDefault()
+    showError('Something went wrong drawing that: ' + String(event.reason))
+})
 
 // The mark is the product's artwork, written beside this page by the icon
 // generator and committed. Nothing stands in for it: where it cannot be loaded

@@ -219,6 +219,42 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 
 /* ------------------------------------------------------------- donate */
 
+/* The row along the foot holds two things that do not belong together: the
+   donation button, which belongs to the window and never changes, then the
+   buttons of whatever panel is showing, replaced wholesale every time it does.
+   The rule the shared theme states for .footer is kept here on the bar, so the
+   line runs the width of the window rather than starting partway along it. */
+.footerbar {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+    flex: 0 0 auto;
+}
+
+.footerbar .footer {
+    flex: 1 1 auto;
+    padding-top: 0;
+    border-top: 0;
+}
+
+.donatebtn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px;
+    border: 2px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.donatebtn:enabled:hover,
+.donatebtn:enabled:focus { border-color: var(--ring); }
+
+.donatebtn img { height: 46px; width: auto; display: block; }
+
 .donateart {
     width: 220px;
     height: auto;

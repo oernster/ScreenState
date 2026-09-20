@@ -16,16 +16,18 @@
 <div class="shell">
     <div class="head">
         <img class="mark" id="mark" src="icon.png" alt=""/>
+        <button class="themebtn" id="profiles" title="Back to the profiles">
+            <img id="profiles-icon" src="profile.png" alt="" aria-hidden="true"/>
+        </button>
         <div class="who">
             <div class="title" id="brand"></div>
             <div class="sub" id="tagline"></div>
         </div>
-        <button class="linkbtn" id="donate" title="Open the donation page in your browser">Donate</button>
-        <button class="themebtn" id="help" title="The guide, About, the licence and the update check">
-            <img id="help-icon" src="help.png" alt="" aria-hidden="true"/>
-        </button>
         <button class="themebtn" id="theme" title="Switch between light and dark">
             <img id="theme-icon" src="dark-mode.png" alt="" aria-hidden="true"/>
+        </button>
+        <button class="themebtn" id="help" title="The guide, About, the licence and the update check">
+            <img id="help-icon" src="help.png" alt="" aria-hidden="true"/>
         </button>
     </div>
 
@@ -129,7 +131,17 @@
         </section>
     </div>
 
-    <div class="footer" id="footer"></div>
+    <!--
+      The donation button belongs to the window rather than to any one panel, so
+      it sits beside the footer rather than in it: setFooter empties the row it
+      owns every time a panel changes; anything living there would go with it.
+    -->
+    <div class="footerbar">
+        <button class="donatebtn" id="donate" title="Open the donation page in your browser">
+            <img id="donate-icon" src="donate.png" alt="Donate"/>
+        </button>
+        <div class="footer" id="footer"></div>
+    </div>
 </div>
 
 <script src="shell.js"></script>
