@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Setup</title>
+    <link rel="stylesheet" href="setup.css"/>
+</head>
+<!--
+  Nothing on this page writes the product's name or its tagline down. A page has
+  no compiler behind it, so a name written here survives a rename in silence and
+  setup then announces a product that no longer exists. Both arrive on the state
+  the program hands over.
+-->
+<body>
+<div class="shell">
+    <div class="head">
+        <svg class="mark" id="mark" viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="5" y="9" width="24" height="17" rx="2.5" stroke="currentColor" stroke-width="3"/>
+            <rect x="21" y="22" width="22" height="17" rx="2.5" fill="var(--surface)" stroke="currentColor" stroke-width="3"/>
+            <path d="M14 34h8" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.45"/>
+            <path d="M18 26v8" stroke="currentColor" stroke-width="3" stroke-linecap="round" opacity="0.45"/>
+        </svg>
+        <img class="mark" id="markimg" src="icon.png" alt="" hidden/>
+        <div class="who">
+            <div class="title" id="brand">Setup</div>
+            <div class="sub" id="tagline"></div>
+        </div>
+        <button class="linkbtn" id="licence" title="Read the licence this setup program is covered by">Licence</button>
+        <button class="themebtn" id="theme" title="Switch between light and dark">
+            <svg id="theme-sun" class="themeart" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="12" cy="12" r="4.6" stroke="currentColor" stroke-width="2"/>
+                <g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <path d="M12 2v2.6"/><path d="M12 19.4V22"/>
+                    <path d="M2 12h2.6"/><path d="M19.4 12H22"/>
+                    <path d="M4.9 4.9l1.9 1.9"/><path d="M17.2 17.2l1.9 1.9"/>
+                    <path d="M19.1 4.9l-1.9 1.9"/><path d="M6.8 17.2l-1.9 1.9"/>
+                </g>
+            </svg>
+            <svg id="theme-moon" class="themeart" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"
+                      stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="body">
+        <section class="screen" id="screen-install">
+            <h1 id="install-title">Install</h1>
+            <p class="lead">This installs for your account only, so Windows will not
+                ask for administrator rights.</p>
+            <div class="infobox">Install location<br/><span class="path" id="install-path"></span></div>
+            <div class="options" id="install-options"></div>
+        </section>
+
+        <section class="screen" id="screen-update">
+            <h1 id="update-title">Update available</h1>
+            <p class="lead" id="update-lead">A newer version is ready to install. Your
+                captured profiles are untouched.</p>
+            <div class="flow">
+                <span class="from" id="update-from"></span>
+                <span class="arrow">&rarr;</span>
+                <span class="to" id="update-to"></span>
+            </div>
+            <div class="options" id="update-options"></div>
+        </section>
+
+        <section class="screen" id="screen-manage">
+            <h1 id="manage-title">Installed</h1>
+            <p class="lead">Repair puts the files back and leaves everything else
+                alone. Reinstall asks for these choices again.</p>
+            <div class="options" id="manage-options"></div>
+        </section>
+
+        <section class="screen" id="screen-uninstall">
+            <h1 id="uninstall-title">Remove it?</h1>
+            <p class="lead">This removes the agent, its shortcuts and its sign-in
+                entry. Nothing on your desktop is closed or moved.</p>
+            <div class="infobox">Your profiles are kept here unless you say
+                otherwise<br/><span class="path" id="uninstall-state"></span></div>
+            <div class="options" id="uninstall-options"></div>
+        </section>
+
+        <section class="screen" id="screen-running">
+            <h1 id="running-title">It is open</h1>
+            <p class="lead">It has to close before setup can continue. Closing it
+                leaves every window where it is; it simply stops watching until you
+                start it again.</p>
+        </section>
+
+        <section class="screen" id="screen-licence">
+            <h1>Licence</h1>
+            <p class="lead">This setup program is covered by the GNU General Public
+                License, version 3, the same licence as the agent it installs. The
+                full text is written into the install folder beside the agent, so a
+                copy is always to hand.</p>
+            <div class="infobox">GPL-3.0<br/><span class="path">Copyright Oliver Ernster</span></div>
+        </section>
+
+        <section class="screen" id="screen-progress">
+            <h1 id="progress-title">Working...</h1>
+            <div class="track"><div class="fill" id="progress-fill"></div></div>
+            <div class="status" id="progress-status">Starting...</div>
+        </section>
+
+        <section class="screen centred" id="screen-done">
+            <div class="verdict" style="color: var(--ring)">&#10003;</div>
+            <h1 id="done-title">All done</h1>
+            <p class="lead" id="done-msg"></p>
+        </section>
+
+        <section class="screen centred" id="screen-error">
+            <div class="verdict" style="color: var(--danger)">&#9888;</div>
+            <h1>Something went wrong</h1>
+            <p class="lead" id="error-msg"></p>
+        </section>
+    </div>
+
+    <div class="footer" id="footer"></div>
+</div>
+
+<script src="setup-shell.js"></script>
+<script src="setup-routes.js"></script>
+</body>
+</html>

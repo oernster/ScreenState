@@ -1,0 +1,17 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "ScreenStateSetup",
+  "outputfilename": "ScreenStateSetup",
+  "frontend:install": "cmd /c echo skip",
+  "frontend:build": "cmd /c echo skip",
+  "author": {
+    "name": "Oliver Ernster",
+    "email": "oernster@codecrafter.uk"
+  },
+  "info": {
+    "companyName": "Oliver Ernster",
+    "productName": "ScreenState Setup",
+    "copyright": "Copyright Oliver Ernster. Licensed under the GNU General Public License, version 3.",
+    "comments": "Window layout profiles for Windows"
+  }
+}

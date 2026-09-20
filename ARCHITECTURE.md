@@ -53,11 +53,17 @@ undo without anybody noticing.
   `win32` reads and moves real windows and displays, `store` keeps the profiles, `clock` is the real
   clock, `runlog` is the step log and `instance` is the single-instance mutex. Never imported by Domain
   or Application.
-- **UI**: not built yet. The tray and the manager window will be clients of the Application use cases
-  only, exactly as the agent is.
+- **UI** (`internal/ui`): the notification area icon, its menu and the message loop that serves them, a
+  client of the Application use cases only. The manager window is not built yet and will be one too.
 
-`internal/product` sits beside these holding the product's name, which reaches a path, a mutex and a
-log line. A second copy of a name is how a rename leaves one surface still announcing the old one.
+`internal/product` sits beside these holding the product's name and its tagline, which reach a path, a
+mutex, a log line, a menu entry and the setup program's header. A second copy of a name is how a rename
+leaves one surface still announcing the old one.
+
+Two further packages serve the setup program rather than the agent. `internal/infrastructure/setup`
+holds the install policy: the per-user paths, the payload extraction, the registry entries, the
+shortcuts and the process work. `internal/infrastructure/window` gives a WebView page the keyboard,
+which on Windows nothing else reliably does. Neither is imported by the agent.
 
 ## Composition root
 
@@ -73,7 +79,8 @@ at all.
 
 ```
             +---------------------+
-      UI    |  tray, manager      |  not built yet
+      UI    |  tray; manager to   |
+            |  come               |
             +----------+----------+
                        | calls
             +----------v----------+
@@ -86,9 +93,26 @@ at all.
                        +-----+---------------------------+
                        |        infrastructure           |
                        | win32, store, clock, runlog,    |
-                       | instance                        |
+                       | instance, setup, window         |
                        +---------------------------------+
 ```
+
+The setup program is a second program over the same infrastructure; it reaches none of the layers
+above:
+
+```
+            +---------------------+
+            |  installer/         |  a Wails window: the screens
+            |  app.go, the page   |  and the facade over the policy
+            +----------+----------+
+                       | calls
+            +----------v----------+
+            | infrastructure/     |  paths, payload, registry,
+            | setup, window       |  shortcuts, processes
+            +---------------------+
+```
+
+It knows nothing of the domain, the use cases or the agent's own UI. What it installs is a file.
 
 ## The end-state model
 
@@ -192,10 +216,20 @@ minimised, which is reversible and quits nothing.
 |---|---|
 | Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
 | Step log | `%LOCALAPPDATA%\ScreenState\Log.txt` |
+| Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup |
+| Apps list entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenState` |
+| Sign-in entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `ScreenState` (FR-046) |
+| Shortcuts | the user's own Start Menu Programs folder and Desktop |
 
 Everything the product writes lives under the signed-in user's own directories (C-2, DATA-001). There
 are no machine-wide files and no machine-wide registry keys; it never asks for administrator rights
-(C-1).
+(C-1). The setup program holds to the same rule, which is why it can install without an elevation
+prompt.
+
+The install folder and the folder holding the profiles are deliberately different places, so removing
+the product does not remove the user's captures unless they ask. The setup program derives the second
+from the store rather than rebuilding it, so what an uninstall offers to clear cannot drift from what
+the agent writes.
 
 Profiles are files rather than a database on purpose. A profile is a few hundred bytes that changes when
 the user says so, never concurrently; a file each means a profile that cannot be read costs the user
@@ -208,6 +242,53 @@ a delete rather than one act; a copy can be interrupted half way.
 Every profile carries the format version it was written in (DATA-002). A file from a version this build
 does not understand is left exactly as it is, kept out of the listing, with the reason stated
 (DATA-003).
+
+## The setup program
+
+A second program in the same module, at `installer/`. The agent is a native Windows program with no
+window; setup needs one, so it is built as a Wails application and wears a palette sampled from the
+agent's own artwork. It carries the built agent as an embedded zip, so one downloaded file is the whole
+distribution.
+
+**The install policy is infrastructure, not interface.** `internal/infrastructure/setup` owns the
+paths, the fenced payload extraction, the version comparison, the registry writes, the shortcut
+handling and the process work. `installer/app.go` is a facade over it and owns no install logic at all,
+so what an install does can be read in one place and exercised without a window. The portable half
+carries unit tests; the Windows half sits behind a build tag with no-op stubs beside it, so the package
+still builds and vets on a machine that is not Windows.
+
+**One reading of the machine decides everything.** `DetectState` looks once and answers the mode, the
+version relation and what is already true of the shortcuts and the sign-in entry. The screen, its
+heading, the options on it and the buttons under it all come from that one answer, which is what stops
+those four drifting apart.
+
+| Route | When |
+|---|---|
+| Install | nothing recorded in the Apps list |
+| Update | the recorded version is older than the one setup carries |
+| Go back a version | the recorded version is newer |
+| Manage | the versions match, so there is nothing to install |
+
+Removal is a screen reachable from every other one rather than a route of its own, so cancelling it
+returns to whatever was due behind it.
+
+**An operation moves to a different screen; nothing is greyed in place.** The progress screen offers no
+actions at all, because there is nothing there that can safely be interrupted. Every path ends in a
+verdict or in the agent running: setup never finishes by quietly doing nothing.
+
+**Options open on what is already true**, never all ticked, so a user who declined a desktop shortcut is
+not offered one again as though they had asked for it. On the manage screen a toggle applies
+immediately, since there is no go-ahead button there for it to wait on.
+
+**The agent is asked about before a single file is touched.** Extracting over a locked executable fails
+part way and leaves a half-written install, so a running agent gets its own screen offering Cancel or
+"Close it and continue". It is ended by executable name and never by process tree: descent is decided
+from recorded parent process ids, which churn, so a tree kill can end setup itself and the window then
+vanishes with nothing said.
+
+**The page carries no product name.** Nothing compiles or type checks a string in a page, so a name
+written there would survive a rename in silence. The name, the tagline and every path arrive on the
+state the program hands over; a structural test fails if either is written into the page anyway.
 
 ## Errors
 
@@ -242,6 +323,11 @@ Measured coverage at the time of writing: domain 100%, application 100%, clock 1
 instance 90.9%, win32 71.9%, runlog 66.7%. The shortfalls are IO and platform failures that would need
 the disk or the window manager to fail mid-call; they are not padded with tests that assert nothing.
 
+The structural suite also holds the setup program's boundary, which no compiler sees: the page may not
+write the product's name or its tagline down, every `state.` field it reads must be a json tag the
+program actually sends and every call it makes must be a method the program binds. These three are the
+newest assertions in the suite and are the only ones not yet proved by a planted violation.
+
 Two integration tests in `win32` read the real machine and assert only what must hold anywhere, skipping
 where there is no desktop. They do not move a window or start an application, since either would disturb
 the desktop of whoever ran the suite.
@@ -275,9 +361,14 @@ is not verifiable as written and wants either rewording or a different matching 
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They
 need a deliberate run.
 
+**The setup program has never installed anything.** Its screens have been driven in a browser against a
+stand-in for the program, which settles the layout, the palette and the screen wiring and settles
+nothing else. Real keyboard focus, the registry writes, the shortcuts, the payload extraction and the
+scheduled removal all need the packaged program run on a real machine. Until that happens it is written
+and not proven.
+
 ## Not built yet
 
-The tray icon and its menu, the manager window, the review step of a capture as something a user can
-see, the sign-in registry entry (FR-046), the update check (FR-058, FR-059), the donation link (FR-060)
-and the setup program. The specification covers all of them; this document will describe them when they
-exist and not before.
+The manager window, the review step of a capture as something a user can see, the update check (FR-058,
+FR-059) and the donation link (FR-060). The specification covers all of them; this document will
+describe them when they exist and not before.
