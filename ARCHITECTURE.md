@@ -167,7 +167,12 @@ The consequences run right through the layer:
 - An entry with placements is satisfied when every placement has been applied.
 - An entry with no placements says the application should run without saying where. It is satisfied by
   the application running; nothing of its is moved (FR-005). That is how the tray applications on
-  the reference machine are usually left.
+  the reference machine are usually left. A capture offers such an application unticked, apart
+  from the entries: `Desktop.Background` answers the programs owning a hidden window of the
+  candidate shape and no window shown, leaving out any whose program cannot be read and any under
+  the Windows directory. Measured on 2026-09-21 that was still 25 applications, helpers another
+  application starts among them, which is why the user ticks the ones to keep rather than
+  unticking the rest.
 - An entry recorded as not running is left entirely alone. A restore ends nothing.
 - The ceiling bounds how long the agent keeps waiting for windows that may never appear (FR-023). It is
   a policy choice about when to stop waiting, deliberately not a prediction of how long the machine
@@ -669,18 +674,15 @@ Found by reading the source against every requirement during the documentation p
 release. The first and the three marked "read and confirmed" were checked against the code by
 hand; the rest were read by an automated audit and none was reproduced on a desktop. Cancelling a
 restore (FR-049) was on this list and is now built: the Applying panel carries "Stop the restore".
-So were matching a packaged application's window after an update (FR-071) and marking the tray
-icon after an incomplete restore (FR-045); both are now fixed. Each is a
+So were matching a packaged application's window after an update (FR-071), marking the tray icon
+after an incomplete restore (FR-045) and capturing an application with only a hidden window
+(FR-005); all three are now fixed. Each is a
 defect or a requirement to amend; which is the owner's decision, so the specification still states
 what was asked for.
 
 - **Setting the ceiling (NFR-PERF-003).** The policy holds the bounds and a method that clamps a
   value to them; nothing offers the setting: every restore waits the default 15 minutes, counted
   from the start of the restore rather than from sign-in.
-- **Capturing an application with only a hidden window (FR-005), read and confirmed.** The desktop is
-  read through the candidate rule, which passes visible windows only, so a fresh capture leaves out
-  an application such as NordVPN that runs with its window hidden. It is kept only where an existing
-  entry already names it.
 - **Log retention (NFR-OBS-001), read and confirmed.** The log starts afresh once it passes 1 MB
   rather than keeping the last 10 restores.
 - **What is stored (NFR-PRIV-001).** The notes of a sign-in restore, written to the log, carry the

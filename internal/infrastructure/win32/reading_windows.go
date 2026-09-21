@@ -17,12 +17,20 @@ import (
 // point at is visible, not cloaked, not owned by another window, not a tool
 // window and not untitled. Anything else is machinery.
 func isCandidate(handle uintptr) bool {
-	if visible, _, _ := pIsWindowVisible.Call(handle); visible == 0 {
-		return false
-	}
-	if isCloaked(handle) {
-		return false
-	}
+	return isVisible(handle) && !isCloaked(handle) && hasCandidateShape(handle)
+}
+
+// isVisible reports whether a window is shown, by the window's own flag.
+func isVisible(handle uintptr) bool {
+	visible, _, _ := pIsWindowVisible.Call(handle)
+	return visible != 0
+}
+
+// hasCandidateShape is the candidate rule without the question of whether the
+// window is shown: not owned by another window, not a tool window and not
+// untitled. A hidden window of this shape is how an application waiting in the
+// notification area keeps its main window (FR-005).
+func hasCandidateShape(handle uintptr) bool {
 	if owner, _, _ := pGetWindow.Call(handle, gwOwner); owner != 0 {
 		return false
 	}
@@ -154,22 +162,35 @@ func identityOfDisplay(deviceName [deviceNameSize]uint16) (string, error) {
 // identityOf names the application owning a window, by the three rules in
 // appendix E.
 func (desktop *Desktop) identityOf(handle uintptr) (domain.ApplicationIdentity, error) {
+	identity, _, err := processIdentity(processOf(handle))
+	return identity, err
+}
+
+// processOf answers the process owning a window; zero where it cannot be read.
+func processOf(handle uintptr) uint32 {
 	var pid uint32
 	_, _, _ = pGetWindowThreadProcessID.Call(handle, uintptr(unsafe.Pointer(&pid)))
+	return pid
+}
+
+// processIdentity names the application a process is running, with the path of
+// its program beside the name.
+func processIdentity(pid uint32) (domain.ApplicationIdentity, string, error) {
 	if pid == 0 {
-		return domain.ApplicationIdentity{}, fmt.Errorf("its process could not be read")
+		return domain.ApplicationIdentity{}, "", fmt.Errorf("its process could not be read")
 	}
 	process, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
 	if err != nil {
-		return domain.ApplicationIdentity{}, fmt.Errorf("its process could not be opened: %w", err)
+		return domain.ApplicationIdentity{}, "", fmt.Errorf("its process could not be opened: %w", err)
 	}
 	defer func() { _ = windows.CloseHandle(process) }()
 
 	imagePath, err := imageOf(process)
 	if err != nil {
-		return domain.ApplicationIdentity{}, err
+		return domain.ApplicationIdentity{}, "", err
 	}
-	return identityFor(imagePath, modelIDOf(process), exists)
+	identity, err := identityFor(imagePath, modelIDOf(process), exists)
+	return identity, imagePath, err
 }
 
 // exists reports whether a file is there, which is how the updater rule is

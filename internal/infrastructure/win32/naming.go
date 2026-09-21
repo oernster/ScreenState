@@ -206,6 +206,23 @@ func launchFor(identity domain.ApplicationIdentity) (string, []string, error) {
 	return "", nil, fmt.Errorf("%w: %s", ErrUnusableIdentity, identity.Kind)
 }
 
+// partOfWindows reports whether a program lives under the Windows directory,
+// which makes it part of Windows rather than an application the user installed.
+// Measured on 2026-09-21: every hidden window of that shape under it belonged to
+// Explorer, a service host, the task host or a driver's helper, none of which a
+// profile could start or should. An empty directory answers false, since then
+// nothing is known to be part of Windows.
+func partOfWindows(imagePath, windowsDirectory string) bool {
+	directory := strings.TrimRight(filepath.Clean(windowsDirectory), `\/`)
+	if directory == "" || directory == "." {
+		return false
+	}
+	image := filepath.Clean(imagePath)
+	return len(image) > len(directory) &&
+		strings.EqualFold(image[:len(directory)], directory) &&
+		strings.ContainsRune(`\/`, rune(image[len(directory)]))
+}
+
 // appsFolder is the shell location every installed application appears in,
 // which is how a model id is turned into something that can be started.
 const appsFolder = `shell:AppsFolder\`

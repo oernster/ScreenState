@@ -34,6 +34,11 @@ func (desktop *Desktop) Window(context.Context, application.WindowID) (applicati
 	return application.Window{}, ErrNotWindows
 }
 
+// Background refuses.
+func (desktop *Desktop) Background(context.Context) ([]domain.ApplicationIdentity, error) {
+	return nil, ErrNotWindows
+}
+
 // Displays refuses.
 func (desktop *Desktop) Displays(context.Context) ([]application.Display, error) {
 	return nil, ErrNotWindows

@@ -6,6 +6,9 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/oernster/ScreenState/internal/domain"
+	"golang.org/x/sys/windows"
 )
 
 // probeClock is enough of a clock for a reading. Nothing here waits.
@@ -13,6 +16,31 @@ type probeClock struct{}
 
 func (probeClock) Now() time.Time                             { return time.Now() }
 func (probeClock) Sleep(context.Context, time.Duration) error { return nil }
+
+// TestTheBackgroundCanBeRead asks the real machine which applications run with
+// every window hidden (FR-005). It asserts only what must hold anywhere: each
+// answer names an application, none is part of Windows.
+func TestTheBackgroundCanBeRead(t *testing.T) {
+	desktop := NewDesktop(probeClock{})
+	running, err := desktop.Background(context.Background())
+	if err != nil {
+		t.Skipf("no desktop to read here: %v", err)
+	}
+	windowsDirectory, err := windows.GetSystemWindowsDirectory()
+	if err != nil {
+		t.Fatalf("reading where Windows is installed: %v", err)
+	}
+	for _, application := range running {
+		if err := application.Validate(); err != nil {
+			t.Errorf("an application running in the background has no usable identity: %v", err)
+		}
+		if application.Kind == domain.KindPath && partOfWindows(application.Value, windowsDirectory) {
+			t.Errorf("%s is part of Windows and was offered", application)
+		}
+		t.Logf("in the background: %s", application)
+	}
+	t.Logf("%d applications running with every window hidden", len(running))
+}
 
 // TestTheDesktopCanBeRead is an integration test rather than a unit test: it
 // asks the machine it runs on what is actually there.

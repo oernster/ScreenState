@@ -19,30 +19,21 @@ async function openCapture() {
     rows.innerHTML = ''
     const keeping = {}
     review.entries.forEach((entry) => {
-        keeping[entry.application] = true
-        const label = document.createElement('label')
-        label.className = 'option'
-        const input = document.createElement('input')
-        input.type = 'checkbox'
-        input.checked = true
-        input.onchange = () => { keeping[entry.application] = input.checked }
-        const tick = document.createElement('span')
-        tick.className = 'check'
-        const text = document.createElement('span')
-        const title = document.createElement('span')
-        title.className = 'label'
-        title.textContent = entry.application
-        const hint = document.createElement('span')
-        hint.className = 'hint'
-        hint.textContent = entry.kind + ', '
+        rows.appendChild(optionRow(entry, true, keeping, entry.kind + ', '
             + (entry.windows === 0 ? 'no window placed'
-                : entry.windows === 1 ? '1 window placed' : entry.windows + ' windows placed')
-        text.append(title, hint)
-        label.append(input, tick, text)
-        rows.appendChild(label)
+                : entry.windows === 1 ? '1 window placed' : entry.windows + ' windows placed')))
     })
     if (!review.entries.length) {
         rows.appendChild(emptyLine('Nothing on the desktop could be recorded.'))
+    }
+    // FR-005: applications running with every window hidden are offered
+    // unticked. Helpers another application starts are among them, so nothing
+    // here is kept unless it is ticked.
+    if (review.background.length) {
+        rows.appendChild(emptyLine('Running with no window shown. Tick any this profile should keep running.'))
+        review.background.forEach((entry) => {
+            rows.appendChild(optionRow(entry, false, keeping, entry.kind + ', running with no window shown'))
+        })
     }
     const unreadable = $('capture-unreadable')
     unreadable.hidden = review.unreadable.length === 0
@@ -61,6 +52,30 @@ async function openCapture() {
         },
     ])
     field.focus()
+}
+
+// optionRow is one application in the review with a tick box, starting ticked
+// or not; what the box says is kept in keeping under the application's name.
+function optionRow(entry, ticked, keeping, words) {
+    keeping[entry.application] = ticked
+    const label = document.createElement('label')
+    label.className = 'option'
+    const input = document.createElement('input')
+    input.type = 'checkbox'
+    input.checked = ticked
+    input.onchange = () => { keeping[entry.application] = input.checked }
+    const tick = document.createElement('span')
+    tick.className = 'check'
+    const text = document.createElement('span')
+    const title = document.createElement('span')
+    title.className = 'label'
+    title.textContent = entry.application
+    const hint = document.createElement('span')
+    hint.className = 'hint'
+    hint.textContent = words
+    text.append(title, hint)
+    label.append(input, tick, text)
+    return label
 }
 
 async function saveCapture(name, keeping) {

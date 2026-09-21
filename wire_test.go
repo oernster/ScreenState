@@ -30,6 +30,7 @@ func TestNoListReachesThePageAsNull(t *testing.T) {
 		"a capture with nothing unreadable": ReviewDTO{
 			Entries:    []ReviewEntryDTO{{Application: "Notepad", Kind: "window", Windows: 1}},
 			Unreadable: stated[string](nil),
+			Background: reviewEntries(nil),
 		},
 	} {
 		encoded, err := json.Marshal(value)

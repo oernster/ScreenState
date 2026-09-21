@@ -26,8 +26,9 @@ Windows.
 ## What it does
 
 - **Captures the desktop as a profile.** It lists every application it found with where each
-  window sits; you untick what you do not want and name the profile. Nothing is written until you
-  confirm.
+  window sits; you untick what you do not want and name the profile. Applications running with no
+  window shown, such as one waiting in the notification area, are listed apart and unticked; tick
+  any the profile should keep running. Nothing is written until you confirm.
 - **Restores the default profile at sign-in**, waiting in the notification area without opening a
   window. It starts what is missing and places each window as soon as it appears, without waiting
   for the slowest application. A message on every display says the desktop is being prepared, then

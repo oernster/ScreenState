@@ -111,15 +111,25 @@ func (a *App) Capture(basedOn string) (ReviewDTO, error) {
 	a.review = review
 	a.mutex.Unlock()
 
-	entries := make([]ReviewEntryDTO, 0, len(review.Entries))
-	for _, entry := range review.Entries {
+	return ReviewDTO{
+		Entries:    reviewEntries(review.Entries),
+		Unreadable: stated(review.Unreadable),
+		Background: reviewEntries(review.Background),
+	}, nil
+}
+
+// reviewEntries states entries as the review screen lists them; an empty list
+// rather than a null where there are none.
+func reviewEntries(from []domain.Entry) []ReviewEntryDTO {
+	entries := make([]ReviewEntryDTO, 0, len(from))
+	for _, entry := range from {
 		entries = append(entries, ReviewEntryDTO{
 			Application: entry.Application.Value,
 			Kind:        entry.Application.Kind.String(),
 			Windows:     len(entry.Placements),
 		})
 	}
-	return ReviewDTO{Entries: entries, Unreadable: stated(review.Unreadable)}, nil
+	return entries
 }
 
 // CancelCapture drops the review without writing anything (FR-016). It is
@@ -133,8 +143,9 @@ func (a *App) CancelCapture() {
 }
 
 // SaveCapture writes the entries the user kept, under the name they gave
-// (FR-011). keep names the applications remaining in the review; everything
-// else is dropped.
+// (FR-011). keep names the applications remaining in the review, including any
+// running in the background the user ticked (FR-005); everything else is
+// dropped.
 func (a *App) SaveCapture(name string, keep []string, replace bool) error {
 	a.mutex.Lock()
 	review := a.review
@@ -145,7 +156,7 @@ func (a *App) SaveCapture(name string, keep []string, replace bool) error {
 		wanted[application] = true
 	}
 	entries := make([]domain.Entry, 0, len(keep))
-	for _, entry := range review.Entries {
+	for _, entry := range append(append([]domain.Entry{}, review.Entries...), review.Background...) {
 		if wanted[entry.Application.Value] {
 			entries = append(entries, entry)
 		}
