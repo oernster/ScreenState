@@ -48,6 +48,11 @@ func (desktop *Desktop) Place(
 	return ErrNotWindows
 }
 
+// NudgeTaskbars refuses: the taskbars it would click belong to Windows.
+func (desktop *Desktop) NudgeTaskbars(context.Context) (int, error) {
+	return 0, ErrNotWindows
+}
+
 // Close refuses.
 func (desktop *Desktop) Close(context.Context, application.WindowID) error {
 	return ErrNotWindows

@@ -83,6 +83,11 @@ type Desktop interface {
 	Displays(ctx context.Context) ([]Display, error)
 	// Place sets the window's normal rectangle, then its show state.
 	Place(ctx context.Context, id WindowID, rect domain.Rect, state domain.ShowState) error
+	// NudgeTaskbars posts a click to every taskbar and answers how many were
+	// sent one (FR-072). Explorer draws the button of an application started at
+	// sign-in without its icon on every display but the first and leaves it so
+	// until any taskbar is clicked. It touches no window of any application.
+	NudgeTaskbars(ctx context.Context) (int, error)
 	// Close asks a window to close, which is a request rather than an order:
 	// the application decides what to do with it and may show a prompt, take
 	// itself to the notification area or end. It is used on a window no

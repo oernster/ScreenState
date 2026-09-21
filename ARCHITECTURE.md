@@ -208,9 +208,15 @@ Windows itself decides where to maximise it.
 4. Once placed, a window is read again after the settle-check delay and put back **once** if the
    application has moved it (FR-033). After that one further attempt the agent gives up and says so,
    rather than fighting an application for its own window (FR-034).
-5. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+5. Once a restore has settled, every taskbar is posted a left click (FR-072). Explorer draws the
+   button of an application started at sign-in without its icon on every display but the first;
+   it leaves that button grey until any taskbar is clicked; the same happens mid-session with this product not
+   running, so the fault is Windows and the click is the repair. The message goes straight to the
+   taskbar's window, so the pointer does not move, nothing is activated and no application's window
+   is touched.
+6. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
    against the displays as they then stand and the change is recorded (FR-057).
-6. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
+7. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 
@@ -505,17 +511,6 @@ while the windows appear. Windows already open when the agent starts all share o
 they keep the order the first enumeration gave, which is a stacking order rather than an age. So the
 placements of an application whose windows were all open before the agent started are matched in
 stacking order; the user cannot predict that from the order they opened them.
-
-**Grey taskbar buttons for Claude and Windows Terminal after sign-in.** After a sign-in restore the
-taskbar buttons of these two packaged applications can be drawn grey, without their icons, until the
-user clicks anywhere on the taskbar; every application started by path or through an updater is drawn
-properly. Four answers were measured on the reference machine and none cured it: asking every taskbar
-to repaint, telling the shell its icons may have changed, a restore mid-session long after the shell
-was up and starting them through the activation manager. On the boot after the last, Claude's button
-carried its icon on the primary display's taskbar and on no other; Terminal's was grey on all of them.
-The owner's answer is FR-071: both were measured starting from their own paths on 2026-09-21, so they
-are named and started that way rather than by model id, which is what a double-click does. Whether
-that cures the grey buttons is unproven until a boot says so.
 
 **Unverified against a real desktop.** Moving a window and starting an application are implemented and
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They

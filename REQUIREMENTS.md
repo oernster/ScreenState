@@ -469,6 +469,28 @@ capture records it, then the entry holds that path and its model id; when an
 update moves the path, then the running application is still recognised and a
 restore still starts it.
 
+**FR-072 The taskbar icons after a restore**
+Priority: Should
+Requirement: When a restore has settled, the ScreenState agent shall post a
+left click to every taskbar and shall record in the log how many were sent one.
+It shall not move the pointer, activate any window or touch any window of any
+application.
+Rationale: measured 2026-09-21. Explorer draws the taskbar button of an
+application started at sign-in without its icon on every display but the first
+and leaves it grey until the user clicks any taskbar. It does the same
+mid-session for an application started by hand with this product not running,
+so it is Windows rather than anything this product does; the repair is
+nevertheless worth making, since the user meets the fault through a restore.
+Six answers were measured and only this one worked: a click posted straight to
+each taskbar window. The five that did nothing are asking the taskbars to
+repaint, telling the shell its icons may have changed, bringing each taskbar to
+the front and back, broadcasting that the taskbar was created and broadcasting a
+setting or theme change. The click lands a few pixels in from a taskbar's top
+left corner, where the buttons are not.
+Acceptance: Given a restore that has just settled, when the log is read, then
+it says how many taskbars were sent a click; the pointer has not moved and the
+window the user was working in is still in front.
+
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
@@ -1090,7 +1112,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 | Priority | Count | Notes |
 |---|---|---|
 | Must | 70 | The product does not work without any one of them. |
-| Should | 16 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Should | 17 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |

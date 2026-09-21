@@ -39,6 +39,10 @@ type fakeDesktop struct {
 	// application does not act on the request.
 	closed  []WindowID
 	refuses map[WindowID]bool
+	// nudged counts the times the taskbars were sent a click; nudgeErr is the
+	// refusal a test wants instead.
+	nudged   int
+	nudgeErr error
 	// afterPlace runs once a window has been placed, which is how a test makes
 	// an application move its own window afterwards.
 	afterPlace func(desktop *fakeDesktop, id WindowID)
@@ -137,6 +141,24 @@ func (desktop *fakeDesktop) Close(_ context.Context, id WindowID) error {
 	}
 	desktop.windows = kept
 	return nil
+}
+
+// NudgeTaskbars records that the taskbars were sent a click.
+func (desktop *fakeDesktop) NudgeTaskbars(context.Context) (int, error) {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	if desktop.nudgeErr != nil {
+		return 0, desktop.nudgeErr
+	}
+	desktop.nudged++
+	return taskbarsOnTheReferenceMachine, nil
+}
+
+// nudgeCount answers how many times the taskbars were sent a click.
+func (desktop *fakeDesktop) nudgeCount() int {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	return desktop.nudged
 }
 
 // closedCount answers how many times a window was asked to close.

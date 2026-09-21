@@ -18,6 +18,7 @@ var (
 	ole32    = windows.NewLazySystemDLL("ole32.dll")
 
 	pEnumWindows              = user32.NewProc("EnumWindows")
+	pGetClassName             = user32.NewProc("GetClassNameW")
 	pIsWindow                 = user32.NewProc("IsWindow")
 	pIsWindowVisible          = user32.NewProc("IsWindowVisible")
 	pGetWindow                = user32.NewProc("GetWindow")
