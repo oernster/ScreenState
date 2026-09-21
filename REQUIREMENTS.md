@@ -496,17 +496,40 @@ Priority: Must
 Requirement: The ScreenState agent shall place a window without making it the
 active window. The window the user is working in shall still hold the keyboard
 when a restore ends; no taskbar button shall be lit by the placing.
-Rationale: measured 2026-09-21. A taskbar highlights the window last activated
-on its display, so a restore that activated each window as it placed it left one
-lit button per display and a desktop that looked as though everything on it
-wanted the user. Measured on the reference machine with a window whose button
-had been cleared: activating it lit the button again, while setting its show
-state without activating did not. The window's own application is never asked to
-come forward, so nothing is taken from whatever the user is doing while the
-restore runs.
+Rationale: measured 2026-09-21. A taskbar marks the window last activated on its
+display, so a restore that activated each window as it placed it added a mark of
+its own to every display. Measured on the reference machine with a window whose
+button had been cleared: activating it marked the button again, while setting
+its show state without activating did not. This removes what the restore itself
+contributes and nothing more: an application that starts puts its own window in
+front, which marks the button whatever this product does; FR-075 is what answers
+that. It also means nothing is taken from whatever the user is doing
+while a restore runs.
 Acceptance: Given a restore that places windows on three displays, when it ends,
-then the window the user was typing into still has the keyboard and no taskbar
-button is lit by the restore.
+then the window the user was typing into still has the keyboard and no button
+was marked by the placing itself.
+
+**FR-075 The desktop comes back unmarked**
+Priority: Must
+Requirement: When a restore that ran at sign-in has settled, the ScreenState
+agent shall have the shell build afresh the taskbar button of every window it
+placed. When a restore the user asked for has settled, it shall do so for the
+windows of the applications that restore started and for no others. It shall
+record in the log how many buttons were built afresh; each window shall keep its
+place, its size and its show state.
+Rationale: reported and measured 2026-09-21. A taskbar marks the window last
+activated on its display; an application puts its own window in front as it
+starts, so a desktop assembled at sign-in comes back marked on every display
+although the desktop the user recorded carried no such marks. Putting the
+desktop back as it was is what this product is for, so a restore that leaves
+marks has not finished its work. Hiding a window and showing it again is the
+only answer measured to clear a mark: the button is dropped and built anew. It
+costs a visible flicker of each window, which the owner ruled is the lesser
+evil. Where a restore started nothing, nothing gained a mark, so nothing
+flickers.
+Acceptance: Given a sign-in restore that placed four windows, when it settles,
+then the log says four buttons were built afresh, no button carries a mark and
+every window is where the profile put it.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -1128,7 +1151,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 70 | The product does not work without any one of them. |
+| Must | 71 | The product does not work without any one of them. |
 | Should | 17 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |

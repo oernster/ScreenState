@@ -53,6 +53,11 @@ func (desktop *Desktop) NudgeTaskbars(context.Context) (int, error) {
 	return 0, ErrNotWindows
 }
 
+// RebuildTaskbarButton refuses: the taskbar belongs to Windows.
+func (desktop *Desktop) RebuildTaskbarButton(context.Context, application.WindowID) error {
+	return ErrNotWindows
+}
+
 // Close refuses.
 func (desktop *Desktop) Close(context.Context, application.WindowID) error {
 	return ErrNotWindows

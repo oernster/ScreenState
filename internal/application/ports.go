@@ -88,6 +88,12 @@ type Desktop interface {
 	// sign-in without its icon on every display but the first and leaves it so
 	// until any taskbar is clicked. It touches no window of any application.
 	NudgeTaskbars(ctx context.Context) (int, error)
+	// RebuildTaskbarButton has the shell drop a window's taskbar button and
+	// build it anew, which is the only measured way to clear the mark a taskbar
+	// puts on the window last activated on its display (FR-075). The window
+	// keeps its place, its size and its show state; it is not activated. The
+	// window flickers while the button is rebuilt.
+	RebuildTaskbarButton(ctx context.Context, id WindowID) error
 	// Close asks a window to close, which is a request rather than an order:
 	// the application decides what to do with it and may show a prompt, take
 	// itself to the notification area or end. It is used on a window no

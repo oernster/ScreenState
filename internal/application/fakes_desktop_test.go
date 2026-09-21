@@ -43,6 +43,10 @@ type fakeDesktop struct {
 	// refusal a test wants instead.
 	nudged   int
 	nudgeErr error
+	// rebuilt names the windows whose taskbar button was built afresh, in
+	// order; rebuildErr is the refusal a test wants instead.
+	rebuilt    []WindowID
+	rebuildErr error
 	// afterPlace runs once a window has been placed, which is how a test makes
 	// an application move its own window afterwards.
 	afterPlace func(desktop *fakeDesktop, id WindowID)
@@ -159,6 +163,26 @@ func (desktop *fakeDesktop) nudgeCount() int {
 	desktop.mutex.Lock()
 	defer desktop.mutex.Unlock()
 	return desktop.nudged
+}
+
+// RebuildTaskbarButton records that a window's taskbar button was built afresh.
+func (desktop *fakeDesktop) RebuildTaskbarButton(_ context.Context, id WindowID) error {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	if desktop.rebuildErr != nil {
+		return desktop.rebuildErr
+	}
+	desktop.rebuilt = append(desktop.rebuilt, id)
+	return nil
+}
+
+// rebuiltButtons answers which windows had their taskbar button built afresh.
+func (desktop *fakeDesktop) rebuiltButtons() []WindowID {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	built := make([]WindowID, len(desktop.rebuilt))
+	copy(built, desktop.rebuilt)
+	return built
 }
 
 // closedCount answers how many times a window was asked to close.

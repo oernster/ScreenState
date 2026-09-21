@@ -57,6 +57,7 @@ func (service *RestoreService) launchMissing(ctx context.Context, state *restore
 			continue
 		}
 		pending.lastRun = service.clock.Now()
+		state.noteLaunched(pending.entry.Application)
 		state.report.NoteEntry(pending.entry.Application, "was not running, so it was launched")
 	}
 }

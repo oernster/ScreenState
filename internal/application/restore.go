@@ -279,6 +279,7 @@ func (service *RestoreService) run(
 		if state.settled() {
 			service.putTheRestAway(ctx, profile, report, why)
 			service.nudgeTheTaskbars(ctx)
+			service.rebuildTheButtons(ctx, state, why)
 			return nil
 		}
 		if state.hasPending() && !service.clock.Now().Before(deadline) {

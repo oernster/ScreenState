@@ -221,9 +221,16 @@ Windows itself decides where to maximise it.
    running, so the fault is Windows and the click is the repair. The message goes straight to the
    taskbar's window, so the pointer does not move, nothing is activated and no application's window
    is touched.
-6. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+6. Once a sign-in restore has settled, the shell is made to build the taskbar button of every
+   window it placed afresh, by hiding the window and showing it again (FR-075). A taskbar marks the
+   window last activated on its display and an application puts its own window in front as it
+   starts, so a desktop assembled at sign-in comes back marked although the recorded desktop was
+   not. Rebuilding the button is the only measured way to clear that mark; it costs a flicker. A
+   restore the user asked for does it only for the applications it started itself, since nothing
+   else can have gained a mark once placing stopped activating (FR-074).
+7. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
    against the displays as they then stand and the change is recorded (FR-057).
-7. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
+8. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 

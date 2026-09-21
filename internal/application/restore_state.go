@@ -59,6 +59,13 @@ type restoreState struct {
 	report  *Report
 	pending []*pendingEntry
 	placed  []*placedWindow
+	// arranged records every window this restore placed and launched every
+	// application it started. Unlike placed, which is the queue of windows still
+	// to be checked, nothing is ever taken out of them: they are what the
+	// restore did, which is what deciding whose taskbar button to build afresh
+	// needs (FR-075).
+	arranged []*placedWindow
+	launched []domain.ApplicationIdentity
 	// displays is the identities connected at the last pass, kept so that a
 	// change part way through can be recorded rather than passed over (FR-057).
 	displays []string
@@ -111,6 +118,17 @@ func (state *restoreState) drop(pending *pendingEntry) {
 // track records a window just placed, for the settle check FR-033 makes.
 func (state *restoreState) track(placed *placedWindow) {
 	state.placed = append(state.placed, placed)
+	state.arranged = append(state.arranged, placed)
+}
+
+// arrangedWindows answers every window this restore placed.
+func (state *restoreState) arrangedWindows() []*placedWindow {
+	return snapshotPlaced(state.arranged)
+}
+
+// noteLaunched records that this restore started an application itself.
+func (state *restoreState) noteLaunched(application domain.ApplicationIdentity) {
+	state.launched = append(state.launched, application)
 }
 
 // forget stops checking a placed window.
