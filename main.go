@@ -80,7 +80,7 @@ func main() {
 	hidden := flag.Bool("hidden", false,
 		"wait in the notification area without opening the manager")
 	// quiet is what the setup program passes. Installing a program must not
-	// rearrange the desktop, so a start from setup arranges nothing (FR-076).
+	// rearrange the desktop, so a start from setup arranges nothing (FR-038).
 	quiet := flag.Bool("quiet", false, "open the manager without arranging anything")
 	flag.Parse()
 	if *showVersion {
@@ -196,7 +196,7 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 	app := NewApp(manager, tray, restores, captures, updates, steps, shown, version, hidden)
 	switch {
 	case quiet:
-		// FR-076: setup started this, so the desktop is left exactly as it is.
+		// FR-038: setup started this, so the desktop is left exactly as it is.
 		steps.Step("setup started this copy, so nothing was arranged")
 	case !hidden:
 		// FR-038: only a sign-in arranges the desktop by itself. A start by hand

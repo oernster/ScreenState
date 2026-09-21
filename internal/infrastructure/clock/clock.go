@@ -2,7 +2,7 @@
 //
 // The domain reads none at all and the application layer reads it through this
 // interface, which is what lets a fifteen minute ceiling be tested in a
-// millisecond and a settle-check delay be tested without waiting for it.
+// millisecond.
 package clock
 
 import (

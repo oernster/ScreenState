@@ -84,9 +84,10 @@ on screen. What it does have is listed below.
 ### The rules about a profile
 
 `internal/domain` holds what a profile is and what a placement means, with no
-I/O and no clock: `profile_test.go` covers naming, entries and the default
-marking, `geometry_test.go` the rectangles, the display matching and the
-window states. `recognises_test.go` holds the rule that a packaged application
+I/O and no clock: `profile_test.go` covers identities, placements, entries,
+a profile's name, the default marking and telling two displays of one model
+apart; `geometry_test.go` the rectangles, the window states and the stored
+spelling of each kind. `recognises_test.go` holds the rule that a packaged application
 is still recognised once an update has moved its path; both sides must carry
 the same model id.
 
@@ -96,10 +97,15 @@ the same model id.
 there behind an interface and every failure can therefore be caused on demand
 with a hand-written fake. It covers the capture and what it leaves out, the
 applications running with no window that a capture offers apart, the restore
-and its lifecycle, stopping a restore part way, placing a packaged
-application's window after an update has moved its path, waiting for a window
-that has not appeared, the report, the tray, profile naming and marking, the
-update check and the failure wording.
+and its lifecycle, stopping a restore part way, starting applications and
+opening every window a profile records, placing a packaged application's
+window after an update has moved its path, waiting for a window that has not
+appeared, the ceiling the user chooses, putting away the windows a profile does
+not name with no window title reaching the log, the progress reading, the
+splash's words, the wait for the taskbar flashing to end, the click sent to the
+taskbars and the buttons built afresh, watching the desktop after a restore,
+the report, the tray, the manager's list with a profile it cannot read, profile
+naming and marking, the update check and the failure wording.
 
 There are no mocking libraries. The fakes are written by hand, in
 `fakes_test.go`, `fakes_desktop_test.go` and `fakes_store_test.go`, with fields
@@ -111,11 +117,11 @@ tests share.
 | Package | What its tests use |
 |---|---|
 | `store` | a real temporary directory: round trips, the default marking, a profile that is not there, a broken file that costs only itself, a profile in a newer format left alone, a store that cannot be read or has gone away, an interrupted write that must leave the old file whole |
-| `settings` | the same, for `settings.json`: its absent-means-on reading and a damaged file reported as a fault rather than read as the defaults |
+| `settings` | the same, for `settings.json`: what a file that says nothing means (the update check on, unnamed windows minimised rather than closed, no ceiling chosen), the ceiling kept beside the other settings, a damaged file or a ceiling that is not a duration reported as a fault rather than read as the defaults |
 | `runlog` | a real log file, its header and its steps; a run keeping the 10 most recent restores with the header of each one's run; a long log of fewer restores kept whole |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
-| `win32` | the naming rules, the stacking-order rule and the rule that a program under the Windows directory is part of Windows and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application, the applications running with no window shown and a press on the taskbar traced to its top-level window) and the flash series worked out from the machine's settings |
+| `win32` | the naming rules, the stacking-order rule and the rule that a program under the Windows directory is part of Windows and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application, the applications running with no window shown and a press on the taskbar traced to its top-level window) and the flash series worked out from the machine's settings; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it |
 | `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
@@ -131,8 +137,9 @@ Neither page has a build step, so nothing compiles or type checks them.
 Structural tests stand in for that, holding three rules: a page may read only
 fields the program actually sends; it may call only methods the program
 actually binds; it may not write the product's name down anywhere. Both pages
-are held to all three; every script in the manager's page directory must be
-loaded by its `index.html`.
+are held to all three. Every script and stylesheet in the manager's page
+directory must be loaded by its `index.html`; every file that page loads must
+be there.
 
 The facade's own test, `wire_test.go`, holds the other rule that the page
 depends on: no list may reach a page as `null`. A nil slice is marshalled as
@@ -158,13 +165,13 @@ page naming the product, a wire that disagrees with itself, a call to a method
 nothing binds, a manager script or stylesheet nothing loads and a shared asset that has
 drifted from its master in `assets/`.
 
-Each assertion is proved by planting a violation and reading the failure, not
-by being believed.
-
 ## What the tests never do
 
-- **Move a real window.** Nothing in the suite arranges the desktop of the
-  machine running it.
+- **Move a window they did not make.** Nothing in the suite arranges the
+  desktop of the machine running it. The one test that opens windows,
+  `TestMaximisingDoesNotActivate`, makes two of its own and touches no other;
+  it takes the front, so it is skipped unless `SCREENSTATE_DESKTOP_PROBE` is
+  set.
 - **Reach the network.** The update check is tested against a fake release
   source; the real one is exercised by hand.
 - **Touch the real profiles, settings or log.** Tests work in temporary
@@ -176,7 +183,11 @@ by being believed.
 go test ./internal/domain/...
 go test -run TestAnUnreadableWindowIsNamedRatherThanDropped -v ./internal/application
 go test -cover ./internal/infrastructure/store
+$env:SCREENSTATE_DESKTOP_PROBE = '1'; go test -run TestMaximisingDoesNotActivate -v ./internal/infrastructure/win32
 ```
+
+The last opens two windows and takes the front; clear the variable afterwards
+with `Remove-Item Env:\SCREENSTATE_DESKTOP_PROBE`.
 
 ## Checked by hand
 
@@ -200,7 +211,7 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | The desktop comes back unmarked (FR-075) | Sign in and look at the taskbars: no button should carry the mark a taskbar puts on the window last activated on its display; every window should be where the profile put it. The log says how many buttons were built afresh. Each window flickers once as that happens; a maximised window must come back maximised rather than at its normal rectangle. |
 | A click on the splash lets the restore carry on (FR-078) | Sign in with an application in the profile that is slow to start, click a splash while it says "Please wait": every splash should close and the slow application should still be placed when it appears. The log should not say "the desktop was taken over with entries outstanding". |
 | The flashing has ended before the rebuild (FR-080) | Sign in without touching anything until the splash says ready, then look at the taskbars: no button should be red or flashing, the underline should sit on the window that has the front and clicking a button should bring its window forward rather than minimise it. The log says how long the restore waited for the buttons to stop flashing and how often a flash began the wait again. Only a real sign-in shows it: whether an application asks for the front (and when) belongs to that application. |
-| Installing arranges nothing (FR-076) | With a profile recording two Terminal windows and one open, install over an existing copy and let setup start the agent: no window should open, move or close; the log should say setup started that copy so nothing was arranged. |
+| Installing arranges nothing (FR-038) | With a profile recording two Terminal windows and one open, install over an existing copy and let setup start the agent: no window should open, move or close; the log should say setup started that copy so nothing was arranged. |
 | Placing a window never activates it (FR-074) | Type into a window on one display, then apply a profile that places maximised windows on the others: the keyboard should stay where it was and no taskbar button should be lit when the restore ends. Each maximised window minimises and comes back maximised as it is placed; watch that an application that hides itself when minimised (one that goes to the notification area) comes back on screen. The rule itself is held by `TestMaximisingDoesNotActivate`, run with `$env:SCREENSTATE_DESKTOP_PROBE = '1'` since it opens two windows and takes the front. |
 | A packaged application is named and started by its path (FR-071) | Recapture with Claude and Windows Terminal open: the review should show each as a path under `WindowsApps`, not as a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
 | A packaged application survives its own update (FR-071) | After Claude next updates, apply the profile without recapturing: it should start and be placed, never put away; the log should say it did not start from its path so its model id was used. |
@@ -210,6 +221,7 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | Bringing the manager up takes the splash down (FR-078) | Sign in, then before touching anything else open the manager from the tray: every splash should close as the window comes up and the log should say the manager was opened so the splash was taken down. Again with a second launch from the shortcut. Before either, the log should say the splash is ready and closes at the next key press or click. |
 | The ceiling is the user's (NFR-PERF-003) | In Settings, set the ceiling to 2 minutes. Apply a profile naming an application that is not installed, then touch nothing. The report should say it was still not there when the ceiling of 2m0s passed; the log's opening line for the restore should say ceiling 2m0s. Type 90: the field should come back as 60. |
 | The main screen (FR-068, EIR-002) | Press each profile: its applications should fill the middle with every path whole. The buttons should run down the right with Close and Quit at the foot above the donation button, all visible at the smallest window size. The settings should open from the gear, with a rule between it and the theme button. |
+| The donation button (FR-060) | Rest the pointer on the donation button at the foot of the rail: the tooltip should open by saying the product is free and stays free, with no paid tier, no licence key and no feature held back. Press it: the donation page should open in the browser at the address the README links. |
 | No window title reaches the log (NFR-PRIV-001) | Sign in with a document open in an application the profile does not name, then read the log: the lines about windows put away or asked to close should name the application by its path and never carry the document's title. |
 | An unreadable profile is named in the manager (NFR-REL-002, DATA-003) | Copy a profile file in `%LOCALAPPDATA%\ScreenState\profiles`, change its `format` to 99 and save it, then open the manager: the other profiles should be listed and under them the copy should be named with the reason. Its bytes should be unchanged afterwards. Delete the copy by hand when done. |
 | A restore can be stopped (FR-049) | Apply a profile holding several applications that are not running, then press Stop the restore on the Applying panel: the report should say the restore was cancelled and every window already placed should stay where it is. |

@@ -106,7 +106,7 @@ func loadedBy(page string, tag *regexp.Regexp) map[string]bool {
 // Nothing compiles a page here, so a script or stylesheet no tag names is dead
 // weight that nothing reports, while a tag naming a file that is not there is a
 // window that comes up half wired or half styled. The manager's script was one
-// file until it was split into five and its stylesheet one until it was cut
+// file until it was split into seven and its stylesheet one until it was cut
 // into four, which is what makes this worth guarding: the next one is the one
 // that gets written and never loaded.
 func TestEveryManagerScriptIsLoadedByThePage(t *testing.T) {
@@ -196,8 +196,8 @@ func TestTheManagerWireIsStatedTwiceAndAgrees(t *testing.T) {
 	}
 }
 
-// managerMethods is the agent's bound surface, which is spread over two files
-// because the window plumbing and the profile work are different concerns.
+// managerMethods is the agent's bound surface, which is spread over the root
+// package's files by subject: the window plumbing, the profile work and About.
 func managerMethods(t *testing.T, root string) map[string]bool {
 	t.Helper()
 	methods := map[string]bool{}

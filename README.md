@@ -32,7 +32,8 @@ Windows.
 - **Restores the default profile at sign-in**, waiting in the notification area without opening a
   window. It starts what is missing and places each window as soon as it appears, without waiting
   for the slowest application. A message on every display says the desktop is being prepared, then
-  that it is ready.
+  that it is ready. How long a restore waits for windows that have not appeared is yours to set in
+  Settings.
 - **Applies any profile on demand** from the tray menu or the manager. A restore started from the
   manager can be stopped with Stop the restore on its Applying panel; every window already placed
   stays where it is and the report says the restore was cancelled.
@@ -49,7 +50,8 @@ Windows.
 - **Reports what it could not do**, naming each application and the reason; the report is a click
   away in the tray menu and in the manager's Help. The tray icon's tooltip says what the last
   restore did and is read again after every restore, wherever it was started. While the last
-  restore left something outstanding, the icon carries a red badge.
+  restore left something outstanding, the icon carries a red badge. A profile file that cannot be
+  read is named under the manager's list of profiles rather than left out in silence.
 
 ## What it does not do
 
@@ -67,8 +69,9 @@ Windows.
 - **It never asks for administrator rights**, to install or to run; so it cannot act on an
   application running with them.
 
-Windows 11 is the supported target. Windows 10 will very likely work, since nothing Windows 11
-introduced is used; it is untested.
+Windows 11 is the supported target. Windows 10 will very likely work: the one thing it asks of
+Windows 11 alone is rounded corners on the sign-in message, which older Windows ignores. It is
+untested.
 
 ## Stack
 
@@ -86,7 +89,7 @@ introduced is used; it is untested.
 Download `ScreenStateSetup.exe` from the
 [latest release](https://github.com/oernster/ScreenState/releases/latest) and run it. Everything it
 writes is per user, so Windows never asks for administrator rights: the files go under
-`%LOCALAPPDATA%\Programs`, the Apps list entry and the sign-in entry under `HKCU`. The same program
+`%LOCALAPPDATA%\Programs\ScreenState`, the Apps list entry and the sign-in entry under `HKCU`. The same program
 installs, updates, goes back a version, repairs, reinstalls and uninstalls. It registers itself with
 Windows, so Modify and Repair in the Apps list reopen it rather than sending you back to the
 download.
@@ -142,11 +145,11 @@ every tool a build needs and what the build does, in order.
 - [DEVELOPMENT.md](DEVELOPMENT.md): building from source and cutting a release.
 - [TESTING.md](TESTING.md): the gate, what the tests prove and the checks done by hand.
 
-## Supporting ScreenState
+## Supporting the project
 
 ScreenState is free and stays free: there is no paid tier, no licence key and no feature held back
-behind a donation. The same link sits at the foot of the manager; pressing it there hands the
-address to your browser, so the application itself still makes no connection beyond the update
+behind a donation. The same link sits at the foot of the manager's right-hand rail; pressing it
+there hands the address to your browser, so the application itself still makes no connection beyond the update
 check.
 
 <a href="https://www.paypal.com/ncp/payment/6FMTGJYFJXFTE"><img src="docs/donate.png" alt="Donate to ScreenState" width="120"></a>

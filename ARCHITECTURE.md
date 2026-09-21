@@ -81,13 +81,14 @@ later edit could undo without anybody noticing.
   the splash and the keyboard handover for the manager's webview. It calls the Application use cases
   plus, for the keyboard handover alone, `internal/infrastructure/window`. The manager window itself is
   a page under `frontend/dist`, bound to `app.go`, `app_profiles.go` and `about.go`. They are clients
-  of the use cases too; beyond them they reach only `internal/ui`, for the keyboard handover and to
-  refresh the tray. `splash.go` beside them reads the palette and the artwork once for the two
+  of the use cases too; beyond them they reach `internal/ui`, for the keyboard handover and to
+  refresh the tray, plus the domain's value types and `internal/product` for the names the page is
+  sent. `splash.go` beside them reads the palette and the artwork once for the two
   surfaces the agent draws itself.
 
 `internal/product` sits beside these holding the product's name and its tagline, which reach a path, a
-mutex, a log line, a menu entry and the setup program's header. A second copy of a name is how a rename
-leaves one surface still announcing the old one.
+mutex, a log line, a menu entry and the setup program's header, plus the splash windows' class. A
+second copy of a name is how a rename leaves one surface still announcing the old one.
 
 `internal/infrastructure/settings` keeps the few choices remembered between runs: whether the update
 check is wanted (FR-059), which released version the user passed over (FR-058), whether a restore
@@ -185,8 +186,9 @@ The consequences run right through the layer:
   a policy choice about when to stop waiting, deliberately not a prediction of how long the machine
   takes to start. The user sets it in the manager, 15 minutes until they do (NFR-PERF-003); each
   restore reads it through `CeilingPreferences` as it begins and counts it from that moment, so a
-  changed ceiling governs the next restore without a restart. The `Policy` the service is built
-  with holds the default and the bounds a choice is held within (`ceiling.go`).
+  changed ceiling governs the next restore without a restart. The default and the bounds a choice
+  is held within are named in `ports.go` beside the `Policy` the service is built with;
+  `ceiling.go` reads the choice and holds it within them.
 
 ## Naming things so they survive
 
@@ -208,8 +210,8 @@ matches the application's new directory, so a running copy is still recognised; 
 manager still starts it; a window reporting the new path carries the same model id, so
 `ApplicationIdentity.Recognises` in the domain matches it to its entry, so the restore places it
 rather than putting it away. Two callers use it: `windowsOf` finds an entry's windows to place;
-`Profile.Find` decides what the profile does not name. None of them needs the profile
-recaptured. `Equal` stays exact, since it says whether two stored entries are the same one.
+`Profile.Find` decides what the profile does not name. Neither needs the profile recaptured.
+`Equal` stays exact, since it says whether two stored entries are the same one.
 
 A window class is not an identity. NordVPN's main window class carried a GUID that changed on every
 reboot; the process image path did not.
@@ -352,7 +354,7 @@ covered by a test.
 **Only a sign-in arranges the desktop by itself** (FR-038). The agent restores the default profile
 when it is started with `-hidden` (the flag the sign-in entry passes) and on no other start. It used
 to restore on every start: installing rearranged the desktop and opened another window of any
-application whose entry records more than one, which is why setup starts it with `-quiet` (FR-076);
+application whose entry records more than one, which is why setup starts it with `-quiet`;
 a start by hand rearranged the windows the user was working in and left a splash over the manager
 they had asked for. Both now open the manager and arrange nothing, saying so in the log; Apply is
 the way to arrange the desktop mid-session.
@@ -664,7 +666,7 @@ everything written there would otherwise be lost, including the Go runtime's own
 | `go test -race` | the whole suite, with the race detector and so with cgo on |
 | `go test` | the whole suite again with cgo off, as the product ships, with coverage |
 | Every package ran | a package owning tests that ran none of them fails the gate, since a quarantined test binary reports ok |
-| Structural suite | the invariants above, each proved by a planted violation |
+| Structural suite | the invariants above, each proved by a planted violation save the three page rules marked there |
 | Coverage floor | every function in `internal/domain` and in `internal/application` exercised |
 
 The floor is scoped to the two layers a machine can exercise with no filesystem, no clock and no
@@ -673,8 +675,9 @@ function counts once a test reaches any statement in it. Infrastructure sits del
 it: the Windows half needs a real desktop; gating it would mean either a number that means nothing
 or tests that assert what happened to be on screen.
 
-Measured statement coverage on 2026-09-21: domain 100%, application 97.2%, clock 100%, store 93.8%,
-instance 90.9%, settings 89.1%, runlog 76.7%, win32 41.7%, setup 33.6%, ui 26.8%. The
+Measured statement coverage on 2026-09-21: domain 100%, application 97.5%, clock 100%, store 93.8%,
+settings 91.2%, instance 90.9%, runlog 76.7%, win32 43.3%, setup 33.6%, ui 25.9%, the root package
+(the composition root and the manager's facade) 12.7%. The
 shortfalls outside the floor are IO and platform failures that would need the disk or the window
 manager to fail mid-call, plus the Win32 calls themselves; they are not padded with tests that
 assert nothing.
@@ -683,13 +686,15 @@ The structural suite also holds both pages' boundaries, which no compiler sees: 
 the product's name or its tagline down, every `state.` field it reads must be a json tag the program
 actually sends and every call it makes must be a method the program binds.
 
-Four integration tests in `win32` read the real machine and assert only what must hold anywhere.
+Five integration tests in `win32` read the real machine and assert only what must hold anywhere.
 Three read the desktop and skip where there is none: the displays and windows, whether each
 application on screen is found running and the applications running with every window hidden, none
-of them part of Windows. The fourth reads the flash count and caret blink the FR-080 wait is worked
-out from. None moves a window or starts an application, since either would disturb the desktop of
-whoever ran the suite. A fifth, `TestMaximisingDoesNotActivate`, does move windows (only two of its
-own), so it runs only when `SCREENSTATE_DESKTOP_PROBE` is set; the gate skips it.
+of them part of Windows. The fourth traces a press in the middle of the taskbar to the taskbar's own
+top-level window, skipping where there is no taskbar. The fifth reads the flash count and caret
+blink the FR-080 wait is worked out from. None moves a window or starts an application, since either
+would disturb the desktop of whoever ran the suite. A sixth, `TestMaximisingDoesNotActivate`, does
+move windows (only two of its own), so it runs only when `SCREENSTATE_DESKTOP_PROBE` is set; the gate
+skips it.
 
 ## Design decisions
 
@@ -731,12 +736,14 @@ path is proved only in the shape the adapter promises to produce.
 **The manager is proved by use rather than by test.** It has been run for real on the reference
 machine: the log records captures that read the desktop, a capture cancelled without writing
 anything, a profile written, a profile deleted, the default marking settled, restores at start and
-the quit from both the manager and the tray. The panels themselves are still driven in a browser
-against a stand-in for the agent, which settles the layout, the palette and the wiring and settles
-nothing else. What neither has settled: real keyboard focus and the ring, the second-launch message,
-the tray opening a named panel, the donate link and the update offer on screen. Those are read off a
-run, not off a suite, so they are checked by the list in TESTING.md. So are the ones added most
-recently, whose rules the suite holds where they have any: stopping a restore, the tray's badge,
+the quit from both the manager and the tray. The facade's own tests hold four things only: no list
+reaches the page as null, a capture saves only the background applications ticked, the window stays
+off screen at a sign-in start while a start by hand takes the keyboard and closing the manager puts
+the window back off screen. The panels themselves are still driven in a browser against a stand-in
+for the agent, which settles the layout, the palette and the wiring and settles nothing else. What
+neither has settled: real keyboard focus and the ring, the second-launch message, the tray opening a
+named panel, the donate link and the update offer on screen. Those are read off a run, not off a
+suite, so they are checked by the list in TESTING.md. So are the ones added most recently, whose rules the suite holds where they have any: stopping a restore, the tray's badge,
 offering applications running with no window, matching a packaged application after an update, the
 ceiling set in the settings dialog, a start by hand arranging nothing, the manager taking the splash
 down and the three-part main screen.

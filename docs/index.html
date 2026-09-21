@@ -94,7 +94,10 @@
                 starts whatever the profile says should be running and places each window
                 the moment it appears, without waiting for the slowest application. A
                 message on every display says the desktop is being prepared, then that it
-                is ready.</li>
+                is ready. Opening the manager takes that message down at once. Only a
+                sign-in arranges the desktop by itself: starting ScreenState by hand
+                opens the manager and moves nothing. Apply arranges a profile
+                whenever you ask.</li>
             <li><strong>Read what happened.</strong> If anything could not be done, the
                 splash says how many applications did not start and the report, in the
                 tray menu, names each one with the reason.</li>
@@ -116,7 +119,8 @@
                         model id beside the path, so it is still started and its window still
                         placed without capturing the profile again.</li>
                     <li><strong>Leaves your keyboard alone.</strong> Nothing it places or
-                        starts takes the keyboard from the window you are typing in.</li>
+                        starts takes the keyboard from the window you are typing in; a
+                        window it maximises does so without taking the front.</li>
                     <li><strong>Leaves the taskbar clean.</strong> No button left lit, red
                         or missing its icon once the restore is done.</li>
                     <li><strong>Puts away what the profile does not name</strong>, by
@@ -131,6 +135,14 @@
                     <li><strong>Tells you when something is left over.</strong> While the last
                         restore has an application it could not start or place, the tray icon
                         carries a red badge and its tooltip says how many.</li>
+                    <li><strong>Waits as long as you choose.</strong> A restore stops
+                        waiting for windows that have not appeared after a ceiling you set
+                        in Settings, from 1 to 60 minutes; 15 until you change it.</li>
+                    <li><strong>Keeps everything on one screen.</strong> The manager shows
+                        your profiles on the left, the selected profile's applications in
+                        the middle and its buttons down the right, with Settings behind
+                        the gear at the top. A profile file it cannot read is named under
+                        the profile list and left exactly as it is.</li>
                 </ul>
             </div>
             <div class="card">
@@ -149,7 +161,8 @@
                         names.</li>
                     <li><strong>Send your desktop anywhere.</strong> The one connection it
                         makes asks whether a newer version exists, carries nothing about you
-                        and can be turned off.</li>
+                        and can be turned off. Window titles, which can say what you are
+                        working on, are never written to its log.</li>
                     <li><strong>Ask for administrator rights.</strong> Installed and run for
                         your account alone.</li>
                     <li><strong>Anything but Windows.</strong> Built and tested on Windows
@@ -170,8 +183,8 @@
         </div>
         <div class="stats">
             <div class="stat">
-                <span class="n">93</span>
-                <p>Requirements in the specification: 75 the product cannot do without and
+                <span class="n">92</span>
+                <p>Requirements in the specification: 74 the product cannot do without and
                     18 more it carries.</p>
             </div>
             <div class="stat">
@@ -220,7 +233,7 @@
             <p>There is no paid tier, no licence key and no feature held back behind a
                 donation. If ScreenState has saved you the morning drag-and-maximise, a
                 contribution supports its maintenance. The same link sits at the foot of
-                the manager.</p>
+                the manager's button rail.</p>
         </div>
         <div class="cta">
             <a class="btn btn-donate" href="https://www.paypal.com/ncp/payment/6FMTGJYFJXFTE">

@@ -62,7 +62,7 @@ Out of scope (each settled with the owner on 2026-09-19):
 | Show state | One of normal, minimised or maximised. |
 | Normal rectangle | The position and size a window occupies when neither minimised nor maximised. |
 | Restore | Driving the desktop towards a profile's end state. |
-| Ceiling | The maximum span after sign-in that the agent waits for a profile's windows to appear. |
+| Ceiling | The maximum span, counted from the start of a restore, that the agent waits for a profile's windows to appear (NFR-PERF-003). |
 | Default profile | The one profile marked to be applied after sign-in. |
 | Report | The readable record of what a restore did, including every entry it could not satisfy. |
 
@@ -98,8 +98,9 @@ There is one user class. ScreenState has no administrator role.
 ### 2.3 Operating environment
 
 - Windows 11, 64 bit, is the supported target. ScreenState will very likely run
-  on Windows 10, since it calls nothing Windows 11 introduced, though that is
-  untested and therefore unsupported. Supported means tested; the owner has no
+  on Windows 10: the one thing it asks of Windows 11 alone is rounded corners on
+  the sign-in message, whose refusal is ignored. That is untested and therefore
+  unsupported. Supported means tested; the owner has no
   Windows 10 machine to test on. Nothing is done to prevent it running there.
 - No network access is required for any of the product's own behaviour. The one
   exception is the update check (FR-058), which the user can turn off.
@@ -329,7 +330,9 @@ state, when it is applied, then the window is maximised on the left display; res
 it down places it within that display.
 
 **FR-028 Close an unwanted window: WITHDRAWN**
-A restore closes nothing. This required the agent to ask a window to close when
+A restore never closes a window of an application the profile names; the one
+closing it may do is the setting FR-064 describes, for windows the profile does
+not name. This required the agent to ask a window to close when
 its entry recorded the application as running with no placement. It was drafted
 while closing was believed to be uniformly safe. OQ-4 measured that it
 is not: NordVPN and GameGlass survive their windows closing, Postal Gambit is
@@ -361,10 +364,10 @@ Requirement: The ScreenState agent shall offer a setting, off unless the user
 turns it on, under which the restore that runs at sign-in asks each window that
 FR-063 would put away to close instead. Where such a window is still open at
 the user's first key press or mouse click or the ceiling (FR-079), the agent
-shall minimise it and shall record in the report that it did not close. Every other restore shall minimise those windows
-whatever the setting says, including the one that runs when the agent is started
-by hand. The agent shall never close a window the
-profile names and shall never close one of its own.
+shall minimise it and shall record in the report that it did not close. A
+restore asked for through Apply or the tray shall minimise those windows
+whatever the setting says. The agent shall never close a window the profile
+names and shall never close one of its own.
 Rationale: reported 2026-09-20 by the owner, having watched FR-063 work. Most of
 the applications that start with Windows go to the notification area when their
 window is closed, which is where their owner wanted them; minimising leaves them
@@ -377,10 +380,8 @@ the act the setting replaced. It is the sign-in restore alone because that is
 the one that builds a desktop from nothing: pressing Apply happens in the middle
 of a session, where a window being asked to close is a surprise the user did not
 ask for (ruled by the owner, 2026-09-20). The agent restores the default profile
-whenever it starts with no copy of it already running, which is a launch from
-the shortcut as well as a sign-in, so the two are told apart by the flag the
-sign-in entry carries (FR-046) rather than by the fact that a restore is
-running.
+by itself only at sign-in (FR-038); a sign-in is told apart from a start by hand
+by the flag the sign-in entry carries (FR-046).
 
 **FR-065 Progress while a restore runs**
 Priority: Should
@@ -432,31 +433,30 @@ Rationale: reported 2026-09-21, then revised by the owner the same day. The
 applications first filled a column beside the list shared with the settings,
 which left every part of the window cramped: a path was cut off after a few
 words and each setting added took a row off the list above it. They moved to a
-dialog. The settings then moved to a dialog of their own (FR-053), so the main
+dialog. The settings then moved to a dialog of their own (EIR-002), so the main
 screen became three parts: the profiles; what the selected one arranges, with
 room for a path to wrap and be read whole; the buttons down the right.
 
 **FR-069 Every window a profile records**
 Priority: Must
 Requirement: When a profile entry records more windows than the application has
-open, the ScreenState agent shall run the application's own launch command
-again, once for each missing window, running it again only once the last run
-has opened a window. Where a run opens no new window before the user's first
-key press or mouse click or the ceiling (FR-079), the agent shall stop asking
-for that entry; the report shall say how many of the recorded windows opened.
-Requirement, added 2026-09-21: the agent shall open a missing window only where
-the restore ran at sign-in or where the restore itself started that
-application. Where an application was already running with windows of its own,
-the agent shall leave those windows as they are and shall say so in the report.
+open and the restore either runs at sign-in or itself started that application,
+the ScreenState agent shall run the application's own launch command again,
+once for each missing window, running it again only once the last run has
+opened a window. Where a run opens no new window before the user's first key
+press or mouse click or the ceiling (FR-079), the agent shall stop asking for
+that entry; the report shall say how many of the recorded windows opened. In any
+other restore, where the application is already running with windows of its
+own, the agent shall open no window for it, shall leave its windows as they are
+and shall say so in the report.
 Rationale: reported 2026-09-21. A profile is the desktop as it was when it was
 recorded and a restore reproduces it, however many windows of one application
 that means; how many there should be is never a question for the user. That
 holds at sign-in, where the desktop is being rebuilt from nothing. It does not
 hold for an application already running with windows of its own: those windows
 are the ones the user has, so opening another adds a window nobody asked for,
-which is what every start of the agent was doing. Some
-applications open another window each time they are run. An application that allows
-one copy answers a second run by bringing its own window forward and opens
+which is what every start of the agent was doing. Some applications open another
+window each time they are run. An application that allows one copy answers a second run by bringing its own window forward and opens
 nothing, which is why a run that opens no window ends the asking rather than
 repeating it until the ceiling.
 Acceptance: Given a profile recording two windows of an application that opens
@@ -572,21 +572,10 @@ is red,
 every window is where the profile put it and no window has moved above one it
 was beneath.
 
-**FR-076 Installing arranges nothing**
-Priority: Must
-Requirement: When the setup program starts the ScreenState agent, the agent
-shall open its manager and shall not restore any profile. It shall record in the
-log that it arranged nothing and why.
-Rationale: reported 2026-09-21, when the agent restored the default profile on
-every start (FR-038 has since confined that to sign-in); setup starts it, so
-installing rearranged the desktop: each install
-opened another Windows Terminal window, since the profile records two of them
-and only one was open. Installing a program is not a request to arrange the
-desktop; the profile is arranged at the next sign-in, which is when the user
-asked for it.
-Acceptance: Given a profile recording two Terminal windows and one open, when
-setup installs and starts the agent, then no window is opened, moved or closed
-and the log says setup started that copy so nothing was arranged.
+**FR-076 Installing arranges nothing: WITHDRAWN**
+Merged into FR-038 on 2026-09-21 by the owner's ruling. The setup program
+starting the agent is one of the starts FR-038 already covers, so a requirement
+of its own said the same thing twice. Its acceptance case is FR-038's second.
 
 **FR-077 Starting an application never asks for the front**
 Priority: Must
@@ -620,9 +609,10 @@ desktop is ready". Where any entry is still outstanding it shall add "N
 application did not start" for one entry or "N applications did not start" for
 more, with N the outstanding count. Every splash shall then close at the user's
 next key press or mouse click anywhere on the desktop. A click on any splash,
-while the restore runs or after, shall close them all at once. The splash shall never take the keyboard from the window
-that holds it; it is not a window any capture records, FR-064 closes or FR-075
-rebuilds. When setup starts the agent (FR-076) no splash is shown. When the
+while the restore runs or after, shall close them all at once. The splash shall
+never take the keyboard from the window that holds it; it is not a window any
+capture records, FR-064 closes or FR-075 rebuilds. A start any way but sign-in
+runs no restore (FR-038), so it puts up no splash. When the
 manager is brought up (from the tray, by a second launch (FR-054) or by an
 update offer) every splash shall close at once; the restore carries on.
 Rationale: requested by the owner 2026-09-21. A sign-in restore takes tens of
@@ -726,7 +716,8 @@ decides: it happens only where the user has said so, only to a window no profile
 names and never to a process.
 
 **FR-030 Window refused to close: WITHDRAWN**
-Withdrawn with FR-028. There is no close request to be refused.
+Withdrawn with FR-028. The close request it answered no longer exists. The close
+requests FR-064 later brought back answer a refusal by minimising the window.
 
 **FR-031 Missing display**
 Priority: Must
@@ -773,8 +764,9 @@ that promise absolute is entitled to it.
 **FR-060 Supporting the project**
 Priority: Should
 Requirement: The ScreenState manager shall show a donation link to
-https://www.paypal.com/ncp/payment/6FMTGJYFJXFTE, stating that ScreenState is
-free and stays free with no paid tier, no licence key and no feature held back.
+https://www.paypal.com/ncp/payment/6FMTGJYFJXFTE whose tooltip states that
+ScreenState is free and stays free with no paid tier, no licence key and no
+feature held back.
 Rationale: the owner's released applications carry this. The wording matters as
 much as the link: an ask that implies something is withheld would be false.
 
@@ -871,12 +863,19 @@ arranged nothing and why.
 Rationale: ruled by the owner 2026-09-21. The agent used to restore the default
 profile on every start. Started by hand, it therefore rearranged the desktop the
 user was working in and put a splash up over the manager they had asked for,
-which then sat there until their next key press or click. A start by hand is a
-request for the manager; Apply is there for arranging.
+which then sat there until their next key press or click. The setup program
+starts the agent too, so every install rearranged the desktop as well: each one
+opened another Windows Terminal window, since the profile records two and only
+one was open. A start by hand is a request for the manager; an install is not a
+request to arrange anything. Apply is there for arranging; the profile is
+arranged at the next sign-in, which is when the user asked for it.
 Acceptance: Given a default profile and the agent not running, when the user
 starts it from its shortcut, then the manager opens, no window is opened, moved
 or closed, no splash is shown and the log says it was started by hand so nothing
 was arranged.
+Acceptance: Given a profile recording two Terminal windows and one open, when
+setup installs and starts the agent, then no window is opened, moved or closed
+and the log says setup started that copy so nothing was arranged.
 
 **FR-039 No default profile**
 Priority: Must
@@ -904,7 +903,7 @@ marking off the profile they chose.
 
 #### Profile management
 
-**FR-040 Exactly one default**
+**FR-040 At most one default**
 Priority: Must
 Requirement: The ScreenState agent shall hold at most one profile marked as
 default; marking a profile as default clears the mark from any other.
@@ -981,18 +980,16 @@ wait with no way out is a hang from the user's point of view.
 Priority: Must
 Requirement: When a restore is requested while a restore is already running, the
 ScreenState agent shall stop the restore in progress before its next action,
-shall leave every window already placed exactly where it is and shall then carry
-out the newly requested restore.
-Requirement: The ScreenState agent shall record in the report of the replaced
-restore that it was replaced; it shall record in the report of the new restore
-that it replaced one in progress.
+shall leave every window already placed exactly where it is, shall then carry
+out the newly requested restore and shall record in the report of each that the
+new one replaced the other.
 Rationale: a restore is a statement of what the desktop should look like now, so
 the newest request is the one that is true. Refusing it leaves the user looking
 at a desktop that neither profile describes, with no way to get the one they just
 asked for until the first finishes. Undoing the windows already placed is worse
-still: it moves windows twice to reach the same end; FR-029 has already ruled
-that a restore closes and undoes nothing. Silence about the replacement would
-leave two reports that each look like a restore that simply stopped, which is the
+still: it moves windows twice to reach the same end. A restore undoes nothing it
+has placed; FR-029 confines what it may close to the one case FR-064 allows.
+Silence about the replacement would leave two reports that each look like a restore that simply stopped, which is the
 failure FR-050 exists to prevent.
 
 #### Diagnostics
@@ -1342,11 +1339,11 @@ that settles it. The first five form the spike.
 | OQ-2 | CLOSED, then revised 2026-09-21. The path names an application, with a Store-packaged application keeping its model id beside the path for the day an update moves it; an application under a versioned directory is named by the updater command. A window class cannot be used, because it carries a GUID that changes every session. See appendix E and FR-071. | Oliver | closed 2026-09-21 |
 | OQ-3 | CLOSED. Yes, from a process without administrator rights, across a 96 dpi to 240 dpi boundary. Restore, set the rectangle to the target work area, then maximise. See appendix E. | Oliver | closed 2026-09-20 |
 | OQ-4 | CLOSED. Not uniformly. NordVPN and GameGlass survive their windows closing; Postal Gambit does not. See A-3. See appendix E. | Oliver | closed 2026-09-20 |
-| OQ-5 | CLOSED, dissolved rather than answered. It existed to supply two things: the quiet period, which FR-020 no longer has, plus the ceiling, which is a policy choice about how long to keep trying rather than a fact about this machine. Settling is now defined entirely by whether the profile's own entries are satisfied, so no timing needs measuring. | Oliver | closed 2026-09-20 |
+| OQ-5 | CLOSED, dissolved rather than answered. It existed to supply two things: the quiet period, which went with FR-020; the ceiling, which is a policy choice about how long to keep trying rather than a fact about this machine. Settling is now defined entirely by whether the profile's own entries are satisfied, so no timing needs measuring; the one wait FR-080 adds is read from Windows at run time. | Oliver | closed 2026-09-20 |
 | OQ-6 | CLOSED 2026-09-20. Not from outside the window: that produced an empty frame. By asking the application, yes. Running NordVPN again while it was running made the running instance show its own hidden window at the same handle and rectangle; the second process then exited by itself. FR-036 stands, with its mechanism changed to FR-056. | Oliver | closed 2026-09-20 |
 | OQ-7 | CLOSED, no longer load-bearing. FR-033 re-applies a placement once when the window no longer matches; FR-034 gives up rather than fight. Both hold whether or not applications move their own windows, so the answer changes no requirement. The one run that recorded movement recorded the owner dragging windows, which is also why this cannot be measured on a machine in use. | Oliver | closed 2026-09-20 |
 | OQ-8 | CLOSED 2026-09-20. The newer request wins. The agent stops the restore in progress before its next action, leaves every window already placed where it is and then carries out the new one; both reports record the replacement. Written as FR-061. | Oliver | closed 2026-09-20 |
-| OQ-9 | CLOSED 2026-09-20. Windows 11 is the supported target. Windows 10 will very likely work, since nothing Windows 11 introduced is used, though it is untested and therefore unsupported. Nothing is done to prevent it running there. | Oliver | closed 2026-09-20 |
+| OQ-9 | CLOSED 2026-09-20. Windows 11 is the supported target. Windows 10 will very likely work, since the only Windows 11 request (rounded corners on the sign-in message) is ignored when refused; it is untested and therefore unsupported. Nothing is done to prevent it running there. | Oliver | closed 2026-09-20 |
 | OQ-10 | CLOSED 2026-09-20. The restore continues against the displays as they then stand and the report records the change. Abandoning it would leave the desktop half arranged, which is worse than where it started. See FR-057. | Oliver | closed 2026-09-20 |
 | OQ-11 | CLOSED 2026-09-20. Yes, as every other released application of the owner's carries one. C-4 is reworded to name it as the single outbound call; FR-059 lets the user turn it off and have C-4 absolutely. See FR-058. | Oliver | closed 2026-09-20 |
 | OQ-12 | CLOSED 2026-09-20. Yes. FR-060 carries the link in the manager. | Oliver | closed 2026-09-20 |
@@ -1356,8 +1353,7 @@ that settles it. The first five form the spike.
 ## Appendix C: Traceability
 
 No matrix is kept. A table here would be a second copy of what the code already
-says; a copy drifts. The trace runs the other way: for nearly every
-requirement the ID is written in the comments of the code and the tests that
+says; a copy drifts. The trace runs the other way: for most requirements the ID is written in the comments of the code and the tests that
 carry it, so a search for `FR-061` finds both. `ARCHITECTURE.md` names the structural test
 behind each invariant and `TESTING.md` the check done by hand behind each
 requirement a suite cannot reach.
@@ -1366,20 +1362,18 @@ requirement a suite cannot reach.
 
 ## Appendix D: MoSCoW distribution
 
-Counted from this document rather than carried forward, because the previous
-figures had drifted about ten below the requirements actually written. Recounted
-on 2026-09-20 by scanning every `Priority:` line: the Must figure had been
-written as 56 against 65 actually present, a transposition that the earlier
-recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. Recounted again on 2026-09-21 with FR-077 in: 74, where the table said 72 before it, because FR-074 had been added without the figure moving. FR-079 added one and withdrawing NFR-PERF-004 took one away, leaving 74. FR-080 took it to 75. Withdrawn requirements carry no
-`Priority:` line, so they are not in the Must or Should figures.
+Counted from this document by scanning every `Priority:` line, never carried
+forward: figures carried forward once drifted about ten below the requirements
+actually written. Withdrawn requirements carry no `Priority:` line, so they are
+not in the Must or Should figures.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 75 | The product does not work without any one of them. |
-| Should | 18 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, FR-078, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Must | 74 | The product does not work without any one of them. |
+| Should | 18 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, FR-078, NFR-PERF-006, NFR-USE-001 and NFR-USE-002. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
-| Withdrawn | 7 | FR-020, FR-021, FR-022, FR-028, FR-030, NFR-PERF-002 and NFR-PERF-004. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
+| Withdrawn | 8 | FR-020, FR-021, FR-022, FR-028, FR-030, FR-076, NFR-PERF-002 and NFR-PERF-004. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
 
 The Must proportion is high for a first release of a utility whose whole purpose
 is one behaviour. The check that keeps it honest: every Must names a failure the

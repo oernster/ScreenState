@@ -124,7 +124,7 @@ func terminate(pid uint32) (windows.Handle, bool) {
 // its working directory, so it outlives the setup program rather than ending
 // with it.
 //
-// It is started quietly (FR-076): an install must leave the desktop as it
+// It is started quietly (FR-038): an install must leave the desktop as it
 // found it, so the agent opens its manager and arranges nothing. The profile is
 // arranged at the next sign-in, which is when the user asked for it.
 func LaunchApp() error {

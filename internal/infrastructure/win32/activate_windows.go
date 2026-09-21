@@ -31,8 +31,10 @@ import (
 // What was left is how they are started: ShellExecute on
 // shell:AppsFolder\<model id>, which is a route through the shell's namespace
 // rather than the activation interface Windows provides for packaged
-// applications. Whether this route draws the buttons properly is a hypothesis
-// until a boot says so; the launcher records which route started each one.
+// applications. A boot on 2026-09-21 measured that the activation interface
+// does not draw the buttons properly either. It is kept because it is the documented route for a
+// packaged application; the shell stays as the fallback, so the worst case is
+// the behaviour before. The launcher records which route started each one.
 
 // clsidApplicationActivationManager is CLSID_ApplicationActivationManager,
 // {45BA127D-10A8-46EA-8AB7-56EA9078943C}.

@@ -195,7 +195,7 @@ func CopyFile(src, dst string) error {
 const HiddenFlag = "-hidden"
 
 // QuietFlag tells the agent that setup started it, so it opens its manager and
-// arranges nothing (FR-076). Installing a program must not rearrange the
+// arranges nothing (FR-038). Installing a program must not rearrange the
 // desktop: measured on 2026-09-21, when each install started the agent, the
 // start restored the profile and every install opened another Terminal window.
 const QuietFlag = "-quiet"

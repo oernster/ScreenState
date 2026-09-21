@@ -117,9 +117,10 @@ const timingsHome = "ports.go"
 // timingLiterals are the ways a duration gets written into code.
 var timingLiterals = []string{"time.Second", "time.Minute", "time.Hour", "time.Millisecond"}
 
-// TestEveryTimingHasOneHome holds the ceiling, the settle-check delay and the poll
-// interval in a single place. A second copy of one of them is how a value the user
-// set stops being the value the product uses, with nothing raising a word about it.
+// TestEveryTimingHasOneHome holds the ceiling's default, its bounds and the step
+// it is set in in a single place. A second copy of one of them is how a value the
+// user set stops being the value the product uses, with nothing raising a word
+// about it.
 func TestEveryTimingHasOneHome(t *testing.T) {
 	root := repoRoot(t)
 	for _, path := range goFiles(t) {

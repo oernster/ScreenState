@@ -90,12 +90,12 @@ Plain `go run .` does not work: without the Wails build tags that `wails build`
 supplies, Wails shows its "will not build without the correct build tags"
 message instead of the manager.
 
-How the agent is started decides what it does. With `-quiet`, which is what
-the setup program passes, it opens the manager and arranges nothing. With
-`-hidden`, which is what the sign-in entry passes, it applies the default
-profile and waits in the notification area without opening a window. With
-neither it applies the default profile and opens the manager, so start it
-with `-quiet` unless the desktop is meant to be rearranged.
+How the agent is started decides what it does. With `-hidden`, which is what
+the sign-in entry passes, it applies the default profile and waits in the
+notification area without opening a window. Without it, it opens the manager
+and arranges nothing. `-quiet`, which is what the setup program passes, does
+the same; only the line it writes to the log differs. A start from source
+therefore leaves the desktop alone unless `-hidden` is given.
 
 Only one copy runs per user session. A second start opens the running copy's
 manager rather than starting again, which the log says in as many words.
@@ -122,8 +122,8 @@ holds each:
 - **No page file writes the product's name or its tagline.** Both arrive on
   the state the program hands over, so a rename cannot leave a window
   announcing a product that no longer exists.
-- **Every script in `frontend/dist` is loaded by `index.html`; every tag names
-  a file that is there.** The manager is spread over a script per subject,
+- **Every script and stylesheet in `frontend/dist` is loaded by `index.html`;
+  every tag names a file that is there.** The manager is spread over a script per subject,
   so a new one that nothing loads is dead weight nothing else would report.
 
 The wire between a program and its page is stated twice, as Go structs with
@@ -133,11 +133,12 @@ a field on one side only and the test says so.
 ## The icons
 
 Every piece of artwork has its master in `assets/`: `application-icon.png` for
-the mark, plus one each for the light and dark toggle faces, the help, profile
-and donate art. `tools/genicons.py` makes the `.ico` beside the mark and writes
-each piece, reduced from its master, into the page directories that want it.
-The site under `docs/` carries copies of the mark, the toggle faces and the
-donate art as the manager has them.
+the mark, plus one each for the light and dark toggle faces, the help, settings,
+profile and donate art. `tools/genicons.py` makes the `.ico` beside the mark and
+writes each piece, reduced from its master, into the page directories that want
+it. The site under `docs/` carries copies of the mark and the toggle faces as
+the manager has them, plus a smaller donate picture of its own; the script
+writes none of them.
 
 ```powershell
 python tools/genicons.py

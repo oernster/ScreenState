@@ -21,9 +21,8 @@ const modulePath = "github.com/oernster/ScreenState/"
 // infrastructure. The agent's main.go builds the adapters and hands them to the
 // services; nothing else may know both sides.
 //
-// There is no main.go yet. The whitelist is written before it rather than after,
-// so the first file that wires the two layers together is either the one named
-// here or a test failure.
+// The whitelist was written before main.go rather than after, so any other file
+// that wires the two layers together is a test failure.
 var compositionRoot = map[string]bool{"main.go": true}
 
 // forbiddenInDomain names the packages that would make the domain impure. Time
