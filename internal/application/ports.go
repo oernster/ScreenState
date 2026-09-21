@@ -47,9 +47,10 @@ type Window struct {
 	// it could. Such a window is still reported rather than dropped, so that a
 	// capture can name it in the review instead of quietly losing it (FR-014).
 	Unreadable string
-	// Description names a window for a person. It is what the review shows for
-	// an unreadable window, whose application identity may be all that could
-	// not be read.
+	// Description names a window for a person: its title. It is what the review
+	// shows for an unreadable window, whose application identity may be all
+	// that could not be read. It is never stored and never reaches the log or a
+	// report (NFR-PRIV-001), since a title can say what the user is working on.
 	Description string
 }
 

@@ -1104,6 +1104,16 @@ Priority: Must
 Requirement: The ScreenState agent shall store nothing beyond application
 identities, window geometry, window show states, display identities and profile
 names.
+Rationale: a window title can say what the user is working on. The log is
+stored: on 2026-09-21 it was measured naming the windows a sign-in restore put
+away by their titles, which came through the report written into it. A window is
+now named in a report by its application identity alone; its title is read only
+to name a window the capture review could not read, which is shown and never
+kept.
+Acceptance: Given a window titled "Salary review - confidential" that the
+profile does not name, when a sign-in restore puts it away or asks it to close,
+then neither the report nor the log carries the title and both name the window
+by its application.
 
 **NFR-PRIV-002 Stated non-claims**
 Priority: Must

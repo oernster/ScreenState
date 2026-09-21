@@ -386,6 +386,12 @@ setting's other arm would have done; the report says which windows those were.
 | Sign-in entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `ScreenState` (FR-046) |
 | Shortcuts | the user's own Start Menu Programs folder and Desktop |
 
+**A window title is never written down** (NFR-PRIV-001). The desktop reads each window's title
+into `Window.Description`, which names a window the capture review could not read and nothing
+else. A report names every window by its application, since the report of a sign-in restore is
+written into the log; a structural rule cannot see a string flow, so two tests in
+`restore_privacy_test.go` plant a revealing title and fail on any word that carries it.
+
 Everything the product writes lives under the signed-in user's own directories and registry keys
 (C-2, DATA-001). There
 are no machine-wide files and no machine-wide registry keys; it never asks for administrator rights
@@ -740,15 +746,14 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 
 Found by reading the source against every requirement during the documentation pass for the first
 release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Nine more were on this list and are now built: cancelling a restore (FR-049), matching a
+desktop. Ten more were on this list and are now built: cancelling a restore (FR-049), matching a
 packaged application's window after an update (FR-071), marking the tray icon after an incomplete
 restore (FR-045), capturing an application with only a hidden window (FR-005), counting the
 rebuilt buttons (FR-075), a click on the splash (FR-078), log retention (NFR-OBS-001), setting
-the ceiling (NFR-PERF-003) and holding the page files to the module size (NFR-MAINT-003). Each item left is a defect or a requirement to amend; which is the
+the ceiling (NFR-PERF-003), holding the page files to the module size (NFR-MAINT-003) and keeping
+window titles out of the log (NFR-PRIV-001). Each item left is a defect or a requirement to amend; which is the
 owner's decision, so the specification still states what was asked for.
 
-- **What is stored (NFR-PRIV-001).** The notes of the restore the agent runs as it starts, written to
-  the log, carry the titles of the windows put away.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.
 - **Placing a maximised window (FR-074).** The placing code says `SetWindowPlacement` was measured
   not to activate, while the rebuild's comment records it activating PigeonPost, Stellody and

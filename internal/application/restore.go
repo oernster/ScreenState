@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -288,12 +287,11 @@ func (service *RestoreService) run(
 	}
 }
 
-// describeWindow names a window for the report, by its description where it has
-// one and by its application where it has not.
+// describeWindow names a window for the report by its application, never by its
+// title (NFR-PRIV-001). A title can say what the user is working on, while the
+// report of a sign-in restore is written to the log, which keeps it; an
+// application identity is already what every entry is named by there.
 func describeWindow(window Window) string {
-	if description := strings.TrimSpace(window.Description); description != "" {
-		return description
-	}
 	return window.Application.String()
 }
 
