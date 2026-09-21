@@ -166,9 +166,16 @@ func (service *RestoreService) whatIsStillThere(
 	profile domain.Profile,
 	state *restoreState,
 ) ([]Window, bool) {
+	// said is what the log last said this wait was holding for, so the log
+	// names each change in what it holds for rather than every reading.
+	said := ""
+	// woken counts the times the desktop changed while waiting, which tells a
+	// window that stayed apart from one that went unnoticed.
+	woken := 0
 	for {
 		windows, err := service.desktop.Windows(ctx)
 		if err != nil {
+			service.log.Step(fmt.Sprintf("the windows could not be read while waiting for them to close: %v", err))
 			return nil, false
 		}
 		var held []Window
@@ -178,15 +185,39 @@ func (service *RestoreService) whatIsStillThere(
 			}
 		}
 		if len(held) == 0 {
+			if said != "" {
+				service.log.Step(fmt.Sprintf(
+					"every window outside the profile has gone, the desktop having changed %d time(s) meanwhile",
+					woken))
+			}
 			return nil, false
 		}
+		if holding := describeWindows(held); holding != said {
+			service.log.Step(fmt.Sprintf("waiting for %d window(s) outside %q to close: %s",
+				len(held), profile.Name, holding))
+			said = holding
+		}
 		if service.givenUp(state) {
+			service.log.Step(fmt.Sprintf(
+				"stopped waiting for them to close, the desktop having changed %d time(s) meanwhile: %s",
+				woken, service.whyGivenUp(state)))
 			return held, true
 		}
 		if err := service.await(ctx, state); err != nil {
 			return nil, false
 		}
+		woken++
 	}
+}
+
+// describeWindows names windows for the log by their applications, never by
+// their titles (NFR-PRIV-001).
+func describeWindows(windows []Window) string {
+	named := make([]string, 0, len(windows))
+	for _, window := range windows {
+		named = append(named, describeWindow(window))
+	}
+	return strings.Join(named, ", ")
 }
 
 // minimiseStrangers minimises every window in the reading that the profile does

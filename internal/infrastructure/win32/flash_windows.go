@@ -34,8 +34,13 @@ var (
 const (
 	shellHookMessageName = "SHELLHOOK"
 	hshellFlash          = 0x8006 // HSHELL_FLASH
-	spiGetFlashCount     = 0x2004 // SPI_GETFOREGROUNDFLASHCOUNT
-	caretNeverBlinks     = 0xFFFFFFFF
+	// hshellWindowCreated and hshellWindowDestroyed say a taskbar button was
+	// added or taken away, which is when a window appears or goes to the
+	// notification area.
+	hshellWindowCreated   = 1      // HSHELL_WINDOWCREATED
+	hshellWindowDestroyed = 2      // HSHELL_WINDOWDESTROYED
+	spiGetFlashCount      = 0x2004 // SPI_GETFOREGROUNDFLASHCOUNT
+	caretNeverBlinks      = 0xFFFFFFFF
 	// defaultCaretBlink is Windows' own default blink time, which stands in
 	// where the caret does not blink or its time cannot be read (owner's
 	// ruling, 2026-09-21).
@@ -73,14 +78,25 @@ func stopHearingTheShell(window uintptr) {
 	_, _, _ = pDeregisterShellHookWindow.Call(window)
 }
 
-// onShellMessage tells every watch of a flash; it reports whether the message
-// was the shell's.
+// onShellMessage tells every watch of a flash or of a taskbar button added or
+// taken away; it reports whether the message was the shell's.
+//
+// The button going is what a restore waiting for a window to close is waiting
+// to hear. Both measured on 2026-09-21 on the reference machine. A shell trace
+// at 11:44 heard the buttons of Spotify, GameGlass Hub and NordVPN taken away
+// within 50 milliseconds of the sign-in restore asking them to close. At 19:09
+// the same three went to the notification area at once, yet nothing woke the
+// wait for them in the 34 seconds before a key press did: the restore sat on a
+// finished desktop until somebody touched it.
 func onShellMessage(message, code, window uintptr) bool {
 	if message == 0 || message != shellHookMessage() {
 		return false
 	}
-	if code == hshellFlash {
+	switch code {
+	case hshellFlash:
 		eachWatch(func(watch *desktopWatch) { watch.flashedNow(application.WindowID(window)) })
+	case hshellWindowCreated, hshellWindowDestroyed:
+		changedNow()
 	}
 	return true
 }

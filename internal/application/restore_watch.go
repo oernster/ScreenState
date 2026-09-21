@@ -66,8 +66,9 @@ func (service *RestoreService) await(ctx context.Context, state *restoreState) e
 	if err != nil {
 		return err
 	}
-	if wake == WakeTouched {
+	if wake == WakeTouched && !state.waiting.touched {
 		state.waiting.touched = true
+		service.log.Step("a key press or click took the desktop over")
 	}
 	return nil
 }
@@ -96,6 +97,14 @@ func (service *RestoreService) waitedOut(state *restoreState) bool {
 // ceiling has passed.
 func (service *RestoreService) givenUp(state *restoreState) bool {
 	return state.waiting.touched || !service.clock.Now().Before(state.waiting.deadline)
+}
+
+// whyGivenUp says which of the two ended the waiting, for the log.
+func (service *RestoreService) whyGivenUp(state *restoreState) string {
+	if state.waiting.touched {
+		return "a key press or click took the desktop over"
+	}
+	return "the ceiling passed"
 }
 
 // keepWatching carries on FR-033's watch of the windows a restore placed after

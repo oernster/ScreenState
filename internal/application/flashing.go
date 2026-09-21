@@ -25,7 +25,12 @@ func (service *RestoreService) letTheFlashingEnd(
 	windows []*placedWindow,
 ) error {
 	series := service.events.FlashSeries()
-	if series <= 0 || service.givenUp(state) {
+	if series <= 0 {
+		service.log.Step("the flash series could not be worked out, so the flashing was not waited for")
+		return nil
+	}
+	if service.givenUp(state) {
+		service.log.Step(fmt.Sprintf("the flashing was not waited for: %s", service.whyGivenUp(state)))
 		return nil
 	}
 	watch := state.waiting.watch

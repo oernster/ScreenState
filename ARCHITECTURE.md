@@ -285,8 +285,11 @@ Windows itself decides where to maximise it.
    desktop cannot be watched at all, the log and the report say so and the restore reads the
    desktop once more when the ceiling passes. The `DesktopEvents` port carries that;
    `internal/infrastructure/win32/events_windows.go` implements it with window event hooks,
-   low-level keyboard and mouse hooks and a hidden window that hears the displays change plus, registered as a shell hook window, each taskbar button flashing
-   (`flash_windows.go`), all on a thread of their own and taken down when the watch ends.
+   low-level keyboard and mouse hooks and a hidden window that hears the displays change plus,
+   registered as a shell hook window, each taskbar button flashing, added or taken away
+   (`flash_windows.go`), all on a thread of their own and taken down when the watch ends. A button
+   taken away is what says a window asked to close has gone to the notification area: measured on
+   2026-09-21, the window event hooks did not wake the wait for three such windows in 34 seconds.
 3. An entry with fewer windows showing than the profile records has the application run again, once
    per missing window, each run waiting for the window it opens before the next (FR-069). With no
    window showing, the run signals the instance already running to show and draw its own (FR-036,

@@ -108,6 +108,7 @@ func (splash *Splash) Ready(message application.SplashMessage) {
 	splash.mutex.Lock()
 	if !splash.running {
 		splash.mutex.Unlock()
+		splash.log.Step("the restore ended with the splash already closed, so it did not say ready")
 		return
 	}
 	splash.message = message
@@ -296,6 +297,7 @@ func splashProcedure(hwnd, value, wParam, lParam uintptr) uintptr {
 		// Clicked, it still does not take the keyboard (FR-074).
 		return maNoActivate
 	case wmLButtonDown, wmRButtonDown:
+		splash.log.Step("the splash was clicked, so it closed")
 		splash.closeAll()
 		return 0
 	case wmSplashDismiss:
