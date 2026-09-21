@@ -43,6 +43,11 @@ type fakeDesktop struct {
 	// refusal a test wants instead.
 	nudged   int
 	nudgeErr error
+	// attention names the windows whose button was drawing attention; stopped
+	// records the ones told to stop and stopErr the refusal a test wants.
+	attention map[WindowID]bool
+	stopped   []WindowID
+	stopErr   error
 	// afterPlace runs once a window has been placed, which is how a test makes
 	// an application move its own window afterwards.
 	afterPlace func(desktop *fakeDesktop, id WindowID)
@@ -159,6 +164,26 @@ func (desktop *fakeDesktop) nudgeCount() int {
 	desktop.mutex.Lock()
 	defer desktop.mutex.Unlock()
 	return desktop.nudged
+}
+
+// StopDrawingAttention records that a window's button was settled.
+func (desktop *fakeDesktop) StopDrawingAttention(_ context.Context, id WindowID) (bool, error) {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	if desktop.stopErr != nil {
+		return false, desktop.stopErr
+	}
+	desktop.stopped = append(desktop.stopped, id)
+	return desktop.attention[id], nil
+}
+
+// settledButtons answers which windows were told to stop drawing attention.
+func (desktop *fakeDesktop) settledButtons() []WindowID {
+	desktop.mutex.Lock()
+	defer desktop.mutex.Unlock()
+	settled := make([]WindowID, len(desktop.stopped))
+	copy(settled, desktop.stopped)
+	return settled
 }
 
 // closedCount answers how many times a window was asked to close.

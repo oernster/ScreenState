@@ -214,9 +214,14 @@ Windows itself decides where to maximise it.
    running, so the fault is Windows and the click is the repair. The message goes straight to the
    taskbar's window, so the pointer does not move, nothing is activated and no application's window
    is touched.
-6. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+6. Every window the restore placed has its taskbar button put back into the ordinary state
+   (FR-073). Placing a window leaves its button lit, the state Windows uses for a window that wants
+   looking at, so a desktop nobody has touched yet appears to be calling for attention everywhere.
+   Only the windows this restore placed are settled: a lit button elsewhere may be a message
+   genuinely meant for the user. Nothing is moved and nothing is activated.
+7. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
    against the displays as they then stand and the change is recorded (FR-057).
-7. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
+8. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 

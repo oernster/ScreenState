@@ -29,6 +29,7 @@ var (
 	pGetWindowPlacement       = user32.NewProc("GetWindowPlacement")
 	pSetWindowPos             = user32.NewProc("SetWindowPos")
 	pShowWindow               = user32.NewProc("ShowWindow")
+	pFlashWindowEx            = user32.NewProc("FlashWindowEx")
 	pPostMessage              = user32.NewProc("PostMessageW")
 	pEnumDisplayMonitors      = user32.NewProc("EnumDisplayMonitors")
 	pGetMonitorInfo           = user32.NewProc("GetMonitorInfoW")
