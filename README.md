@@ -25,8 +25,8 @@ Windows.
 
 ## What it does
 
-- **Captures the desktop as a profile.** It lists every application it found with where each
-  window sits; you untick what you do not want and name the profile. Only what is on screen is
+- **Captures the desktop as a profile.** It lists every application with a window on screen and
+  where each window sits; you untick what you do not want and name the profile. Only what is on screen is
   captured: an application with no window shown has nothing to arrange. Nothing is written until
   you confirm.
 - **Restores the default profile at sign-in**, waiting in the notification area without opening a
@@ -89,8 +89,8 @@ untested.
 Download `ScreenStateSetup.exe` from the
 [latest release](https://github.com/oernster/ScreenState/releases/latest) and run it. Everything it
 writes is per user, so Windows never asks for administrator rights: the files go under
-`%LOCALAPPDATA%\Programs\ScreenState`, the Apps list entry and the sign-in entry under `HKCU`. The same program
-installs, updates, goes back a version, repairs, reinstalls and uninstalls. It registers itself with
+`%LOCALAPPDATA%\Programs\ScreenState`, the Apps list entry and the sign-in entry under `HKCU`. The
+same program installs, updates, goes back a version, repairs, reinstalls and uninstalls. It registers itself with
 Windows, so Modify and Repair in the Apps list reopen it rather than sending you back to the
 download.
 
@@ -100,14 +100,19 @@ tick the box that says otherwise.
 ## Using it
 
 The agent waits in the notification area. Click its icon or launch it again from the Start Menu or
-the desktop and the manager opens: the profiles down the left, what the selected profile arranges
-beside them and its buttons down the right, with the settings behind the gear at the top. Starting it
-by hand arranges nothing; only a sign-in does that by itself, while Apply does it whenever you ask.
+its desktop shortcut and the manager opens: the profiles down the left, what the selected profile
+arranges beside them and its buttons down the right, with the settings behind the gear at the top.
+Starting it by hand arranges nothing; only a sign-in does that by itself, while Apply does it whenever you ask.
 Right-click the icon instead for the menu, which applies a profile, opens the manager, starts a
 capture, opens the report of the last restore or quits.
 
 Capture the desktop to make a profile. Marking a profile as the default is what makes it the one
-applied after you sign in; while there is only one profile, it is the default.
+applied after you sign in; while there is only one profile, it is the default. The manager also
+renames and deletes profiles and takes an application out of one.
+
+The settings say whether it starts when you sign in, whether the sign-in restore closes the windows
+a profile does not name rather than minimising them, how long a restore waits for windows and
+whether it checks for updates.
 
 Started by Windows at sign-in it opens no window at all, which is the point of it: it puts your
 windows back and waits.

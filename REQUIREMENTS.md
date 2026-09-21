@@ -99,7 +99,7 @@ There is one user class. ScreenState has no administrator role.
 
 - Windows 11, 64 bit, is the supported target. ScreenState will very likely run
   on Windows 10: the one thing it asks of Windows 11 alone is rounded corners on
-  the sign-in message, whose refusal is ignored. That is untested and therefore
+  the splash (FR-078), whose refusal is ignored. That is untested and therefore
   unsupported. Supported means tested; the owner has no
   Windows 10 machine to test on. Nothing is done to prevent it running there.
 - No network access is required for any of the product's own behaviour. The one
@@ -640,8 +640,8 @@ Priority: Must
 Requirement: While a restore runs (and while FR-033 watches the windows it
 placed) the ScreenState agent shall read the desktop again only when Windows
 reports a change: a window created, shown, hidden, cloaked, uncloaked,
-destroyed or moved; the displays changing; a taskbar button flashing (FR-080). Where the agent needs to know
-that something will not happen (an application asked for a window shows none,
+destroyed or moved; the displays changing; a taskbar button added, taken away or
+flashing (FR-080). Where the agent needs to know that something will not happen (an application asked for a window shows none,
 a window asked to close stays open) it shall stop waiting at whichever comes
 first of the user's first key press or mouse click after the restore began and
 the ceiling. It shall then report what did not happen. The ceiling
@@ -1193,8 +1193,7 @@ Requirement: The ScreenState agent shall obtain display arrangement, window
 enumeration, window geometry, window show state and process information from
 documented Windows interfaces.
 Rationale: an undocumented interface, such as reading the tray's contents out of
-Explorer, is a dependency on furniture Microsoft moves between releases. See
-OQ-3.
+Explorer, is a dependency on furniture Microsoft moves between releases.
 
 ### 3.4 Data requirements
 
@@ -1311,7 +1310,7 @@ requirement or is recorded as deliberately unaddressed.
 | First run, no profiles | FR-039. The manager states that no default is set. |
 | A profile naming an application that is no longer installed | FR-026. Reported, the restore continues. |
 | A display arrangement that has changed since capture | FR-031 and FR-032. |
-| The largest plausible input | An entry per running application, a placement per window. NFR-PERF-001 fixes the number tested at 20 windows. |
+| The largest plausible input | An entry per application with a window shown (FR-005), a placement per window. NFR-PERF-001 sets the figure its measurement uses at 20 windows. |
 | A restore interrupted part way | FR-049, FR-061 and FR-052. The report records how far it got. FR-049 is built: the manager's Applying panel carries a control to stop the restore. |
 | Two restores at once | FR-047 gives one agent per user. FR-061 settles what that one agent does: the newer request replaces the running restore, undoing nothing already placed; both reports say so. |
 | Upgrade from a previous version | DATA-002 and DATA-003. |
@@ -1338,7 +1337,7 @@ that settles it. The first five form the spike.
 | OQ-6 | CLOSED 2026-09-20. Not from outside the window: that produced an empty frame. By asking the application, yes. Running NordVPN again while it was running made the running instance show its own hidden window at the same handle and rectangle; the second process then exited by itself. FR-036 stands, with its mechanism changed to FR-056. | Oliver | closed 2026-09-20 |
 | OQ-7 | CLOSED, no longer load-bearing. FR-033 re-applies a placement once when the window no longer matches; FR-034 gives up rather than fight. Both hold whether or not applications move their own windows, so the answer changes no requirement. The one run that recorded movement recorded the owner dragging windows, which is also why this cannot be measured on a machine in use. | Oliver | closed 2026-09-20 |
 | OQ-8 | CLOSED 2026-09-20. The newer request wins. The agent stops the restore in progress before its next action, leaves every window already placed where it is and then carries out the new one; both reports record the replacement. Written as FR-061. | Oliver | closed 2026-09-20 |
-| OQ-9 | CLOSED 2026-09-20. Windows 11 is the supported target. Windows 10 will very likely work, since the only Windows 11 request (rounded corners on the sign-in message) is ignored when refused; it is untested and therefore unsupported. Nothing is done to prevent it running there. | Oliver | closed 2026-09-20 |
+| OQ-9 | CLOSED 2026-09-20. Windows 11 is the supported target. Windows 10 will very likely work, since the only Windows 11 request (rounded corners on the splash) is ignored when refused; it is untested and therefore unsupported. Nothing is done to prevent it running there. | Oliver | closed 2026-09-20 |
 | OQ-10 | CLOSED 2026-09-20. The restore continues against the displays as they then stand and the report records the change. Abandoning it would leave the desktop half arranged, which is worse than where it started. See FR-057. | Oliver | closed 2026-09-20 |
 | OQ-11 | CLOSED 2026-09-20. Yes, as every other released application of the owner's carries one. C-4 is reworded to name it as the single outbound call; FR-059 lets the user turn it off and have C-4 absolutely. See FR-058. | Oliver | closed 2026-09-20 |
 | OQ-12 | CLOSED 2026-09-20. Yes. FR-060 carries the link in the manager. | Oliver | closed 2026-09-20 |
@@ -1396,8 +1395,8 @@ All were measured on the reference machine in section 2.3.
 Two facts the product depends on. The Settings number, the device name and the
 physical position do not line up, so neither number can identify a display. The
 left and right screens share the model code `HSJ1340`; only the UID tells them
-apart. A display is therefore named to the user by where it physically sits,
-derived from the desktop layout, never by a number Windows reports.
+apart. A display is therefore recorded by its monitor id and named by it in the
+report, never by the Settings number or the device name.
 
 ### Application identity, 2026-09-19
 
@@ -1438,8 +1437,9 @@ administrator rights.
 | `\\.\DISPLAY3`, 240 dpi | `\\.\DISPLAY3` | maximised | x=-4079 y=1407 w=3872 h=2312 |
 | `\\.\DISPLAY4`, 240 dpi | `\\.\DISPLAY4` | maximised | x=3601 y=1407 w=3872 h=2312 |
 
-A maximised window overhangs its display by the border width, which is why each
-rectangle is 16 pixels wider than the display it sits on.
+A maximised window overhangs its display by the border width on each side, which
+is why the rectangle is 16 pixels wider than the 96 dpi display it sits on and
+32 wider than a 240 dpi one.
 
 ### One process, several windows, 2026-09-19
 

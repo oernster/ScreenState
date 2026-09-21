@@ -83,10 +83,10 @@
         <h2>Capture once. Restored after every reboot or sign-in.</h2>
         <ol class="steps">
             <li><strong>Capture.</strong> Arrange your desktop the way you like it and
-                capture it. ScreenState lists every application it found and where each
-                window sits; untick anything you want left out, name the profile and save.
-                Only what is on screen is captured. Nothing is written until you
-                confirm.</li>
+                capture it. ScreenState lists every application with a window on screen and
+                where each window sits; untick anything you want left out, name the profile
+                and save. An application running with no window shown is not offered: it
+                has nothing to arrange. Nothing is written until you confirm.</li>
             <li><strong>Mark a default.</strong> The default profile is the one applied
                 after you sign in. With only one profile, it is the default.</li>
             <li><strong>Sign in.</strong> ScreenState waits in the notification area,
@@ -124,7 +124,9 @@
                         or missing its icon once the restore is done.</li>
                     <li><strong>Puts away what the profile does not name</strong>, by
                         minimising it. At sign-in it can close those windows instead, if you
-                        turn that on.</li>
+                        turn that on. It then waits only for the windows it asked to close,
+                        so one that opens afterwards cannot hold the restore up; any that
+                        will not close is minimised.</li>
                     <li><strong>Copes with change.</strong> A display that is gone sends its
                         windows to the primary one; displays changing mid-restore do not
                         stop it; a window that moves itself is put back once.</li>
@@ -156,8 +158,8 @@
                     <li><strong>Stacking order, Snap groups or virtual desktops.</strong>
                         Where each window sits, yes; which is on top, no.</li>
                     <li><strong>Encrypt your profiles.</strong> They are plain files in your
-                        own folder, holding application paths, window positions and display
-                        names.</li>
+                        own folder, holding application paths, window positions, display identities
+                        and profile names.</li>
                     <li><strong>Send your desktop anywhere.</strong> The one connection it
                         makes asks whether a newer version exists, carries nothing about you
                         and can be turned off. Window titles, which can say what you are
@@ -175,10 +177,9 @@
         <p class="kicker">How it is built</p>
         <h2>Measured, not guessed.</h2>
         <div class="prose">
-            <p>Every behaviour above was measured on a real four-display desktop before
-                it was written down; the specification records each measurement beside
-                the requirement it settled. Nothing on this page is a number made up for
-                it.</p>
+            <p>The behaviours above were measured on a real four-display desktop; the
+                specification records those measurements beside the requirements they
+                settled. Nothing on this page is a number made up for it.</p>
         </div>
         <div class="stats">
             <div class="stat">

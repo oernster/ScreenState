@@ -19,9 +19,8 @@ go env -w GOTMPDIR="$env:LOCALAPPDATA\Temp\go-tmp"
 New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Temp\go-tmp"
 ```
 
-`go env GOTMPDIR` then names the folder to allow. In Malwarebytes: Settings, then the allow list, then a file or folder, then
-that path with both protections left ticked. Other anti-virus products behave
-the same way and want the same folder allowed.
+`go env GOTMPDIR` then names the folder to allow in the anti-virus product's
+allow list.
 
 This is a transient build output, never a shipped artefact. Nothing this
 project ships is ever put behind an exclusion.
@@ -69,8 +68,8 @@ It ends with `All checks passed.` Trust the exit code, not the text:
 `internal/domain` and `internal/application` are each held at 100% of their
 functions: the gate reads `go tool cover -func` and fails naming the package
 when any function in it has no statement a test reached. It is a floor on
-functions, not on statements; measured statement coverage is 100% for the
-domain and a little short of it for the application. They are the layers a machine can
+functions, not on statements; measured statement coverage is 100.0% for the
+domain and 97.0% for the application. They are the layers a machine can
 exercise with no filesystem, no clock and no desktop, so a function nothing
 calls there is a decision nobody made.
 
@@ -95,16 +94,19 @@ the same model id.
 
 `internal/application` is the largest suite, because every decision lives
 there behind an interface and every failure can therefore be caused on demand
-with a hand-written fake. It covers the capture and what it leaves out, the
-restore and its lifecycle, stopping a restore part way, starting applications and
-opening every window a profile records, placing a packaged application's
-window after an update has moved its path, waiting for a window that has not
-appeared, the ceiling the user chooses, putting away the windows a profile does
-not name with no window title reaching the log, the progress reading, the
+with a hand-written fake. It covers the capture and what it leaves out (a
+window that is not shown makes no entry; ScreenState records nothing of
+itself), the restore and its lifecycle, stopping a restore part way, starting
+applications and opening every window a profile records, placing a packaged
+application's window after an update has moved its path, waiting for a window
+that has not appeared, the ceiling the user chooses, putting away the windows a
+profile does not name with no window title reaching the log, waiting after the
+requests to close for the windows asked alone (a window that appears later
+does not hold the restore), the progress reading, the
 splash's words, the wait for the taskbar flashing to end, the click sent to the
 taskbars and the buttons built afresh, watching the desktop after a restore,
 the report, the tray, the manager's list with a profile it cannot read, profile
-naming and marking, the update check and the failure wording.
+naming and marking, the sign-in entry, the update check and the failure wording.
 
 There are no mocking libraries. The fakes are written by hand, in
 `fakes_test.go`, `fakes_desktop_test.go` and `fakes_store_test.go`, with fields
@@ -120,7 +122,7 @@ tests share.
 | `runlog` | a real log file, its header and its steps; a run keeping the 10 most recent restores with the header of each one's run; a long log of fewer restores kept whole |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
-| `win32` | the naming rules, the stacking-order rule and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window) and the flash series worked out from the machine's settings; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it |
+| `win32` | the naming rules, the stacking-order rule and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window), the flash series worked out from the machine's settings and a taskbar button added or taken away waking the watch a restore waits on; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it |
 | `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
@@ -196,9 +198,10 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | Check | How |
 |---|---|
 | A capture reads the desktop as it is (FR-010) | Open a handful of windows, capture, compare the review against the screen. |
+| A capture offers only what is on screen (FR-005, FR-012) | With an application running only in the notification area (NordVPN, say) and a window minimised to the taskbar, capture: the minimised window's application should be in the review; the one in the notification area should not. |
 | A restore puts them back (FR-041) | Move the windows, apply the profile, look. |
 | No program is ever ended (FR-029) | Apply a profile with unsaved work open, the setting for unnamed windows off; nothing is lost. |
-| Closing the windows a profile does not name (FR-064) | Turn the setting on, sign out and in again, watch where the unnamed applications go: the ones that live in the notification area should be there rather than on the taskbar. Then press Apply with the setting still on: it should close nothing. |
+| Closing the windows a profile does not name (FR-064) | Turn the setting on, sign out and in again, watch where the unnamed applications go: the ones that live in the notification area should be there rather than on the taskbar. Touch nothing until the splash says ready: it should get there on its own once they have gone, rather than at the first key press. The log names the windows the wait holds for, then says every window asked to close has gone and how often the desktop changed meanwhile. Then press Apply with the setting still on: it should close nothing. |
 | A window that refuses to close is minimised (FR-064) | With the setting on, leave an unsaved document open in an application no profile names, sign out and in again, then answer the prompt it puts up. |
 | The report names what it could not do (FR-044) | Apply a profile naming an application that is not installed. |
 | The bar moves while a restore runs (FR-065, FR-066) | Apply a profile holding several applications that are not running: the bar should fill as each is placed. Closing the report should leave the profile list showing. |
@@ -211,7 +214,7 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | The flashing has ended before the rebuild (FR-080) | Sign in without touching anything until the splash says ready, then look at the taskbars: no button should be red or flashing, the underline should sit on the window that has the front and clicking a button should bring its window forward rather than minimise it. The log says how long the restore waited for the buttons to stop flashing and how often a flash began the wait again. Only a real sign-in shows it: whether an application asks for the front (and when) belongs to that application. |
 | Installing arranges nothing (FR-038) | With a profile recording two Terminal windows and one open, install over an existing copy and let setup start the agent: no window should open, move or close; the log should say setup started that copy so nothing was arranged. |
 | Placing a window never activates it (FR-074) | Type into a window on one display, then apply a profile that places maximised windows on the others: the keyboard should stay where it was and no taskbar button should be lit when the restore ends. Each maximised window minimises and comes back maximised as it is placed; watch that an application that hides itself when minimised (one that goes to the notification area) comes back on screen. The rule itself is held by `TestMaximisingDoesNotActivate`, run with `$env:SCREENSTATE_DESKTOP_PROBE = '1'` since it opens two windows and takes the front. |
-| A packaged application is named and started by its path (FR-071) | Recapture with Claude and Windows Terminal open: the review should show each as a path under `WindowsApps`, not as a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
+| A packaged application is named and started by its path (FR-071) | Capture with Claude and Windows Terminal open: the review should show each as a path under `WindowsApps`, not as a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
 | A packaged application survives its own update (FR-071) | After Claude next updates, apply the profile without recapturing: it should start and be placed, never put away; the log should say it did not start from its path so its model id was used. |
 | The tray icon asks for attention (FR-045) | Apply a profile naming an application that is not installed: once the restore ends, the tray icon should carry a badge in the theme's danger colour in its bottom-right corner, in the light theme and in the dark one. Apply a profile that completes: the badge should go. After a restore started from the manager and after one at sign-in, rest the pointer on the icon: the tooltip should describe that restore. |
 | A start by hand arranges nothing (FR-038) | Quit from the tray, move a window the default profile places, then start the agent from its shortcut: the manager should open, nothing should move, no splash should appear and the log should say it was started by hand so nothing was arranged. |

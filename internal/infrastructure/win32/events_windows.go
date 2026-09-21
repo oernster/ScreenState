@@ -25,7 +25,8 @@ import (
 // low-level keyboard and mouse hooks say the user pressed a key or a button.
 // Raw input would say so too. A process has one raw input target per
 // device and the splash already holds it. A hidden window hears the displays
-// change.
+// change; registered with the shell, it also hears a taskbar button flash, be
+// added or be taken away.
 
 var (
 	pSetWinEventHook       = user32.NewProc("SetWinEventHook")
@@ -316,7 +317,8 @@ func onInput(code, message, detail uintptr) uintptr {
 	return next
 }
 
-// onWatcherMessage hears the displays change and the shell report a flash.
+// onWatcherMessage hears the displays change and the shell report a taskbar
+// button flashing, added or taken away.
 func onWatcherMessage(window, message, wParam, lParam uintptr) uintptr {
 	if onShellMessage(message, wParam, lParam) {
 		return 0

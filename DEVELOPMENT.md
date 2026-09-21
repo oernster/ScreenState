@@ -101,11 +101,13 @@ Only one copy runs per user session. A second start opens the running copy's
 manager rather than starting again, which the log says in as many words.
 
 Everything the agent does is written to `%LOCALAPPDATA%\ScreenState\Log.txt`:
-the version, what was restored at sign-in, what a capture read and what a
-restore could not do. Read it first when something looks wrong.
+the version, what a capture read and wrote, each step a restore took (what it
+waited for, why a wait was cut short, what it asked to close) and what it could
+not do. Read it first when something looks wrong.
 
-The profiles sit beside it, one file each, under
-`%LOCALAPPDATA%\ScreenState\profiles`, with `settings.json` alongside.
+`settings.json` and the manager's `webview` cache sit beside the log in
+`%LOCALAPPDATA%\ScreenState`; the profiles are in its `profiles` folder, one
+file each.
 
 ## The pages
 
@@ -163,8 +165,9 @@ python stamp_version.py
 ## The site
 
 `docs/` is the GitHub Pages site, served from the `main` branch: plain HTML and
-CSS with no build step, wearing a copy in `docs/styles.css` of the palette in
-`assets/theme.css`; a change to one is made to the other by hand. It shows no
+CSS with no build step. `docs/styles.css` repeats the colours of
+`assets/theme.css` that the site uses, so a change to a shared colour is made in
+both by hand. It shows no
 dates anywhere; the version is its only changing text and is stamped as above.
 
 ## Cutting a release

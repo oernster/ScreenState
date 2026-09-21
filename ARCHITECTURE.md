@@ -71,8 +71,8 @@ later edit could undo without anybody noticing.
   `CeilingPreferences`, `Splash` and
   `DesktopEvents` with its `DesktopWatch` in `ports.go`; `Startup`, `ReleaseSource` and
   `UpdatePreferences` beside the services that use them. Depends on Domain, `internal/product` (the
-  tray's tooltip carries the name) and the standard library only. Every rule about what a restore does lives here and is exercised against hand-written fakes,
-  on any machine, with no desktop.
+  tray's tooltip carries the name) and the standard library only. Every rule about what a restore
+  does lives here and is exercised against hand-written fakes, on any machine, with no desktop.
 - **Infrastructure** (`internal/infrastructure`): concrete adapters implementing the Application ports.
   `win32` reads and moves real windows and displays and hears the desktop change, `store` keeps the
   profiles, `clock` is the real clock, `runlog` is the step log, `instance` is the single-instance
@@ -93,8 +93,8 @@ second copy of a name is how a rename leaves one surface still announcing the ol
 `internal/infrastructure/settings` keeps the few choices remembered between runs: whether the update
 check is wanted (FR-059), which released version the user passed over (FR-058), whether a restore
 closes the windows a profile does not name at sign-in rather than minimising them (FR-064) and how
-long a restore waits for windows that have not appeared (NFR-PERF-003). It is
-deliberately apart from the profile store, because a profile is the user's work and a setting is a preference.
+long a restore waits for windows that have not appeared (NFR-PERF-003). It is deliberately apart
+from the profile store, because a profile is the user's work and a setting is a preference.
 `internal/infrastructure/update` is the release feed.
 
 Two further packages were written for the setup program and are shared with the agent.
@@ -175,8 +175,7 @@ The consequences run right through the layer:
 - An entry with no placements says the application should run without saying where. It is satisfied by
   the application running; nothing of its is moved (FR-005). No capture writes one: a capture reads
   only the visible windows the candidate rule passes; a window that is not shown makes no entry
-  (FR-012). A profile file can still hold one, so a restore still honours
-  it.
+  (FR-005, FR-012). A profile file can still hold one, so a restore still honours it.
 - An entry recorded as not running is left entirely alone. A restore ends nothing.
 - The ceiling bounds how long the agent keeps waiting for windows that may never appear (FR-023). It is
   a policy choice about when to stop waiting, deliberately not a prediction of how long the machine
@@ -314,8 +313,11 @@ Windows itself decides where to maximise it.
 6. Once every entry is settled, each window the profile does not name is put out of the way
    (FR-063). It is minimised; at sign-in with FR-064 turned on it is asked to close instead (see
    What a restore never does). The restore then waits for the windows it asked and for no others:
-   one that appeared after the requests was never asked, so it cannot have refused. This product's
-   own windows and windows already minimised are left alone.
+   one that appeared after the requests was never asked, so it cannot have refused. The log names
+   the windows the wait holds for each time that changes; when it ends, it says how many times the
+   desktop changed meanwhile, which tells a window that stayed apart from one whose going went
+   unheard. This product's own windows, hidden windows and windows already minimised are left
+   alone.
 7. Then every taskbar is posted a left click (FR-072). Explorer draws the button of an application
    started at sign-in without its icon on every display but the first; it leaves that button grey
    until any taskbar is clicked; the same happens mid-session with this product not running, so the
@@ -371,9 +373,9 @@ Apply.
 Closing was forbidden outright until the owner asked for it back. NordVPN and GameGlass survive their
 windows closing; Postal Gambit is ended by it (A-3 in `REQUIREMENTS.md`). Nothing about a window
 says which kind it is, so an agent that decided by itself to tidy a desktop by closing windows would
-be quitting applications and taking whatever was unsaved in them. What changed is who decides: the setting is off until the user
-turns it on and states what it costs beside the control, because the applications it is aimed at are
-the ones that go to the notification area rather than ending.
+be quitting applications and taking whatever was unsaved in them. What changed is who decides: the
+setting is off until the user turns it on and states what it costs beside the control, because the
+applications it is aimed at are the ones that go to the notification area rather than ending.
 
 The bound is held by the shape of the code rather than by a rule someone has to remember.
 `TestNothingAboveInfrastructureCanEndAProgram` fails any port above the Windows layer that grows a
@@ -485,9 +487,9 @@ reading of a profile that arrives after the user has pressed another is dropped 
 
 **A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
 keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it
-opens the manager and arranges nothing (FR-038), which is what double-clicking a shortcut means. An entry written without that
-flag reads as off, so turning the setting on rewrites it correctly rather than leaving a sign-in
-that opens a window over whatever the user is doing.
+opens the manager and arranges nothing (FR-038), which is what double-clicking a shortcut means.
+An entry written without that flag reads as off, so turning the setting on rewrites it correctly
+rather than leaving a sign-in that opens a window over whatever the user is doing.
 
 **A second launch asks the first for its manager** (FR-054). It finds the running copy's hidden
 window by its class and posts a message registered by name, which is the documented way for two
@@ -676,12 +678,11 @@ function counts once a test reaches any statement in it. Infrastructure sits del
 it: the Windows half needs a real desktop; gating it would mean either a number that means nothing
 or tests that assert what happened to be on screen.
 
-Measured statement coverage on 2026-09-21: domain 100%, application 97.7%, clock 100%, store 93.8%,
-settings 91.2%, instance 90.9%, runlog 76.7%, win32 40.4%, setup 33.6%, ui 25.9%, the root package
-(the composition root and the manager's facade) 11.6%. The
-shortfalls outside the floor are IO and platform failures that would need the disk or the window
-manager to fail mid-call, plus the Win32 calls themselves; they are not padded with tests that
-assert nothing.
+Measured statement coverage on 2026-09-21: domain 100%, application 97.0%, clock 100%, store 93.8%,
+settings 91.2%, instance 90.9%, runlog 76.7%, win32 42.8%, setup 33.6%, ui 25.8%, the root package
+(the composition root and the manager's facade) 11.6%. The shortfalls outside the floor are IO and
+platform failures that would need the disk or the window manager to fail mid-call, plus the Win32
+calls themselves; they are not padded with tests that assert nothing.
 
 The structural suite also holds both pages' boundaries, which no compiler sees: a page may not write
 the product's name or its tagline down, every `state.` field it reads must be a json tag the program
@@ -692,7 +693,9 @@ Two read the desktop and skip where there is none: the displays and windows, the
 application on screen is found running. The third traces a press in the middle of the taskbar to
 the taskbar's own top-level window, skipping where there is no taskbar. The fourth reads the flash
 count and caret blink the FR-080 wait is worked out from. None moves a window or starts an
-application, since either would disturb the desktop of whoever ran the suite. A fifth,
+application, since either would disturb the desktop of whoever ran the suite. A fifth asks Windows
+for the shell hook's message number and hands the watch a taskbar button added then one taken
+away, asserting each wakes it; it skips where Windows names no such message. A sixth,
 `TestMaximisingDoesNotActivate`, does move windows (only two of its own), so it runs only when
 `SCREENSTATE_DESKTOP_PROBE` is set; the gate skips it.
 
@@ -723,8 +726,9 @@ they keep the order the first enumeration gave, which is a stacking order rather
 placements of an application whose windows were all open before the agent started are matched in
 stacking order; the user cannot predict that from the order they opened them.
 
-**Moving a window and starting an application are proved by use, not by test.** No test calls
-either, because both would disturb the desktop of whoever ran the suite. Both are run at every
+**Moving a window and starting an application are proved by use, not by test.** No test the gate
+runs calls either, because both would disturb the desktop of whoever ran the suite; the opt-in
+`TestMaximisingDoesNotActivate` places one window of its own and no other. Both are run at every
 sign-in on the reference machine, where the log records each application started and each window
 placed.
 
@@ -745,8 +749,8 @@ neither has settled: real keyboard focus and the ring, the second-launch message
 named panel, the donate link and the update offer on screen. Those are read off a run, not off a
 suite, so they are checked by the list in TESTING.md. So are the ones added most recently, whose
 rules the suite holds where they have any: stopping a restore, the tray's badge, matching a
-packaged application after an update, the ceiling set in the settings dialog, a start by hand arranging nothing, the manager taking the splash
-down and the three-part main screen.
+packaged application after an update, the ceiling set in the settings dialog, a start by hand
+arranging nothing, the manager taking the splash down and the three-part main screen.
 
 **The setup program has installed and nothing else.** It has installed on the reference machine
 many times, each over an existing install of the same version: the files are in
@@ -764,10 +768,10 @@ Found by reading the source against every requirement during the documentation p
 release. Nothing found that way is left open. Eleven items were on this list and are now built:
 cancelling a restore (FR-049), matching a packaged application's window after an update (FR-071),
 marking the tray icon after an incomplete restore (FR-045), counting the rebuilt buttons (FR-075),
-a click on the splash (FR-078), log retention (NFR-OBS-001), setting the ceiling (NFR-PERF-003), holding the page files to the module
-size (NFR-MAINT-003), keeping window titles out of the log (NFR-PRIV-001), naming an unreadable
-profile in the manager (NFR-REL-002, DATA-003) and maximising a window without activating it
-(FR-074). A new shortfall found by reading the source against a requirement belongs here, with the
-requirement it falls short of.
+a click on the splash (FR-078), log retention (NFR-OBS-001), setting the ceiling (NFR-PERF-003),
+holding the page files to the module size (NFR-MAINT-003), keeping window titles out of the log
+(NFR-PRIV-001), naming an unreadable profile in the manager (NFR-REL-002, DATA-003) and maximising
+a window without activating it (FR-074). A new shortfall found by reading the source against a
+requirement belongs here, with the requirement it falls short of.
 
 What remains is proving the rest: see the known limits above.
