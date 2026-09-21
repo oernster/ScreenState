@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/oernster/ScreenState/internal/application"
@@ -52,6 +53,21 @@ type Tray struct {
 // variable is the whole of what is needed. It is written before the window
 // exists and read only on the thread that owns it.
 var current *Tray
+
+// trayWindow is the tray's hidden window, kept where another goroutine may read
+// it: RefreshTray posts to it from whichever thread a restore finished on. Zero
+// while there is no tray.
+var trayWindow atomic.Uintptr
+
+// RefreshTray asks the tray to read its tooltip again (FR-045). A restore can
+// finish on any thread and from the manager as well as the tray menu, so it
+// posts rather than touching the window, which belongs to the tray's thread.
+// It does nothing while there is no tray.
+func RefreshTray() {
+	if window := trayWindow.Load(); window != 0 {
+		_, _, _ = pPostMessage.Call(window, wmRefresh, 0, 0)
+	}
+}
 
 // NewTray returns a tray over the given service. onManager is called when the
 // user asks for the manager, by clicking the icon or by choosing it from the
@@ -127,6 +143,7 @@ func (tray *Tray) open() error {
 		return fmt.Errorf("making the tray window: %w", err)
 	}
 	tray.hwnd = hwnd
+	trayWindow.Store(hwnd)
 	return nil
 }
 
@@ -135,6 +152,7 @@ func (tray *Tray) open() error {
 // clear without hovering over it.
 func (tray *Tray) close() {
 	tray.remove()
+	trayWindow.Store(0)
 	if tray.hwnd != 0 {
 		_, _, _ = pDestroyWindow.Call(tray.hwnd)
 		tray.hwnd = 0

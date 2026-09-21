@@ -288,7 +288,11 @@ async function commitDelete(name) {
 // by the cross, by Escape or by the backdrop all land in the same place.
 async function applySelected() {
     const name = selected
-    busy('Applying ' + name, 'Windows are being put back where the profile says they go.')
+    // Stop ends the restore before its next action (FR-049). Apply below then
+    // returns with a report that says so, so there is nothing more to do here.
+    const stop = () => backend().CancelRestore().catch((e) => showError(String(e)))
+    busy('Applying ' + name, 'Windows are being put back where the profile says they go.',
+        [{label: 'Stop the restore', onClick: stop}])
     const watching = watchProgress()
     try {
         await backend().Apply(name)

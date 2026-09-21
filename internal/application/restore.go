@@ -191,6 +191,8 @@ func (service *RestoreService) restore(
 	cancel()
 	report.Finish(service.clock.Now())
 	service.announceReady(report)
+	// A restore stopped part way (FR-049, FR-061) has already dropped its
+	// placed windows (abandonRemaining), so this begins no watch for it.
 	if err == nil {
 		service.keepWatching(ctx, state)
 	}
@@ -222,6 +224,24 @@ func (service *RestoreService) standDown() bool {
 
 	active.cancel()
 	<-active.done
+	return true
+}
+
+// Cancel stops the restore in progress before its next action and waits for it
+// to stop (FR-049). Every window already placed stays where it is and the report
+// says the restore was cancelled. It reports whether there was a restore to
+// stop.
+func (service *RestoreService) Cancel() bool {
+	service.stopKeepingWatch()
+	service.mutex.Lock()
+	active := service.active
+	service.mutex.Unlock()
+	if active == nil {
+		return false
+	}
+	active.cancel()
+	<-active.done
+	service.log.Step("the restore was cancelled by the user")
 	return true
 }
 

@@ -259,6 +259,9 @@ func signIn(
 	}
 	if marked {
 		write(steps, report)
+		// FR-045: the tray says what this restore did, as it does after one
+		// started from its own menu.
+		ui.RefreshTray()
 	}
 	// FR-039 needs nothing more where no profile is marked: the restore service
 	// has already said so in the log; the manager then offers the capture that

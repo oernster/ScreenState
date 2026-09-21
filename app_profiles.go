@@ -6,6 +6,7 @@ import (
 
 	"github.com/oernster/ScreenState/internal/application"
 	"github.com/oernster/ScreenState/internal/domain"
+	"github.com/oernster/ScreenState/internal/ui"
 )
 
 // Profiles lists the stored profiles for the manager's list.
@@ -83,10 +84,20 @@ func (a *App) RemoveEntry(name, application string) error {
 // waits minutes for a window does not freeze the manager.
 func (a *App) Apply(name string) (ReportDTO, error) {
 	report, err := a.tray.Apply(context.Background(), name)
+	// A cancelled restore (FR-049) ends here too, with its report saying so.
+	// FR-045: the tray says what this restore did, whichever window asked.
+	ui.RefreshTray()
 	if err != nil {
 		return ReportDTO{}, err
 	}
 	return reportOf(name, report), nil
+}
+
+// CancelRestore stops the restore in progress (FR-049). The Apply waiting on it
+// then returns with a report that says it was cancelled. It reports whether
+// there was a restore to stop.
+func (a *App) CancelRestore() bool {
+	return a.restores.Cancel()
 }
 
 // Capture reads the desktop and returns the candidates for review (FR-010).

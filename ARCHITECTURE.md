@@ -653,15 +653,12 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 ## Where the code falls short of the specification
 
 Found by reading the source against every requirement during the documentation pass for the first
-release. The first two and the three marked "read and confirmed" were checked against the code by
-hand; the rest were read by an automated audit and none was reproduced on a desktop. Each is a
+release. The first and the three marked "read and confirmed" were checked against the code by
+hand; the rest were read by an automated audit and none was reproduced on a desktop. Cancelling a
+restore (FR-049) was on this list and is now built: the Applying panel carries "Stop the restore". Each is a
 defect or a requirement to amend; which is the owner's decision, so the specification still states
 what was asked for.
 
-- **Cancelling a restore (FR-049).** The restore service stops and records the cancellation when its
-  context ends; nothing a user can press ends it: no control on the Applying panel, no tray
-  entry. The ways out are the user's first key press or click (FR-079), a newer restore (FR-061) and
-  quitting.
 - **Setting the ceiling (NFR-PERF-003).** The policy holds the bounds and a method that clamps a
   value to them; nothing offers the setting: every restore waits the default 15 minutes, counted
   from the start of the restore rather than from sign-in.
@@ -670,8 +667,9 @@ what was asked for.
   an application such as NordVPN that runs with its window hidden. It is kept only where an existing
   entry already names it.
 - **The tray icon after an incomplete restore (FR-045), read and confirmed.** `NeedsAttention` is
-  never called outside its tests, so the icon itself never changes; the menu entry carries the count
-  and the tooltip is refreshed only after a restore started from the tray.
+  never called outside its tests, so the icon itself never changes: there is no artwork yet for an
+  icon asking for attention. The menu entry carries the count and the tooltip is refreshed after
+  every restore, whether it was started at sign-in, from the tray or from the manager.
 - **Log retention (NFR-OBS-001), read and confirmed.** The log starts afresh once it passes 1 MB
   rather than keeping the last 10 restores.
 - **A packaged application after an update (FR-071).** The running process is recognised by its

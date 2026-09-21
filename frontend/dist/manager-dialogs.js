@@ -116,12 +116,12 @@ function showError(words, back) {
 //
 // The bar starts empty every time. A bar still showing where the last piece of
 // work got to says this one has already made progress it has not made.
-function busy(title, words) {
+function busy(title, words, buttons = []) {
     $('busy-title').textContent = title
     $('busy-words').textContent = words
     $('busy-fill').style.width = '0'
     $('busy-status').textContent = ''
-    show('busy', [])
+    show('busy', buttons)
 }
 
 // progressEveryMs is how often the busy panel asks how far the restore has got.
