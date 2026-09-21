@@ -521,7 +521,13 @@ its show state without activating did not. This removes what the restore itself
 contributes and nothing more: an application that starts puts its own window in
 front, which marks the button whatever this product does; FR-075 is what answers
 that. It also means nothing is taken from whatever the user is doing
-while a restore runs.
+while a restore runs. A later probe, also on 2026-09-21, found that the way a
+maximised window was then placed (SetWindowPlacement with a maximised show state)
+did activate it, as every direct way to maximise does; a window is now maximised
+by being set minimised with the flag that restores it maximised, then shown
+without activating. That costs a minimise and restore animation per maximised
+window. Whether an application that hides itself when minimised comes back
+correctly has not been seen on a real desktop.
 Acceptance: Given a restore that places windows on three displays, when it ends,
 then the window the user was typing into still has the keyboard and no button
 was marked by the placing itself.

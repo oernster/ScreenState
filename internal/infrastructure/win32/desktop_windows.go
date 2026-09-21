@@ -249,17 +249,23 @@ func (desktop *Desktop) Place(
 // maximiseWithoutActivating maximises a window without making it the active
 // one (FR-074).
 //
-// ShowWindow with SW_MAXIMIZE would activate it. A taskbar marks the window
-// last activated on its display, so a restore that used it left one lit button
-// per display. SetWindowPlacement sets the show state and leaves the active window
-// alone, measured on the reference machine on 2026-09-21 against a window whose
-// button had been cleared.
+// A taskbar marks the window last activated on its display, so a restore that
+// activated what it maximised left one lit button per display. Every direct way
+// to maximise activates: ShowWindow with SW_MAXIMIZE, WM_SYSCOMMAND with
+// SC_MAXIMIZE and SetWindowPlacement with SW_MAXIMIZE, visible or hidden, with
+// the asynchronous flag or without. An earlier comment here claimed the last one
+// did not; a probe on 2026-09-21 counted the activation (see
+// TestMaximisingDoesNotActivate). What does not activate is two steps: the
+// placement is set to minimised with the flag that makes its next restore
+// maximise it, then the window is shown with SW_SHOWNOACTIVATE, which restores
+// it. It ends maximised, on the display its normal rectangle is on, with the
+// active window where it was. The cost is the minimise and restore animation.
 //
-// The placement is read and written back with only the show state changed, so
-// the rectangle it carries is whatever Windows itself last reported. That
-// matters because a placement's rectangle is in workspace coordinates, which are
-// not always the screen coordinates the rest of this file works in; reading
-// before writing keeps this out of that difference entirely.
+// The placement is read and written back with only the show state and that
+// flag changed, so the rectangle it carries is whatever Windows itself last
+// reported. That matters because a placement's rectangle is in workspace
+// coordinates, which are not always the screen coordinates the rest of this
+// file works in; reading before writing keeps this out of that difference.
 func maximiseWithoutActivating(handle uintptr) {
 	placement := windowPlacement{}
 	placement.length = uint32(unsafe.Sizeof(placement))
@@ -267,8 +273,13 @@ func maximiseWithoutActivating(handle uintptr) {
 		uintptr(unsafe.Pointer(&placement))); read == 0 {
 		return
 	}
-	placement.showCmd = swMaximize
-	_, _, _ = pSetWindowPlacement.Call(handle, uintptr(unsafe.Pointer(&placement)))
+	placement.showCmd = swMinNoActive
+	placement.flags |= wpfRestoreToMaximized
+	if set, _, _ := pSetWindowPlacement.Call(handle,
+		uintptr(unsafe.Pointer(&placement))); set == 0 {
+		return
+	}
+	_, _, _ = pShowWindow.Call(handle, swShowNoActivate)
 }
 
 // Close asks a window to close, which is what pressing the cross on its title

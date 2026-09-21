@@ -239,9 +239,15 @@ wrong screen.
 **Nothing a restore places is activated** (FR-074). `ShowWindow` with restore or maximise activates
 the window, which lights its taskbar button: a taskbar marks the window last activated on its
 display, so a restore that used them left one lit button per display. The window is shown with
-`SW_SHOWNOACTIVATE`, moved with `SWP_NOACTIVATE` and maximised through `SetWindowPlacement`, which
-sets the show state and leaves the active window alone. Measured on 2026-09-21 against a window whose
-button had been cleared: activating it lit the button, setting its show state did not.
+`SW_SHOWNOACTIVATE` and moved with `SWP_NOACTIVATE`. Maximising is the hard part: every direct way
+activates the window, `ShowWindow` with `SW_MAXIMIZE`, `WM_SYSCOMMAND` with `SC_MAXIMIZE` and
+`SetWindowPlacement` with a maximised show state alike. This file used to say the last did not; a
+probe on 2026-09-21 counted the activation. What does not activate is two steps: the placement is
+set to minimised with `WPF_RESTORETOMAXIMIZED`, then the window is shown with `SW_SHOWNOACTIVATE`,
+which restores it maximised on the display its normal rectangle is on. It costs a minimise and
+restore animation. `TestMaximisingDoesNotActivate` holds it: it runs only when
+`SCREENSTATE_DESKTOP_PROBE` is set, since it opens two windows of its own and takes the front. It
+fails with the old call planted back.
 
 **Nothing a restore starts asks for the front** (FR-077). The agent is started at sign-in and
 holds no right to the foreground, so an application it starts with `SW_SHOWNORMAL` asks for the
@@ -682,7 +688,8 @@ Three read the desktop and skip where there is none: the displays and windows, w
 application on screen is found running and the applications running with every window hidden, none
 of them part of Windows. The fourth reads the flash count and caret blink the FR-080 wait is worked
 out from. None moves a window or starts an application, since either would disturb the desktop of
-whoever ran the suite.
+whoever ran the suite. A fifth, `TestMaximisingDoesNotActivate`, does move windows (only two of its
+own), so it runs only when `SCREENSTATE_DESKTOP_PROBE` is set; the gate skips it.
 
 ## Design decisions
 
@@ -747,18 +754,14 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 ## Where the code falls short of the specification
 
 Found by reading the source against every requirement during the documentation pass for the first
-release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Eleven more were on this list and are now built: cancelling a restore (FR-049), matching a
-packaged application's window after an update (FR-071), marking the tray icon after an incomplete
-restore (FR-045), capturing an application with only a hidden window (FR-005), counting the
-rebuilt buttons (FR-075), a click on the splash (FR-078), log retention (NFR-OBS-001), setting
-the ceiling (NFR-PERF-003), holding the page files to the module size (NFR-MAINT-003), keeping
-window titles out of the log (NFR-PRIV-001) and naming an unreadable profile in the manager
-(NFR-REL-002, DATA-003). Each item left is a defect or a requirement to amend; which is the
-owner's decision, so the specification still states what was asked for.
+release. Nothing found that way is left open. Twelve items were on this list and are now built:
+cancelling a restore (FR-049), matching a packaged application's window after an update (FR-071),
+marking the tray icon after an incomplete restore (FR-045), capturing an application with only a
+hidden window (FR-005), counting the rebuilt buttons (FR-075), a click on the splash (FR-078), log
+retention (NFR-OBS-001), setting the ceiling (NFR-PERF-003), holding the page files to the module
+size (NFR-MAINT-003), keeping window titles out of the log (NFR-PRIV-001), naming an unreadable
+profile in the manager (NFR-REL-002, DATA-003) and maximising a window without activating it
+(FR-074). A new shortfall found by reading the source against a requirement belongs here, with the
+requirement it falls short of.
 
-- **Placing a maximised window (FR-074).** The placing code says `SetWindowPlacement` was measured
-  not to activate, while the rebuild's comment records it activating PigeonPost, Stellody and
-  Claude. A shell trace of a maximising placement would settle which is right.
-
-What remains beyond these is proving the rest: see the known limits above.
+What remains is proving the rest: see the known limits above.

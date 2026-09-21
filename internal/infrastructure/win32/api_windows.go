@@ -56,8 +56,9 @@ const (
 	dwmwaCloaked = 14
 
 	swHide = 0
-	// swMaximize is also the show state SetWindowPlacement is given to maximise
-	// a window without activating it (FR-074).
+	// swMaximize is how a window reports being maximised. Given to ShowWindow
+	// or SetWindowPlacement it activates the window, measured on 2026-09-21, so
+	// it is never used to maximise one (FR-074).
 	swMaximize = 3
 	// swShowNoActivate shows a window in its current size and place without
 	// making it the active one, which SW_RESTORE would (FR-074). It is also
@@ -65,6 +66,10 @@ const (
 	swShowNoActivate = 4
 	swMinimize       = 6
 	swMinNoActive    = 7
+	// wpfRestoreToMaximized makes the next restore of a minimised window
+	// maximise it, which is how a window is maximised without activating it
+	// (FR-074).
+	wpfRestoreToMaximized = 0x0002
 
 	swpNoZOrder   = 0x0004
 	swpNoActivate = 0x0010
