@@ -106,6 +106,7 @@ func (service *RestoreService) closeTheRest(
 ) {
 	report := state.report
 	var asked []string
+	closing := make(map[WindowID]struct{})
 	for _, window := range windows {
 		if !service.isStranger(profile, window) {
 			continue
@@ -115,6 +116,7 @@ func (service *RestoreService) closeTheRest(
 			continue
 		}
 		asked = append(asked, describeWindow(window))
+		closing[window.ID] = struct{}{}
 	}
 	if len(asked) == 0 {
 		return
@@ -122,7 +124,7 @@ func (service *RestoreService) closeTheRest(
 	report.Note("asked %d window(s) this profile does not name to close: %s",
 		len(asked), strings.Join(asked, ", "))
 	service.log.Step(fmt.Sprintf("asked %d window(s) outside %q to close", len(asked), profile.Name))
-	service.putAwayWhatRefused(ctx, profile, state)
+	service.putAwayWhatRefused(ctx, profile, state, closing)
 }
 
 // putAwayWhatRefused minimises the windows that were asked to close and are
@@ -138,9 +140,10 @@ func (service *RestoreService) putAwayWhatRefused(
 	ctx context.Context,
 	profile domain.Profile,
 	state *restoreState,
+	closing map[WindowID]struct{},
 ) {
 	report := state.report
-	windows, still := service.whatIsStillThere(ctx, profile, state)
+	windows, still := service.whatIsStillThere(ctx, profile, state, closing)
 	if !still {
 		return
 	}
@@ -154,17 +157,21 @@ func (service *RestoreService) putAwayWhatRefused(
 		len(put), profile.Name))
 }
 
-// whatIsStillThere watches the windows asked to close go, answering the reading
-// that still holds strangers plus whether it found any.
+// whatIsStillThere watches the windows asked to close go, answering those still
+// there plus whether it found any.
 //
 // It ends the moment they are all gone. Anything still there when the user
 // takes the desktop over (or when the ceiling passes) is treated as a refusal
 // (FR-064, FR-079): a window that has not gone by the time the user has moved
-// on is not going.
+// on is not going. It holds for the windows in closing alone: a window that
+// appeared after the request was never asked anything, so it cannot have
+// refused; waiting on it would hold the restore until somebody touched the
+// desktop (ruled by the owner, 2026-09-21).
 func (service *RestoreService) whatIsStillThere(
 	ctx context.Context,
 	profile domain.Profile,
 	state *restoreState,
+	closing map[WindowID]struct{},
 ) ([]Window, bool) {
 	// said is what the log last said this wait was holding for, so the log
 	// names each change in what it holds for rather than every reading.
@@ -180,14 +187,14 @@ func (service *RestoreService) whatIsStillThere(
 		}
 		var held []Window
 		for _, window := range windows {
-			if service.isStranger(profile, window) {
+			if _, asked := closing[window.ID]; asked && service.isStranger(profile, window) {
 				held = append(held, window)
 			}
 		}
 		if len(held) == 0 {
 			if said != "" {
 				service.log.Step(fmt.Sprintf(
-					"every window outside the profile has gone, the desktop having changed %d time(s) meanwhile",
+					"every window asked to close has gone, the desktop having changed %d time(s) meanwhile",
 					woken))
 			}
 			return nil, false

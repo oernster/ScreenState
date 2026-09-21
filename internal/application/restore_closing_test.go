@@ -96,6 +96,46 @@ func TestAStrangerThatRefusesToCloseIsPutAway(t *testing.T) {
 	}
 }
 
+// The wait after asking holds for the windows asked alone (FR-064). A window
+// that appears once the requests are out was never asked anything, so it has
+// not refused and must not hold the restore until the ceiling or a key press.
+func TestAWindowThatAppearsAfterTheRequestsDoesNotHoldTheWait(t *testing.T) {
+	t.Parallel()
+	stranger := aWindow(2, nordvpn, at(1))
+	newcomer := aWindow(3, stellody, at(2))
+	desktop := &fakeDesktop{
+		displays: []Display{primaryDisplay},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
+	}
+	arrived := false
+	desktop.onWindows = func() {
+		desktop.mutex.Lock()
+		defer desktop.mutex.Unlock()
+		if len(desktop.closed) > 0 && !arrived {
+			arrived = true
+			desktop.windows = append(desktop.windows, newcomer)
+		}
+	}
+	clock := newFakeClock()
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn, stellody),
+		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), clock, &fakeLog{},
+		&fakeStrangers{closing: true})
+
+	report, marked, err := service.RestoreDefault(context.Background())
+	if err != nil || !marked {
+		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
+	}
+	if !arrived {
+		t.Fatal("the newcomer never arrived, so this proves nothing")
+	}
+	if anyContaining(report.SortedNotes(), "did not close") {
+		t.Errorf("a window never asked to close was reported as refusing: %v", report.SortedNotes())
+	}
+	if put := putAwayCalls(desktop, newcomer.ID); len(put) != 0 {
+		t.Errorf("the newcomer was put away %d time(s) as a refusal", len(put))
+	}
+}
+
 // A window that cannot even be asked is named rather than passed over; the
 // restore carries on with the rest.
 func TestAStrangerThatCannotBeAskedToCloseIsReported(t *testing.T) {

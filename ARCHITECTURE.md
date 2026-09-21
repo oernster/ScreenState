@@ -313,7 +313,9 @@ Windows itself decides where to maximise it.
    been handed over.
 6. Once every entry is settled, each window the profile does not name is put out of the way
    (FR-063). It is minimised; at sign-in with FR-064 turned on it is asked to close instead (see
-   What a restore never does). This product's own windows and windows already minimised are left alone.
+   What a restore never does). The restore then waits for the windows it asked and for no others:
+   one that appeared after the requests was never asked, so it cannot have refused. This product's
+   own windows and windows already minimised are left alone.
 7. Then every taskbar is posted a left click (FR-072). Explorer draws the button of an application
    started at sign-in without its icon on every display but the first; it leaves that button grey
    until any taskbar is clicked; the same happens mid-session with this product not running, so the
