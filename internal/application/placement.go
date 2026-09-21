@@ -68,9 +68,10 @@ func (service *RestoreService) advance(
 	state *restoreState,
 	set displaySet,
 	windows []Window,
+	why trigger,
 ) {
 	for _, pending := range snapshotPending(state.pending) {
-		service.advanceEntry(ctx, state, set, windows, pending)
+		service.advanceEntry(ctx, state, set, windows, pending, why)
 	}
 }
 
@@ -81,6 +82,7 @@ func (service *RestoreService) advanceEntry(
 	set displaySet,
 	windows []Window,
 	pending *pendingEntry,
+	why trigger,
 ) {
 	owned := windowsOf(windows, pending.entry.Application)
 	if !pending.wantsPlacement() {
@@ -89,7 +91,7 @@ func (service *RestoreService) advanceEntry(
 	}
 	shown := visible(owned)
 	if len(shown) <= pending.applied {
-		service.askForWindows(ctx, state, pending, shown)
+		service.askForWindows(ctx, state, pending, shown, why)
 		return
 	}
 	service.applyPlacements(ctx, state, set, shown, pending)
@@ -165,16 +167,38 @@ func (service *RestoreService) applyPlacements(
 //
 // With no window showing, the run signals the instance already running to show
 // and draw its own (FR-036, FR-056); acting on the hidden window from outside
-// was measured producing an empty frame, so it is not done. With some showing,
-// the run is for another window (FR-069): Windows Terminal opens one each time
-// it is run. An application allowing one copy opens nothing, so a run that
-// adds no window ends the asking and the report says how many opened.
+// was measured producing an empty frame, so it is not done.
+//
+// With some showing, the run is for another window (FR-069): Windows Terminal
+// opens one each time it is run. An application allowing one copy opens
+// nothing, so a run that adds no window ends the asking and the report says how
+// many opened. That is done at sign-in, where the desktop is being rebuilt from
+// nothing, plus for an application this restore started itself. It is NOT done
+// for an application that was already running with windows of its own, since
+// those windows are the ones the user has (FR-069).
 func (service *RestoreService) askForWindows(
 	ctx context.Context,
 	state *restoreState,
 	pending *pendingEntry,
 	shown []Window,
+	why trigger,
 ) {
+	if len(shown) > 0 && why != atSignIn && !state.started(pending.entry.Application) {
+		// The application is running with some of its windows open and this
+		// restore did not start it, so the windows it has are the ones the user
+		// has: opening another would add a window nobody asked for. Measured on
+		// 2026-09-21, when every start of the agent, including the several an
+		// install makes, opened one more Terminal window.
+		//
+		// The entry is settled rather than left outstanding, since nothing more
+		// is going to happen to it and an entry that waits holds the whole
+		// restore to the ceiling.
+		state.report.NoteEntry(pending.entry.Application,
+			"has %d of the %d windows the profile records, which were left as they are",
+			len(shown), len(pending.placements()))
+		state.satisfy(pending)
+		return
+	}
 	now := service.clock.Now()
 	if !pending.lastRun.IsZero() && now.Sub(pending.lastRun) < service.policy.SettleCheck {
 		// The last run has not had time to open its window. Running it again

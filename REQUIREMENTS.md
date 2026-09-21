@@ -435,9 +435,17 @@ again, once for each missing window, waiting after each run for the time a
 window is given to settle. Where a run opens no new window in that time, the
 agent shall stop asking for that entry; the report shall say how many of the
 recorded windows opened.
+Requirement, added 2026-09-21: the agent shall open a missing window only where
+the restore ran at sign-in or where the restore itself started that
+application. Where an application was already running with windows of its own,
+the agent shall leave those windows as they are and shall say so in the report.
 Rationale: reported 2026-09-21. A profile is the desktop as it was when it was
 recorded and a restore reproduces it, however many windows of one application
-that means; how many there should be is never a question for the user. Some
+that means; how many there should be is never a question for the user. That
+holds at sign-in, where the desktop is being rebuilt from nothing. It does not
+hold for an application already running with windows of its own: those windows
+are the ones the user has, so opening another adds a window nobody asked for,
+which is what every start of the agent was doing. Some
 applications open another window each time they are run. An application that allows
 one copy answers a second run by bringing its own window forward and opens
 nothing, which is why a run that opens no window ends the asking rather than
@@ -530,6 +538,21 @@ flickers.
 Acceptance: Given a sign-in restore that placed four windows, when it settles,
 then the log says four buttons were built afresh, no button carries a mark and
 every window is where the profile put it.
+
+**FR-076 Installing arranges nothing**
+Priority: Must
+Requirement: When the setup program starts the ScreenState agent, the agent
+shall open its manager and shall not restore any profile. It shall record in the
+log that it arranged nothing and why.
+Rationale: reported 2026-09-21. The agent restores the default profile on every
+start; setup starts it, so installing rearranged the desktop: each install
+opened another Windows Terminal window, since the profile records two of them
+and only one was open. Installing a program is not a request to arrange the
+desktop; the profile is arranged at the next sign-in, which is when the user
+asked for it.
+Acceptance: Given a profile recording two Terminal windows and one open, when
+setup installs and starts the agent, then no window is opened, moved or closed
+and the log says setup started that copy so nothing was arranged.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -1151,7 +1174,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 71 | The product does not work without any one of them. |
+| Must | 72 | The product does not work without any one of them. |
 | Should | 17 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |

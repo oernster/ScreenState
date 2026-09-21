@@ -204,7 +204,7 @@ Windows itself decides where to maximise it.
 2. On each pass, read the displays and the windows as they then stand; take every outstanding entry
    as far as the windows now open allow.
 3. An entry with fewer windows showing than the profile records has the application run again, once
-   per missing window, each run given the settle-check delay before the next (FR-069). With no window
+   per missing window, at sign-in or for an application this restore started itself, each run given the settle-check delay before the next (FR-069). With no window
    showing, the run signals the instance already running to show and draw its own (FR-036, FR-056);
    acting on the hidden window from outside was measured producing an empty frame. With some showing,
    the run is for another window, since some applications open one each time they are run. A run that opens no
@@ -235,6 +235,11 @@ Windows itself decides where to maximise it.
    happened. Nothing is put back.
 
 Every one of those is exercised against fakes in `internal/application`, which holds 100% coverage.
+
+**An install arranges nothing.** The agent restores the default profile on every start; the setup
+program starts it, so installing used to rearrange the desktop and open another window of any
+application whose entry records more than one. Setup now starts it with `-quiet`, which opens the
+manager and arranges nothing (FR-076); the profile is arranged at the next sign-in.
 
 ## What a restore never does
 

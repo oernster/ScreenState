@@ -113,12 +113,16 @@ func terminate(pid uint32) {
 // LaunchApp starts the installed agent detached, with the install directory as
 // its working directory, so it outlives the setup program rather than ending
 // with it.
+//
+// It is started quietly (FR-076): an install must leave the desktop as it
+// found it, so the agent opens its manager and arranges nothing. The profile is
+// arranged at the next sign-in, which is when the user asked for it.
 func LaunchApp() error {
 	dir, err := InstallDir()
 	if err != nil {
 		return err
 	}
-	cmd := exec.Command(filepath.Join(dir, ExeName))
+	cmd := exec.Command(filepath.Join(dir, ExeName), QuietFlag)
 	cmd.Dir = dir
 	if err := cmd.Start(); err != nil {
 		return fmt.Errorf("launch %s: %w", AppName, err)

@@ -267,7 +267,7 @@ func (service *RestoreService) run(
 			return fmt.Errorf("reading the windows: %w", err)
 		}
 
-		service.advance(ctx, state, set, windows)
+		service.advance(ctx, state, set, windows, why)
 		service.recheck(ctx, state)
 		// Read after the pass rather than before it, so the bar shows what has
 		// happened rather than what is about to be tried.

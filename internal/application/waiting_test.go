@@ -9,10 +9,12 @@ import (
 	"github.com/oernster/ScreenState/internal/domain"
 )
 
-// FR-069 with the application already running: it shows one of the two windows
-// the profile records, so it is run again for the second; both are placed,
-// oldest first (FR-037).
-func TestARunningApplicationIsRunAgainForAWindowItIsMissing(t *testing.T) {
+// FR-069 at sign-in with the application already running: it shows one of the
+// two windows the profile records, so it is run again for the second; both are
+// placed, oldest first (FR-037). The desktop is being rebuilt from nothing at
+// sign-in, so the windows that are open are not evidence of what the user
+// wants.
+func TestASignInRunsARunningApplicationAgainForAWindowItIsMissing(t *testing.T) {
 	t.Parallel()
 	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
 	desktop := &fakeDesktop{
@@ -21,14 +23,13 @@ func TestARunningApplicationIsRunAgainForAWindowItIsMissing(t *testing.T) {
 	}
 	launcher := &fakeLauncher{}
 	launcher.onLaunch = func(domain.ApplicationIdentity) { desktop.addWindow(aWindow(2, pigeonpost, at(1))) }
-	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), launcher,
-		newFakeStore(), newFakeClock(), &fakeLog{})
-
 	profile, _ := domain.NewProfile("Desk", domain.Entry{
 		Application: pigeonpost, Running: true,
 		Placements: []domain.Placement{onPrimary, second},
 	})
-	report, err := service.Restore(context.Background(), profile)
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), launcher,
+		newFakeStore(profile.WithDefault(true)), newFakeClock(), &fakeLog{})
+	report, _, err := service.RestoreDefault(context.Background(), true)
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}

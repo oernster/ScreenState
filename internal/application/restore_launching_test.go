@@ -181,9 +181,9 @@ func TestEveryWindowAProfileRecordsIsOpened(t *testing.T) {
 	}
 }
 
-// FR-069: an application that allows one copy opens nothing when run again, so
-// the asking ends after that one run and the report says how many opened,
-// rather than the restore waiting on it until the ceiling.
+// FR-069 at sign-in: an application that allows one copy opens nothing when run
+// again, so the asking ends after that one run and the report says how many
+// opened, rather than the restore waiting on it until the ceiling.
 func TestAnApplicationThatOpensNoFurtherWindowIsReported(t *testing.T) {
 	t.Parallel()
 	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
@@ -192,14 +192,13 @@ func TestAnApplicationThatOpensNoFurtherWindowIsReported(t *testing.T) {
 		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	launcher := &fakeLauncher{}
-	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), launcher,
-		newFakeStore(), newFakeClock(), &fakeLog{})
-
 	profile, _ := domain.NewProfile("Desk", domain.Entry{
 		Application: pigeonpost, Running: true,
 		Placements: []domain.Placement{onPrimary, second},
 	})
-	report, err := service.Restore(context.Background(), profile)
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), launcher,
+		newFakeStore(profile.WithDefault(true)), newFakeClock(), &fakeLog{})
+	report, _, err := service.RestoreDefault(context.Background(), true)
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
@@ -254,5 +253,38 @@ func TestAnApplicationThatRefusesToBeAskedIsReported(t *testing.T) {
 	if entry := reportOf(t, report, nordvpn); entry.Satisfied ||
 		!containsText(entry.Reason, "could not be asked") {
 		t.Fatalf("the refusal was not reported: %+v", entry)
+	}
+}
+
+// FR-069, the other half of the rule: a restore the user asked for leaves alone
+// an application that is running with windows of its own. Those windows are the
+// ones the user has, so opening another adds a window nobody asked for.
+// Measured on 2026-09-21: every start of the agent, including the several an
+// install makes, opened one more Windows Terminal window.
+func TestAStartLeavesARunningApplicationsWindowsAlone(t *testing.T) {
+	t.Parallel()
+	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
+	desktop := &fakeDesktop{
+		displays: []Display{primaryDisplay},
+		windows:  []Window{aWindow(1, notepad, at(0))},
+	}
+	launcher := &fakeLauncher{}
+	service := restoreUnder(desktop, newFakeProcesses(notepad), launcher,
+		newFakeStore(), newFakeClock(), &fakeLog{})
+
+	profile, _ := domain.NewProfile("Desk", domain.Entry{
+		Application: notepad, Running: true,
+		Placements: []domain.Placement{onPrimary, second},
+	})
+	report, err := service.Restore(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("the restore failed: %v", err)
+	}
+	if launcher.launchCount(notepad) != 0 {
+		t.Fatalf("it was run %d time(s) for a window the user did not ask for",
+			launcher.launchCount(notepad))
+	}
+	if entry := reportOf(t, report, notepad); !entry.Satisfied {
+		t.Fatalf("the entry never settled: %+v", entry)
 	}
 }

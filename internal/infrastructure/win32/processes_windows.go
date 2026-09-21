@@ -111,6 +111,7 @@ func (launcher *Launcher) Launch(ctx context.Context, application domain.Applica
 	}
 	err := shellOpen(application)
 	if err == nil {
+		launcher.log.Step(fmt.Sprintf("%s was started from its path", application))
 		return nil
 	}
 	fallback, packaged := application.PackagedFallback()

@@ -194,6 +194,12 @@ func CopyFile(src, dst string) error {
 // own spellings: Steam has -silent, Discord has --start-inactive.
 const HiddenFlag = "-hidden"
 
+// QuietFlag tells the agent that setup started it, so it opens its manager and
+// arranges nothing (FR-076). Installing a program must not rearrange the
+// desktop: measured on 2026-09-21, when each install started the agent, the
+// start restored the profile and every install opened another Terminal window.
+const QuietFlag = "-quiet"
+
 // runValue is what the login entry holds: the path in quotes, then the flag.
 //
 // It is built here rather than with %q, which is Go's own quoting and escapes

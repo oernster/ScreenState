@@ -75,12 +75,15 @@ func main() {
 	// is what a user double-clicking a shortcut means by it.
 	hidden := flag.Bool("hidden", false,
 		"wait in the notification area without opening the manager")
+	// quiet is what the setup program passes. Installing a program must not
+	// rearrange the desktop, so a start from setup arranges nothing (FR-076).
+	quiet := flag.Bool("quiet", false, "open the manager without arranging anything")
 	flag.Parse()
 	if *showVersion {
 		fmt.Printf("%s %s\n", product.Name, version)
 		return
 	}
-	if err := run(*hidden); err != nil {
+	if err := run(*hidden, *quiet); err != nil {
 		// The log already carries this, where there was a log to carry it.
 		fmt.Fprintf(os.Stderr, "%s: %v\n", product.Name, err)
 		os.Exit(exitFailure)
@@ -89,7 +92,7 @@ func main() {
 
 // run holds the log open, takes the single-instance mutex, builds the adapters
 // and runs the window until the user quits.
-func run(hidden bool) error {
+func run(hidden, quiet bool) error {
 	started := clock.New().Now()
 
 	directory, err := store.DefaultDirectory()
@@ -131,11 +134,11 @@ func run(hidden bool) error {
 	}
 	defer func() { _ = lock.Release() }()
 
-	return serve(steps, directory, hidden)
+	return serve(steps, directory, hidden, quiet)
 }
 
 // serve builds the services over the real machine and runs the window.
-func serve(steps *runlog.Steps, directory string, hidden bool) error {
+func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 	profiles, err := store.New(directory, steps)
 	if err != nil {
 		return err
@@ -180,7 +183,12 @@ func serve(steps *runlog.Steps, directory string, hidden bool) error {
 	defer stop()
 
 	app := NewApp(manager, tray, restores, captures, updates, steps, version, hidden)
-	go signIn(ctx, manager, restores, steps, hidden)
+	if quiet {
+		// FR-076: setup started this, so the desktop is left exactly as it is.
+		steps.Step("setup started this copy, so nothing was arranged")
+	} else {
+		go signIn(ctx, manager, restores, steps, hidden)
+	}
 	go runTray(ctx, tray, steps, app)
 
 	background := light
