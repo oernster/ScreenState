@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oernster/ScreenState/internal/domain"
 )
@@ -67,20 +68,30 @@ func TestAWindowThatKeepsMovingIsReportedAndLeft(t *testing.T) {
 	desktop.afterPlace = func(desk *fakeDesktop, id WindowID) {
 		desk.moveWindow(id, domain.Rect{X: 999, Y: 999, Width: 800, Height: 600})
 	}
-	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
-		newFakeStore(), newFakeClock(), &fakeLog{})
+	clock := newFakeClock()
+	log := &fakeLog{}
+	// The restore ends once its one window is placed; the watch it keeps
+	// afterwards (FR-033) sees the window move again. One change, then the user
+	// takes over.
+	var afterwardsWaits int
+	events := &fakeEvents{clock: clock, afterwards: func(context.Context) (Wake, error) {
+		afterwardsWaits++
+		if afterwardsWaits == 1 {
+			return WakeChanged, nil
+		}
+		return WakeTouched, nil
+	}}
+	service := NewRestoreService(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
+		newFakeStore(), clock, log, Policy{Ceiling: time.Minute}, screenst,
+		&fakeStrangers{}, &fakeSplash{}, events)
 
-	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
-	if err != nil {
+	if _, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary)); err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
+	log.waitFor(t, "did not stay where it was put")
 	if len(desktop.placements()) != 2 {
 		t.Fatalf("the window was placed %d times: the agent fought for it",
 			len(desktop.placements()))
-	}
-	entry := reportOf(t, report, pigeonpost)
-	if entry.Satisfied || entry.Reason == "" {
-		t.Fatalf("the entry was not reported as unsatisfied: %+v", entry)
 	}
 }
 

@@ -18,15 +18,45 @@ type pendingEntry struct {
 	// applied counts the placements already applied, so a placement is never
 	// applied twice as later windows of the same application appear.
 	applied int
-	// lastRun is when this restore last ran the application, to start it
-	// (FR-024) or to ask it for a window (FR-036, FR-069). A run that has not
-	// had time to settle is waited for, never followed by another (FR-025).
-	lastRun time.Time
-	// asked records that the last run asked for a window; windowsAtAsk is how
-	// many were showing then, so a run that opened nothing can be told apart
-	// from one that did.
-	asked        bool
-	windowsAtAsk int
+	// ran records that this restore has run the application, to start it
+	// (FR-024) or to ask it for a window (FR-036, FR-069); windowsAtRun is how
+	// many of its windows were showing then. A run is answered by a window
+	// appearing. A run not yet answered is waited for, never followed by
+	// another: that would be the second copy FR-025 forbids (FR-079).
+	ran          bool
+	windowsAtRun int
+	// asked records that the last run asked a running application for a
+	// window, rather than starting it.
+	asked bool
+	// waitingFor says what the entry is waiting on, for the report where the
+	// user takes the desktop over before it comes (FR-079).
+	waitingFor string
+}
+
+// unanswered reports whether this restore ran the application and no window
+// has appeared since.
+func (pending *pendingEntry) unanswered(shown int) bool {
+	return pending.ran && shown <= pending.windowsAtRun
+}
+
+// stillWaiting says what an unanswered run is waiting on, in the words the
+// report uses if the wait ends without it.
+func (pending *pendingEntry) stillWaiting(shown int) string {
+	switch {
+	case shown > 0:
+		return fmt.Sprintf("opened %d of the %d windows the profile records",
+			shown, len(pending.placements()))
+	case pending.asked:
+		return "is running but showed no window to place"
+	default:
+		return "was started but showed no window to place"
+	}
+}
+
+// noteRun records that the application was just run with the given number of
+// its windows showing.
+func (pending *pendingEntry) noteRun(shown int, asked bool) {
+	pending.ran, pending.windowsAtRun, pending.asked = true, shown, asked
 }
 
 // placements returns the entry's placements.
@@ -36,22 +66,16 @@ func (pending *pendingEntry) placements() []domain.Placement { return pending.en
 // entry with none says only that the application should be running (FR-005).
 func (pending *pendingEntry) wantsPlacement() bool { return len(pending.entry.Placements) > 0 }
 
-// placedWindow is a window already placed, waiting for the check FR-033 makes
-// once it has had time to settle.
+// placedWindow is a window already placed, watched for the check FR-033 makes
+// each time the desktop changes.
 type placedWindow struct {
 	application domain.ApplicationIdentity
 	id          WindowID
 	want        domain.Rect
 	state       domain.ShowState
-	placedAt    time.Time
 	// reapplied marks the one further attempt FR-033 allows. After it, FR-034
 	// gives up rather than fight an application for its own window.
 	reapplied bool
-}
-
-// due reports whether a placed window is ready to be checked again.
-func (placed *placedWindow) due(now time.Time, after time.Duration) bool {
-	return !now.Before(placed.placedAt.Add(after))
 }
 
 // restoreState is everything one restore is holding while it runs.
@@ -70,6 +94,8 @@ type restoreState struct {
 	// change part way through can be recorded rather than passed over (FR-057).
 	displays []string
 	read     bool
+	// waiting is what the restore waits on between passes (FR-079).
+	waiting waiting
 }
 
 // newRestoreState returns the state of a restore about to begin, with every
@@ -85,12 +111,6 @@ func newRestoreState(profile domain.Profile, report *Report) *restoreState {
 
 // hasPending reports whether any entry is still unsatisfied.
 func (state *restoreState) hasPending() bool { return len(state.pending) > 0 }
-
-// settled reports whether the restore has nothing left to do: no entry
-// outstanding and no placed window still to be checked.
-func (state *restoreState) settled() bool {
-	return len(state.pending) == 0 && len(state.placed) == 0
-}
 
 // satisfy records an entry as satisfied and stops work on it.
 func (state *restoreState) satisfy(pending *pendingEntry) {
@@ -147,8 +167,27 @@ func (state *restoreState) abandonPending(ceiling time.Duration) {
 	outstanding := state.pending
 	state.pending = nil
 	for _, pending := range outstanding {
+		if pending.waitingFor != "" {
+			state.report.Fail(pending.entry.Application,
+				"%s when the ceiling of %s passed", pending.waitingFor, ceiling)
+			continue
+		}
 		state.report.Fail(pending.entry.Application,
 			"still not satisfied when the ceiling of %s passed", ceiling)
+	}
+}
+
+// abandonTouched stops waiting for every outstanding entry once the user has
+// taken the desktop over, recording what each was still waiting on (FR-079).
+func (state *restoreState) abandonTouched() {
+	outstanding := state.pending
+	state.pending = nil
+	for _, pending := range outstanding {
+		waited := pending.waitingFor
+		if waited == "" {
+			waited = "was still being waited for"
+		}
+		state.report.Fail(pending.entry.Application, "%s when the desktop was taken over", waited)
 	}
 }
 

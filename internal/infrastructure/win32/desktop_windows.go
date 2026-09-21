@@ -57,10 +57,21 @@ var (
 // handles returns every top-level window, in the order Windows enumerates them,
 // which is front to back in the stacking order.
 func handles() []uintptr {
+	return gather(func() { _, _, _ = pEnumWindows.Call(collect, 0) })
+}
+
+// childHandles returns every window inside a window.
+func childHandles(parent uintptr) []uintptr {
+	return gather(func() { _, _, _ = pEnumChildWindows.Call(parent, collect, 0) })
+}
+
+// gather runs an enumeration that reports through collect and answers what it
+// found. One runs at a time, since collect writes to one list.
+func gather(enumerate func()) []uintptr {
 	enumerationLock.Lock()
 	defer enumerationLock.Unlock()
 	enumerated = nil
-	_, _, _ = pEnumWindows.Call(collect, 0)
+	enumerate()
 	found := make([]uintptr, len(enumerated))
 	copy(found, enumerated)
 	return found

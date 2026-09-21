@@ -170,6 +170,7 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 		self(),
 		preferences,
 		newSplash(steps, setup.SystemPrefersDark),
+		win32.NewEvents(),
 	)
 	captures := application.NewCaptureService(
 		win32.NewDesktop(ticking), win32.NewProcesses(), profiles, steps, self())

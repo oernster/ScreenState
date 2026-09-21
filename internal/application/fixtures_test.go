@@ -106,9 +106,8 @@ func restoreShowing(
 	log *fakeLog,
 	strangers *fakeStrangers,
 ) *RestoreService {
-	policy := Policy{Ceiling: time.Minute, SettleCheck: 10 * time.Second, Poll: time.Second}
-	return NewRestoreService(
-		desktop, processes, launcher, store, clock, log, policy, screenst, strangers, splash)
+	return NewRestoreService(desktop, processes, launcher, store, clock, log,
+		Policy{Ceiling: time.Minute}, screenst, strangers, splash, &fakeEvents{clock: clock})
 }
 
 // reportOf returns the entry report for one application, failing the test where

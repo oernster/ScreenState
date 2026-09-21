@@ -213,35 +213,56 @@ Windows itself decides where to maximise it.
    start, so they load alongside each other. Nothing already running is launched again (FR-025),
    except as step 3 asks.
 2. On each pass, read the displays and the windows as they then stand; take every outstanding entry
-   as far as the windows now open allow.
+   as far as the windows now open allow. Between passes the restore waits for Windows to say the
+   desktop changed (a window created, shown, hidden, cloaked, uncloaked, destroyed or moved; the
+   displays changing) and for nothing else: it never looks again on a timer (FR-079). The
+   `DesktopEvents` port carries that; `internal/infrastructure/win32/events_windows.go` implements it
+   with window event hooks, low-level keyboard and mouse hooks and a hidden window for display
+   changes, all on a thread of their own and taken down when the watch ends.
 3. An entry with fewer windows showing than the profile records has the application run again, once
-   per missing window, at sign-in or for an application this restore started itself, each run given the settle-check delay before the next (FR-069). With no window
-   showing, the run signals the instance already running to show and draw its own (FR-036, FR-056);
-   acting on the hidden window from outside was measured producing an empty frame. With some showing,
-   the run is for another window, since some applications open one each time they are run. A run that opens no
-   window ends the asking for that entry and the report says how many opened, since an application
-   allowing one copy would otherwise hold the restore until the ceiling. An application this restore
-   has just started is never run again inside that delay: on 2026-09-21 every launched application
-   was started twice in the same second, which is a second copy FR-025 forbids.
-4. Once placed, a window is read again after the settle-check delay and put back **once** if the
+   per missing window, at sign-in or for an application this restore started itself, each run
+   waiting for the window it opens before the next (FR-069). With no window showing, the run signals
+   the instance already running to show and draw its own (FR-036, FR-056); acting on the hidden
+   window from outside was measured producing an empty frame. With some showing, the run is for
+   another window, since some applications open one each time they are run. A run not yet answered
+   by a window is never followed by another: on 2026-09-21 every launched application was started
+   twice in the same second, which is a second copy FR-025 forbids. So an application this restore
+   started that goes straight to the tray stays there; the report says so.
+4. Whatever the restore needs to know will not happen (a window that never comes, a window asked to
+   close that stays open) it stops waiting for at whichever comes first of the user's first key press
+   or mouse click and the ceiling, then reports it (FR-079). The ceiling is the only timer save
+   one: the flash series step 7 waits out (FR-080).
+5. A placed window is read again each time the desktop changes and put back **once** if the
    application has moved it (FR-033). After that one further attempt the agent gives up and says so,
-   rather than fighting an application for its own window (FR-034).
-5. Once a restore has settled, every taskbar is posted a left click (FR-072). Explorer draws the
+   rather than fighting an application for its own window (FR-034). The watch goes on after the
+   restore has ended, in a watch of its own, until the user's first key press or click, the ceiling
+   or a newer restore; what it does then goes to the log, since the report has been handed over.
+6. Once a restore has settled, every taskbar is posted a left click (FR-072). Explorer draws the
    button of an application started at sign-in without its icon on every display but the first;
    it leaves that button grey until any taskbar is clicked; the same happens mid-session with this product not
    running, so the fault is Windows and the click is the repair. The message goes straight to the
    taskbar's window, so the pointer does not move, nothing is activated and no application's window
    is touched.
-6. Once a sign-in restore has settled, the shell is made to build the taskbar button of every
+7. Once a sign-in restore has settled, the shell is made to build the taskbar button of every
    window it placed afresh, by hiding the window and showing it again (FR-075). A taskbar marks the
    window last activated on its display and an application puts its own window in front as it
    starts, so a desktop assembled at sign-in comes back marked although the recorded desktop was
    not. Rebuilding the button is the only measured way to clear that mark; it costs a flicker. A
    restore the user asked for does it only for the applications it started itself, since nothing
    else can have gained a mark once placing stopped activating (FR-074).
-7. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+   Before rebuilding, the restore waits until none of those windows has flashed for one full flash
+   series (FR-080). An application started without the front asks for it anyway; Windows refuses
+   and flashes its button, in a series that outlasted the rebuild by up to 7 seconds in a shell trace
+   on 2026-09-21, leaving the mark back. Nothing says a series has ended, so each flash the shell
+   reports begins the wait again. The series is the foreground flash count times two caret blinks,
+   read from Windows each time, with 530 milliseconds standing in for a caret that does not blink.
+   The user's first key press or click and the ceiling end the wait; only then is the button rebuilt
+   and the splash told the desktop is ready. A rebuild does not clear the red a finished series leaves
+   on a button, so after each rebuild the taskbars are posted the shell's own "window activated"
+   notice for that window, then for the window that really has the front; nothing is activated.
+8. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
    against the displays as they then stand and the change is recorded (FR-057).
-8. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
+9. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 

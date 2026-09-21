@@ -35,6 +35,12 @@ type RestoreService struct {
 	// splash tells the user the desktop is being arranged and when it is done
 	// (FR-078).
 	splash Splash
+	// events says when the desktop changed and when the user took it over,
+	// which is all a restore waits on (FR-079).
+	events DesktopEvents
+	// stopWatching ends the watch a finished restore keeps on the windows it
+	// placed (FR-033); nil when there is none.
+	stopWatching context.CancelFunc
 
 	mutex  sync.Mutex
 	active *activeRestore
@@ -85,6 +91,7 @@ func NewRestoreService(
 	self domain.ApplicationIdentity,
 	strangers StrangerPreferences,
 	splash Splash,
+	events DesktopEvents,
 ) *RestoreService {
 	service := &RestoreService{
 		desktop:   desktop,
@@ -97,6 +104,7 @@ func NewRestoreService(
 		self:      self,
 		strangers: strangers,
 		splash:    splash,
+		events:    events,
 	}
 	service.progress.Store(&RestoreProgress{})
 	return service
@@ -173,11 +181,19 @@ func (service *RestoreService) restore(
 	service.mutex.Unlock()
 
 	service.announcePreparing()
-	err := service.guardedRun(runCtx, profile, report, why)
+	state := newRestoreState(profile, report)
+	state.waiting = waiting{
+		watch:    service.watchDesktop(runCtx, report),
+		deadline: report.Started.Add(service.policy.Ceiling),
+	}
+	err := service.guardedRun(runCtx, profile, state, why)
 
 	cancel()
 	report.Finish(service.clock.Now())
 	service.announceReady(report)
+	if err == nil {
+		service.keepWatching(ctx, state)
+	}
 	// Cleared before the done channel is closed, because a restore replacing
 	// this one waits on that channel and then states its own reading: clearing
 	// afterwards would wipe the newer one.
@@ -192,6 +208,7 @@ func (service *RestoreService) restore(
 // standDown stops the restore in progress, if there is one, then waits for it
 // to stop. It reports whether there was one.
 func (service *RestoreService) standDown() bool {
+	service.stopKeepingWatch()
 	service.mutex.Lock()
 	active := service.active
 	if active == nil {
@@ -227,7 +244,7 @@ func (service *RestoreService) retire(active *activeRestore) {
 func (service *RestoreService) guardedRun(
 	ctx context.Context,
 	profile domain.Profile,
-	report *Report,
+	state *restoreState,
 	why trigger,
 ) (err error) {
 	defer func() {
@@ -237,26 +254,26 @@ func (service *RestoreService) guardedRun(
 		}
 		message := fmt.Sprintf("the restore failed unexpectedly: %v", recovered)
 		service.log.Step(message)
-		report.Note("%s", message)
+		state.report.Note("%s", message)
 		err = fmt.Errorf("restoring %q: %v", profile.Name, recovered)
 	}()
-	return service.run(ctx, profile, report, why)
+	return service.run(ctx, profile, state, why)
 }
 
 // run is the restore itself: launch what is missing, then place each entry as
-// its window appears, until every entry is settled or the ceiling passes.
+// its window appears, until every entry is settled, the user takes the desktop
+// over or the ceiling passes. Between passes it waits for Windows to say the
+// desktop changed and for nothing else (FR-079).
 func (service *RestoreService) run(
 	ctx context.Context,
 	profile domain.Profile,
-	report *Report,
+	state *restoreState,
 	why trigger,
 ) error {
-	started := report.Started
-	deadline := started.Add(service.policy.Ceiling)
+	report := state.report
 	service.log.Step(fmt.Sprintf("restoring %q, %d entries, ceiling %s",
 		profile.Name, len(profile.Entries), service.policy.Ceiling))
 
-	state := newRestoreState(profile, report)
 	total := len(profile.Entries)
 	service.noteProgress(RestoreProgress{Running: true, Profile: profile.Name, Total: total})
 	service.launchMissing(ctx, state)
@@ -283,18 +300,18 @@ func (service *RestoreService) run(
 			Running: true, Profile: profile.Name, Satisfied: satisfied, Total: total,
 		})
 
-		if state.settled() {
-			service.putTheRestAway(ctx, profile, report, why)
+		if !state.hasPending() {
+			service.putTheRestAway(ctx, profile, state, why)
 			service.nudgeTheTaskbars(ctx)
-			service.rebuildTheButtons(ctx, state, why)
+			if err := service.rebuildTheButtons(ctx, state, why); err != nil {
+				return service.stopped(err, state)
+			}
 			return nil
 		}
-		if state.hasPending() && !service.clock.Now().Before(deadline) {
-			state.abandonPending(service.policy.Ceiling)
-			service.log.Step("the ceiling passed with entries outstanding")
+		if service.waitedOut(state) {
 			continue
 		}
-		if err := service.clock.Sleep(ctx, service.policy.Poll); err != nil {
+		if err := service.await(ctx, state); err != nil {
 			return service.stopped(err, state)
 		}
 	}

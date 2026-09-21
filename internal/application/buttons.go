@@ -9,7 +9,7 @@ import (
 
 // rebuildTheButtons has Explorer build afresh the taskbar button of every
 // window this restore placed that carries a mark the restore is answerable for
-// (FR-075).
+// (FR-075), once those buttons have stopped flashing (FR-080).
 //
 // What it is for, measured on the reference machine on 2026-09-21: a taskbar
 // marks the window last activated on its display. An application that starts
@@ -26,26 +26,35 @@ import (
 // Windows did. Otherwise only the windows of applications this restore itself
 // started, because nothing else can have gained a mark: placing a window no
 // longer activates it (FR-074).
+//
+// It answers an error only where the restore was stopped while it waited.
 func (service *RestoreService) rebuildTheButtons(
 	ctx context.Context,
 	state *restoreState,
 	why trigger,
-) {
-	rebuilt := 0
+) error {
+	var marked []*placedWindow
 	for _, placed := range state.arrangedWindows() {
-		if why != atSignIn && !state.started(placed.application) {
-			continue
+		if why == atSignIn || state.started(placed.application) {
+			marked = append(marked, placed)
 		}
+	}
+	if len(marked) == 0 {
+		return nil
+	}
+	if err := service.letTheFlashingEnd(ctx, state, marked); err != nil {
+		return err
+	}
+	rebuilt := 0
+	for _, placed := range marked {
 		if err := service.desktop.RebuildTaskbarButton(ctx, placed.id); err != nil {
 			service.log.Step(fmt.Sprintf("a taskbar button was not rebuilt: %v", err))
-			return
+			return nil
 		}
 		rebuilt++
 	}
-	if rebuilt == 0 {
-		return
-	}
 	service.log.Step(fmt.Sprintf("%d taskbar button(s) were built afresh", rebuilt))
+	return nil
 }
 
 // started reports whether this restore launched an application itself.

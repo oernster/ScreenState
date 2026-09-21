@@ -81,7 +81,7 @@ func TestTheCeilingIsHeldWithinItsBounds(t *testing.T) {
 	if chosen := policy.WithCeiling(5 * time.Minute); chosen.Ceiling != 5*time.Minute {
 		t.Fatalf("a ceiling within the bounds became %s", chosen.Ceiling)
 	}
-	if policy.SettleCheck != DefaultSettleCheck || policy.Poll != DefaultPoll {
-		t.Fatal("the default policy does not carry the specification's timings")
+	if DefaultPolicy().Ceiling != DefaultCeiling {
+		t.Fatal("the default policy does not carry the specification's ceiling")
 	}
 }

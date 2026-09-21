@@ -71,6 +71,9 @@ func (desktop *Desktop) RebuildTaskbarButton(
 	// than wrong, so there is nothing here worth failing the repair over.
 	_, _, _ = pSetWindowPos.Call(handle, above, 0, 0, 0, 0,
 		swpNoMove|swpNoSize|swpNoActivate)
+	// A rebuilt button can still be red from a flash series: see
+	// clearAttention.
+	clearAttention(handle)
 	return nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/oernster/ScreenState/internal/domain"
 )
@@ -32,16 +31,17 @@ import (
 func (service *RestoreService) putTheRestAway(
 	ctx context.Context,
 	profile domain.Profile,
-	report *Report,
+	state *restoreState,
 	why trigger,
 ) {
+	report := state.report
 	windows, err := service.desktop.Windows(ctx)
 	if err != nil {
 		report.Note("the windows this profile does not name were left alone: %v", err)
 		return
 	}
 	if service.closeWanted(why, report) {
-		service.closeTheRest(ctx, profile, windows, report)
+		service.closeTheRest(ctx, profile, windows, state)
 		return
 	}
 	put := service.minimiseStrangers(ctx, profile, windows, report)
@@ -102,8 +102,9 @@ func (service *RestoreService) closeTheRest(
 	ctx context.Context,
 	profile domain.Profile,
 	windows []Window,
-	report *Report,
+	state *restoreState,
 ) {
+	report := state.report
 	var asked []string
 	for _, window := range windows {
 		if !service.isStranger(profile, window) {
@@ -121,11 +122,11 @@ func (service *RestoreService) closeTheRest(
 	report.Note("asked %d window(s) this profile does not name to close: %s",
 		len(asked), strings.Join(asked, ", "))
 	service.log.Step(fmt.Sprintf("asked %d window(s) outside %q to close", len(asked), profile.Name))
-	service.putAwayWhatRefused(ctx, profile, report)
+	service.putAwayWhatRefused(ctx, profile, state)
 }
 
 // putAwayWhatRefused minimises the windows that were asked to close and are
-// still there when the settle time is up.
+// still there when the user takes the desktop over or the ceiling passes.
 //
 // Closing is a request. An application may answer it with a prompt about
 // unsaved work; it may ignore the request outright. Either way the window is
@@ -136,9 +137,10 @@ func (service *RestoreService) closeTheRest(
 func (service *RestoreService) putAwayWhatRefused(
 	ctx context.Context,
 	profile domain.Profile,
-	report *Report,
+	state *restoreState,
 ) {
-	windows, still := service.whatIsStillThere(ctx, profile)
+	report := state.report
+	windows, still := service.whatIsStillThere(ctx, profile, state)
 	if !still {
 		return
 	}
@@ -155,24 +157,21 @@ func (service *RestoreService) putAwayWhatRefused(
 // whatIsStillThere watches the windows asked to close go, answering the reading
 // that still holds strangers plus whether it found any.
 //
-// It ends the moment they are all gone, so an application that closes promptly
-// costs one poll rather than the whole settle time. Anything still there when
-// that time is up is treated as a refusal, which is the honest reading: a
-// window that has had ten seconds and has not gone is not going.
+// It ends the moment they are all gone. Anything still there when the user
+// takes the desktop over (or when the ceiling passes) is treated as a refusal
+// (FR-064, FR-079): a window that has not gone by the time the user has moved
+// on is not going.
 func (service *RestoreService) whatIsStillThere(
 	ctx context.Context,
 	profile domain.Profile,
+	state *restoreState,
 ) ([]Window, bool) {
-	var held []Window
-	for waited := time.Duration(0); waited < service.policy.SettleCheck; waited += service.policy.Poll {
-		if err := service.clock.Sleep(ctx, service.policy.Poll); err != nil {
-			return nil, false
-		}
+	for {
 		windows, err := service.desktop.Windows(ctx)
 		if err != nil {
 			return nil, false
 		}
-		held = nil
+		var held []Window
 		for _, window := range windows {
 			if service.isStranger(profile, window) {
 				held = append(held, window)
@@ -181,8 +180,13 @@ func (service *RestoreService) whatIsStillThere(
 		if len(held) == 0 {
 			return nil, false
 		}
+		if service.givenUp(state) {
+			return held, true
+		}
+		if err := service.await(ctx, state); err != nil {
+			return nil, false
+		}
 	}
-	return held, len(held) > 0
 }
 
 // minimiseStrangers minimises every window in the reading that the profile does

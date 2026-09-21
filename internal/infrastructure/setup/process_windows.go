@@ -32,8 +32,6 @@ const (
 	// closeTimeout bounds the wait for the executable lock to release, so a
 	// stuck process cannot hang setup for ever.
 	closeTimeout = 5 * time.Second
-	// closePollStep is how often the wait rechecks.
-	closePollStep = 100 * time.Millisecond
 	// forcedExitCode is reported for a process ended by setup.
 	forcedExitCode = 1
 	// deletionDelaySeconds is how long the detached shell waits before removing
@@ -80,34 +78,46 @@ func processIDs(exeName string) []uint32 {
 	}
 }
 
-// CloseRunningApp ends every running instance and waits for the executable lock
-// to release. Termination is forced rather than a polite window close, because
-// the agent lives in the notification area and has no window to close: only
-// ending the process frees the file.
+// CloseRunningApp ends every running instance and waits for each to exit.
+// Termination is forced rather than a polite window close, because the agent
+// lives in the notification area and has no window to close: only ending the
+// process frees the file.
+//
+// The wait is on the processes themselves, which Windows signals as each one
+// ends, rather than looking again until they have gone (FR-079). closeTimeout
+// is the deadline, the one time it waits to.
 func CloseRunningApp() error {
+	var ending []windows.Handle
 	for _, pid := range processIDs(ExeName) {
-		terminate(pid)
-	}
-	deadline := time.Now().Add(closeTimeout)
-	for IsAppRunning() {
-		if time.Now().After(deadline) {
-			return ErrAppStillRunning
+		if handle, ok := terminate(pid); ok {
+			ending = append(ending, handle)
 		}
-		time.Sleep(closePollStep)
+	}
+	defer func() {
+		for _, handle := range ending {
+			_ = windows.CloseHandle(handle)
+		}
+	}()
+	if len(ending) == 0 {
+		return nil
+	}
+	event, err := windows.WaitForMultipleObjects(ending, true, uint32(closeTimeout.Milliseconds()))
+	if err != nil || event == uint32(windows.WAIT_TIMEOUT) {
+		return ErrAppStillRunning
 	}
 	return nil
 }
 
-// terminate forcibly ends one process. Every failure is ignored, because a
-// process that has already exited needs no further action and one this user
-// cannot open is not this user's to end.
-func terminate(pid uint32) {
-	handle, err := windows.OpenProcess(windows.PROCESS_TERMINATE, false, pid)
+// terminate forcibly ends one process, answering a handle to wait on for it to
+// be gone. A process that has already exited needs no further action and one
+// this user cannot open is not this user's to end, so either answers no handle.
+func terminate(pid uint32) (windows.Handle, bool) {
+	handle, err := windows.OpenProcess(windows.PROCESS_TERMINATE|windows.SYNCHRONIZE, false, pid)
 	if err != nil {
-		return
+		return 0, false
 	}
-	defer windows.CloseHandle(handle)
 	_ = windows.TerminateProcess(handle, forcedExitCode)
+	return handle, true
 }
 
 // LaunchApp starts the installed agent detached, with the install directory as

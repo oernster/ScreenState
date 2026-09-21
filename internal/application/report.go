@@ -60,6 +60,9 @@ func (report *Report) Note(format string, args ...any) {
 	report.Notes = append(report.Notes, fmt.Sprintf(format, args...))
 }
 
+// notReached is the reason every entry starts with, until something is tried.
+const notReached = "not reached"
+
 // entryAt returns the position of an application's report, creating it as
 // outstanding on first mention. Every entry starts outstanding on purpose: a
 // restore that ends early then reports what it had not reached, rather than
@@ -71,7 +74,7 @@ func (report *Report) entryAt(application domain.ApplicationIdentity) int {
 	}
 	report.entries = append(report.entries, EntryReport{
 		Application: application,
-		Reason:      "not reached",
+		Reason:      notReached,
 	})
 	report.index[key] = len(report.entries) - 1
 	return len(report.entries) - 1

@@ -3,7 +3,6 @@ package application
 import (
 	"context"
 	"errors"
-	"time"
 
 	"github.com/oernster/ScreenState/internal/domain"
 )
@@ -56,7 +55,7 @@ func (service *RestoreService) launchMissing(ctx context.Context, state *restore
 			state.fail(pending, "could not be launched: %v", err)
 			continue
 		}
-		pending.lastRun = service.clock.Now()
+		pending.noteRun(0, false)
 		state.noteLaunched(pending.entry.Application)
 		state.report.NoteEntry(pending.entry.Application, "was not running, so it was launched")
 	}
@@ -112,7 +111,9 @@ func (service *RestoreService) advanceWithoutPlacement(
 	}
 	if running {
 		state.satisfy(pending)
+		return
 	}
+	pending.waitingFor = "was not running"
 }
 
 // applyPlacements applies the entry's placements to its windows, first-seen
@@ -145,7 +146,6 @@ func (service *RestoreService) applyPlacements(
 			id:          window.ID,
 			want:        rect,
 			state:       placement.State,
-			placedAt:    service.clock.Now(),
 		})
 		pending.applied++
 	}
@@ -163,7 +163,7 @@ func (service *RestoreService) applyPlacements(
 
 // askForWindows deals with an entry that has fewer windows showing than its
 // profile records. The application is run again once per missing window; each
-// run is given the time a window is given to settle before the next.
+// run waits for the window it opens before the next (FR-079).
 //
 // With no window showing, the run signals the instance already running to show
 // and draw its own (FR-036, FR-056); acting on the hidden window from outside
@@ -199,20 +199,13 @@ func (service *RestoreService) askForWindows(
 		state.satisfy(pending)
 		return
 	}
-	now := service.clock.Now()
-	if !pending.lastRun.IsZero() && now.Sub(pending.lastRun) < service.policy.SettleCheck {
-		// The last run has not had time to open its window. Running it again
-		// now would be the second copy FR-025 forbids: on 2026-09-21 every
-		// launched application was started twice in the same second.
-		return
-	}
-	if pending.asked && len(shown) <= pending.windowsAtAsk {
-		if len(shown) == 0 {
-			state.fail(pending, "is running but showed no window to place")
-			return
-		}
-		state.fail(pending, "opened %d of the %d windows the profile records",
-			len(shown), len(pending.placements()))
+	if pending.unanswered(len(shown)) {
+		// The last run has not opened a window yet. Running it again now would
+		// be the second copy FR-025 forbids: on 2026-09-21 every launched
+		// application was started twice in the same second. Nothing Windows
+		// says marks a run as finished, so the entry waits for its window, for
+		// the user taking over or for the ceiling (FR-079).
+		pending.waitingFor = pending.stillWaiting(len(shown))
 		return
 	}
 	running, err := service.processes.Running(ctx, pending.entry.Application)
@@ -222,6 +215,7 @@ func (service *RestoreService) askForWindows(
 	}
 	if !running {
 		// Still starting or never started. Either way there is nothing to ask.
+		pending.waitingFor = "was not running"
 		return
 	}
 	if err := service.launcher.Launch(ctx, pending.entry.Application); err != nil {
@@ -232,9 +226,7 @@ func (service *RestoreService) askForWindows(
 		state.fail(pending, "could not be run again for another window: %v", err)
 		return
 	}
-	pending.asked = true
-	pending.lastRun = now
-	pending.windowsAtAsk = len(shown)
+	pending.noteRun(len(shown), true)
 	if len(shown) == 0 {
 		state.report.NoteEntry(pending.entry.Application,
 			"was running with no visible window, so it was asked to show one")
@@ -245,25 +237,22 @@ func (service *RestoreService) askForWindows(
 		len(shown), len(pending.placements()))
 }
 
-// recheck makes the check FR-033 requires: a window is read again once it has
-// had time to settle; it is put back once where the application has moved it. After
-// that one further attempt, FR-034 gives up rather than fight for the window.
+// recheck makes the check FR-033 requires: each placed window is read again
+// whenever the desktop changes; it is put back once where the application has
+// moved it. After that one further attempt, FR-034 gives up rather than fight
+// for the window. A window still where it was put stays watched, since an
+// application may move it later (FR-079).
 func (service *RestoreService) recheck(ctx context.Context, state *restoreState) {
-	now := service.clock.Now()
 	for _, placed := range snapshotPlaced(state.placed) {
-		if !placed.due(now, service.policy.SettleCheck) {
-			continue
-		}
 		window, err := service.desktop.Window(ctx, placed.id)
 		if err != nil {
 			service.recheckUnreadable(state, placed, err)
 			continue
 		}
 		if window.Rect == placed.want && window.State == placed.state {
-			state.forget(placed)
 			continue
 		}
-		service.reapply(ctx, state, placed, window, now)
+		service.reapply(ctx, state, placed, window)
 	}
 }
 
@@ -286,7 +275,6 @@ func (service *RestoreService) reapply(
 	state *restoreState,
 	placed *placedWindow,
 	window Window,
-	now time.Time,
 ) {
 	if placed.reapplied {
 		state.forget(placed)
@@ -301,6 +289,5 @@ func (service *RestoreService) reapply(
 		return
 	}
 	placed.reapplied = true
-	placed.placedAt = now
 	state.report.NoteEntry(placed.application, "moved itself after being placed, so it was placed again")
 }

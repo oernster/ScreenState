@@ -19,8 +19,11 @@ func TestTheProgressReadingFollowsTheRestore(t *testing.T) {
 	}
 	clock := newFakeClock()
 	var duringFirst, duringLater RestoreProgress
-	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn, stellody),
 		&fakeLauncher{}, newFakeStore(), clock, &fakeLog{})
+	// The restore waits only while something is outstanding (FR-079), so a
+	// third entry arriving last keeps it waiting long enough to read the
+	// second pass.
 	clock.onSleep = func(_ context.Context, _ *fakeClock, count int) {
 		if count == 1 {
 			duringFirst = service.Progress()
@@ -29,6 +32,7 @@ func TestTheProgressReadingFollowsTheRestore(t *testing.T) {
 		}
 		if count == 2 {
 			duringLater = service.Progress()
+			desktop.addWindow(aWindow(3, stellody, at(2)))
 		}
 	}
 
@@ -38,6 +42,9 @@ func TestTheProgressReadingFollowsTheRestore(t *testing.T) {
 		domain.Entry{Application: nordvpn, Running: true,
 			Placements: []domain.Placement{aPlacement(primaryID,
 				domain.Rect{X: 10, Y: 10, Width: 400, Height: 300})}},
+		domain.Entry{Application: stellody, Running: true,
+			Placements: []domain.Placement{aPlacement(primaryID,
+				domain.Rect{X: 20, Y: 20, Width: 400, Height: 300})}},
 	)
 	if err != nil {
 		t.Fatalf("the profile is not valid: %v", err)
@@ -46,7 +53,7 @@ func TestTheProgressReadingFollowsTheRestore(t *testing.T) {
 		t.Fatalf("the restore failed: %v", err)
 	}
 
-	if !duringFirst.Running || duringFirst.Profile != "Desk" || duringFirst.Total != 2 {
+	if !duringFirst.Running || duringFirst.Profile != "Desk" || duringFirst.Total != 3 {
 		t.Fatalf("the first reading does not describe the restore: %+v", duringFirst)
 	}
 	if duringFirst.Satisfied != 1 {

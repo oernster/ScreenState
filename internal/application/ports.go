@@ -170,10 +170,12 @@ type ProfileStore interface {
 
 // Clock is the only source of time in this layer. The domain reads none at all
 // and nothing here calls time.Now, so a test over a fake clock settles the
-// ceiling and the settle-check delay without waiting for either.
+// ceiling without waiting for it.
 type Clock interface {
 	Now() time.Time
-	// Sleep waits, returning the context's error where it ends first.
+	// Sleep waits, returning the context's error where it ends first. A
+	// restore sleeps only to reach the ceiling. It does so only where the desktop
+	// could not be watched at all (FR-079).
 	Sleep(ctx context.Context, d time.Duration) error
 }
 
@@ -184,31 +186,63 @@ type Log interface {
 	Step(message string)
 }
 
-// Policy holds the timings a restore runs to. They are values rather than
-// literals in the code for two reasons: NFR-PERF-003 makes the ceiling the
-// user's to set; a test needs to state them rather than wait for them.
+// DesktopEvents tells a restore when the desktop has changed and when the user
+// has taken it over (FR-079). A restore reads the desktop only when told to:
+// it never looks again on a timer.
+type DesktopEvents interface {
+	// Watch begins watching the desktop. The watch ends when ctx ends.
+	Watch(ctx context.Context) (DesktopWatch, error)
+	// FlashSeries answers how long one flash series of a taskbar button lasts
+	// on this machine, read when asked (FR-080); zero where it cannot be known,
+	// which means nothing is waited for.
+	FlashSeries() time.Duration
+}
+
+// DesktopWatch is one watch of the desktop, begun by DesktopEvents.
+type DesktopWatch interface {
+	// Next waits for whichever comes first: the desktop changing, the user's
+	// first key press or mouse click since the watch began; the deadline.
+	// It answers which. Where the context ends first it answers its error. The
+	// user taking over is answered once; after that only changes and the
+	// deadline are.
+	Next(ctx context.Context, deadline time.Time) (Wake, error)
+	// Flashing answers the windows whose taskbar button the shell reported
+	// flashing since it was last asked, then forgets them (FR-080).
+	Flashing() []WindowID
+}
+
+// Wake says why DesktopWatch.Next returned.
+type Wake int
+
+const (
+	// WakeChanged is Windows reporting a window created, shown, hidden,
+	// cloaked, uncloaked, destroyed or moved; the displays changing.
+	WakeChanged Wake = iota
+	// WakeTouched is the user's first key press or mouse click: they have
+	// taken over the desktop, so nothing is waited for any longer.
+	WakeTouched
+	// WakeDeadline is the ceiling passing.
+	WakeDeadline
+	// WakeFlashed is the shell reporting a taskbar button flashing; Flashing
+	// says whose (FR-080).
+	WakeFlashed
+)
+
+// Policy holds the timing a restore runs to. It is a value rather than a
+// literal in the code for two reasons: NFR-PERF-003 makes the ceiling the
+// user's to set; a test needs to state it rather than wait for it. It is the
+// only timing there is: everything else a restore waits for is an event
+// (FR-079), save the flash series FR-080 waits out, which is read from Windows.
 type Policy struct {
 	// Ceiling bounds how long a restore keeps waiting for windows that have not
 	// appeared (FR-023, NFR-PERF-003).
 	Ceiling time.Duration
-	// SettleCheck is how long after placing a window the agent re-reads it, to
-	// catch an application that moved its own window afterwards (FR-033,
-	// NFR-PERF-004).
-	SettleCheck time.Duration
-	// Poll is how often a restore looks again for the windows it is waiting
-	// for. The specification fixes no value for it: it is the cost of waiting,
-	// traded against how soon a window that has just appeared gets placed;
-	// it is bounded by NFR-PERF-005.
-	Poll time.Duration
 }
 
-// The default timings, each named so that no number in this package stands on
-// its own. The ceiling and the settle-check delay are the specification's
-// values; the poll interval is this layer's own choice.
+// The ceiling's default and bounds, each named so that no number in this
+// package stands on its own.
 const (
-	DefaultCeiling     = 15 * time.Minute
-	DefaultSettleCheck = 10 * time.Second
-	DefaultPoll        = time.Second
+	DefaultCeiling = 15 * time.Minute
 
 	// MinimumCeiling and MaximumCeiling bound what a user may set the ceiling
 	// to (NFR-PERF-003).
@@ -216,14 +250,10 @@ const (
 	MaximumCeiling = 60 * time.Minute
 )
 
-// DefaultPolicy returns the timings a restore runs to when the user has set
+// DefaultPolicy returns the timing a restore runs to when the user has set
 // none of their own.
 func DefaultPolicy() Policy {
-	return Policy{
-		Ceiling:     DefaultCeiling,
-		SettleCheck: DefaultSettleCheck,
-		Poll:        DefaultPoll,
-	}
+	return Policy{Ceiling: DefaultCeiling}
 }
 
 // WithCeiling returns a copy of the policy waiting for the given time, held

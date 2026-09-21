@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/oernster/ScreenState/internal/domain"
 )
@@ -102,37 +103,40 @@ func TestAnApplicationJustLaunchedIsNotRunAgainWhileItsWindowIsComing(t *testing
 	}
 }
 
-// FR-036: an application this restore starts that goes straight to the
-// notification area is still asked to show its window, once its launch has had
-// the time any window is given to settle.
-func TestAnApplicationThatStartsIntoTheTrayIsAskedOnceItHasSettled(t *testing.T) {
+// FR-036 with FR-079: an application this restore starts that goes straight to
+// the notification area is never run a second time. Nothing Windows reports
+// says it has finished starting; running it early is the second copy FR-025
+// forbids, so it waits for its window until the user takes over, then the
+// report says what did not happen.
+func TestAnApplicationThatStartsIntoTheTrayIsNotRunTwice(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{displays: []Display{primaryDisplay}}
 	processes := newFakeProcesses()
 	launcher := &fakeLauncher{}
 	launcher.onLaunch = func(domain.ApplicationIdentity) {
-		if launcher.launchCount(nordvpn) == 1 {
-			hidden := aWindow(1, nordvpn, at(0))
-			hidden.Visible = false
-			processes.start(nordvpn)
-			desktop.addWindow(hidden)
-			return
-		}
-		desktop.showWindow(1)
+		hidden := aWindow(1, nordvpn, at(0))
+		hidden.Visible = false
+		processes.start(nordvpn)
+		desktop.addWindow(hidden)
 	}
-	service := restoreUnder(desktop, processes, launcher,
-		newFakeStore(), newFakeClock(), &fakeLog{})
+	clock := newFakeClock()
+	const firstInput = 3
+	events := &fakeEvents{clock: clock, touchAt: firstInput}
+	service := NewRestoreService(desktop, processes, launcher, newFakeStore(), clock, &fakeLog{},
+		Policy{Ceiling: time.Minute}, screenst, &fakeStrangers{}, &fakeSplash{}, events)
 
 	report, err := service.Restore(context.Background(), oneEntry(nordvpn, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if launcher.launchCount(nordvpn) != 2 {
-		t.Fatalf("it was run %d times rather than started then asked", launcher.launchCount(nordvpn))
+	if launcher.launchCount(nordvpn) != 1 {
+		t.Fatalf("it was run %d times: a launch not yet answered was run again",
+			launcher.launchCount(nordvpn))
 	}
 	entry := reportOf(t, report, nordvpn)
-	if !entry.Satisfied || !noteSaying(entry, "asked to show one") {
-		t.Fatalf("the window it hid was not asked for and placed: %+v", entry)
+	if entry.Satisfied || !containsText(entry.Reason, "showed no window") ||
+		!containsText(entry.Reason, "taken over") {
+		t.Fatalf("the report does not say it showed no window before the user took over: %+v", entry)
 	}
 }
 

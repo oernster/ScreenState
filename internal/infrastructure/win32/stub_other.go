@@ -4,6 +4,7 @@ package win32
 
 import (
 	"context"
+	"time"
 
 	"github.com/oernster/ScreenState/internal/application"
 	"github.com/oernster/ScreenState/internal/domain"
@@ -84,3 +85,17 @@ func NewLauncher(application.Log) *Launcher { return &Launcher{} }
 func (launcher *Launcher) Launch(context.Context, domain.ApplicationIdentity) error {
 	return ErrNotWindows
 }
+
+// Events refuses to watch on a machine that is not Windows.
+type Events struct{}
+
+// NewEvents returns events that refuse to watch.
+func NewEvents() *Events { return &Events{} }
+
+// Watch refuses.
+func (*Events) Watch(context.Context) (application.DesktopWatch, error) {
+	return nil, ErrNotWindows
+}
+
+// FlashSeries answers zero: there is no taskbar to flash.
+func (*Events) FlashSeries() time.Duration { return 0 }

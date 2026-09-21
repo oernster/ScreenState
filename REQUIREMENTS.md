@@ -349,9 +349,9 @@ never put away: the manager is where Apply was pressed.
 Priority: Should
 Requirement: The ScreenState agent shall offer a setting, off unless the user
 turns it on, under which the restore that runs at sign-in asks each window that
-FR-063 would put away to close instead. Where such a window is still open once
-the settle time has passed, the agent shall minimise it and shall record in the
-report that it did not close. Every other restore shall minimise those windows
+FR-063 would put away to close instead. Where such a window is still open at
+the user's first key press or mouse click or the ceiling (FR-079), the agent
+shall minimise it and shall record in the report that it did not close. Every other restore shall minimise those windows
 whatever the setting says, including the one that runs when the agent is started
 by hand. The agent shall never close a window the
 profile names and shall never close one of its own.
@@ -431,10 +431,10 @@ and be read whole.
 Priority: Must
 Requirement: When a profile entry records more windows than the application has
 open, the ScreenState agent shall run the application's own launch command
-again, once for each missing window, waiting after each run for the time a
-window is given to settle. Where a run opens no new window in that time, the
-agent shall stop asking for that entry; the report shall say how many of the
-recorded windows opened.
+again, once for each missing window, running it again only once the last run
+has opened a window. Where a run opens no new window before the user's first
+key press or mouse click or the ceiling (FR-079), the agent shall stop asking
+for that entry; the report shall say how many of the recorded windows opened.
 Requirement, added 2026-09-21: the agent shall open a missing window only where
 the restore ran at sign-in or where the restore itself started that
 application. Where an application was already running with windows of its own,
@@ -525,7 +525,9 @@ placed. When a restore the user asked for has settled, it shall do so for the
 windows of the applications that restore started and for no others. It shall
 record in the log how many buttons were built afresh; each window shall keep its
 place, its size, its show state and its position in the stacking order among
-the windows a person can see.
+the windows a person can see. After rebuilding each button it shall tell the
+taskbars that window was activated, then that the window which really has the
+front was; it shall activate nothing.
 Rationale: reported and measured 2026-09-21. A taskbar marks the window last
 activated on its display; an application puts its own window in front as it
 starts, so a desktop assembled at sign-in comes back marked on every display
@@ -541,9 +543,17 @@ back beneath the window directly above, whatever it was, left the left Windows
 Terminal on top of Claude, since that window was Terminal's own hidden input
 method window and came to the top with it. Restoring the stacking order a
 profile recorded stays out of scope (OOS-2); this only keeps the rebuild from
-disturbing the order it found.
+disturbing the order it found. A rebuild does not clear the red a finished flash
+series (FR-080) leaves on a button, measured on Stellody the same day; neither
+did FlashWindowEx with FLASHW_STOP. The shell's own "window activated" notice,
+which it sent after Claude's rebuild and Claude's red cleared, was then posted
+for Stellody to the taskbars by a probe: the red cleared, nothing was activated,
+the underline stayed on the window that had the front and a click on Stellody's
+button brought it forward rather than minimising it. The notice for the real
+front window follows, so the taskbars end up believing the truth.
 Acceptance: Given a sign-in restore that placed four windows, when it settles,
-then the log says four buttons were built afresh, no button carries a mark,
+then the log says four buttons were built afresh, no button carries a mark or
+is red,
 every window is where the profile put it and no window has moved above one it
 was beneath.
 
@@ -617,8 +627,67 @@ desktop is prepared" and the window the user is typing into keeps the keyboard.
 When all five entries are satisfied, then each splash says "Your desktop is
 ready" and all four close at the next key press or mouse click. Given a restore that ends with one
 entry outstanding, then each splash says "Your desktop is ready" and "1
-application did not start". Given any splash clicked while the restore runs,
+application did not start".
+
+**FR-079 A restore acts on events, never on a wait**
+Priority: Must
+Requirement: While a restore runs (and while FR-033 watches the windows it
+placed) the ScreenState agent shall read the desktop again only when Windows
+reports a change: a window created, shown, hidden, cloaked, uncloaked,
+destroyed or moved; the displays changing. Where the agent needs to know
+that something will not happen (an application asked for a window shows none,
+a window asked to close stays open) it shall stop waiting at whichever comes
+first of the user's first key press or mouse click after the restore began and
+the ceiling. It shall then report what did not happen. The ceiling
+(NFR-PERF-003) shall be the only timer a restore runs to, save the one FR-080
+allows before a restore says ready. The setup program
+shall wait for the agent to end on the agent's own process rather than by
+looking again.
+Rationale: ruled by the owner 2026-09-21: the product acts on events and never
+waits. The restore used to look at the desktop every second and to give
+everything ten seconds to settle; a pause picked in advance is a guess drawn as
+a measurement. An event says when something happened. Nothing but time or
+another event can say that it will not: the user taking over the desktop is
+that event; the ceiling bounds a restore nobody touches. The owner accepted the
+cost. An application that never shows its window holds a sign-in restore and
+its splash until the first key press or click, up to the ceiling; so does a
+window that never closes. The splash can be clicked away throughout (FR-078).
+Acceptance: Given a restore waiting on an application that never shows a
+window, when the user presses a key, then the entry is reported as not shown
+and the restore ends. Given a placed window that moves itself before the user
+touches anything, then it is put back once, even after the splash says ready.
+Given no restore running, then the agent looks at nothing. Given any splash clicked while the restore runs,
 then all four close and the restore carries on.
+
+**FR-080 Let the flashing end before the buttons are rebuilt**
+Priority: Must
+Requirement: When every entry of a restore is settled and before FR-075
+rebuilds any taskbar button, the ScreenState agent shall wait until none of the
+windows it is about to rebuild has had its taskbar button flash for one full
+flash series. Each flash the shell reports for one of those windows shall begin
+the wait again. One full series is the machine's foreground flash count times
+twice its caret blink time, both read from Windows when the wait begins; where
+the caret does not blink or its blink time cannot be read, the Windows default
+of 530 milliseconds stands in for it. The user's first key press or mouse click
+and the ceiling shall end the wait early, as they end every wait (FR-079). Only
+then shall the buttons be rebuilt and the splash say ready (FR-078).
+Rationale: measured by a shell trace at the owner's sign-in on 2026-09-21. An
+application started without the front (FR-077) asks for it anyway; Windows
+refuses and flashes its taskbar button instead, in a series. Claude flashed
+from 3 seconds after launch until 14; Stellody until 11. A rebuild clears the
+mark only as it stands: the flashes after it put it back, so both buttons were
+left red. Nothing tells a program that a series has ended, so the owner allowed
+this one timer, for this problem alone. The series length is read at run time
+rather than written down, because the count and the blink time are each user's
+settings. Flashes on that machine came 1.060 seconds apart against a caret blink
+of 530 milliseconds; that the shell paces flashes at twice the blink time is
+measured on one machine only.
+Acceptance: Given a sign-in restore in which a started application's button
+flashes 5 seconds after the last entry is settled, when the wait ends, then the
+buttons are rebuilt after that flash and the splash says ready after the
+rebuild. Given no window that flashes, then the wait is one full series. Given
+a key press during the wait, then the buttons are rebuilt at once and the
+splash says ready.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -697,16 +766,24 @@ can otherwise land a window where the user cannot reach it.
 **FR-033 Verify and re-apply once**
 Priority: Must
 Requirement: When a placement has been applied, the ScreenState agent shall
-re-read the window after the settle-check delay and shall apply the placement
-once more if the window no longer matches it.
+re-read the window each time Windows reports the desktop changed (FR-079) and
+shall apply the placement once more if the window no longer matches it. It
+shall keep doing so after the restore has ended, until the user's first key
+press or mouse click or the ceiling, whichever comes first.
 Rationale: an application may move its own window after starting. The owner
-observes Discord arriving in the wrong place after every reboot.
+observes Discord arriving in the wrong place after every reboot. Revised
+2026-09-21 when the owner ruled that the product acts on events: the window is
+watched rather than re-read after a delay. Watching stops at the user's first
+input because from then on a moved window is the user moving it, which is the
+confusion OQ-7 recorded.
 
 **FR-034 Give up rather than fight**
 Priority: Must
 Requirement: If a window does not match its placement after the second
 application, then the ScreenState agent shall record it in the report and shall
-make no further attempt during that restore.
+make no further attempt during that restore. Where the restore has already
+ended (FR-033 watches on after it) the agent shall record it in the log, since
+the report has by then been handed to the user.
 Rationale: an endless contest with an application would leave a window flicking
 between two positions.
 
@@ -730,8 +807,12 @@ drawing, so that mechanism is withdrawn. Running a second copy, on 2026-09-20,
 made the running instance show and draw that same window, at the same handle
 and the same rectangle, after which the second process exited by itself. That
 is what a user does from the tray; it is the mechanism this requirement now
-uses. Where no window appears within the settle-check delay the report
-states that the application could not be shown.
+uses. Where no window appears before the user's first key press or mouse
+click or the ceiling (FR-079), the report states that the application could
+not be shown. An application this restore itself started is never run a second
+time before it has shown a window. Nothing Windows reports says it has
+finished starting; running it early is the second copy FR-025 forbids. One that
+starts into the tray therefore stays there. The report says so.
 
 **FR-056 Ask an application to show its own window**
 Priority: Should
@@ -935,12 +1016,10 @@ startup twice before he said so. Fifteen minutes is therefore generous by an
 order of magnitude against the only figure that was ever clean, which is what a
 ceiling should be: the point at which waiting is abandoned, not a prediction.
 
-**NFR-PERF-004 Settle-check delay**
-Priority: Must
-Requirement: The ScreenState agent shall re-read each placed window 10 seconds
-after placing it, for the check in FR-033.
-Method: the value is read from configuration and asserted in a test over a fake
-clock. The default is provisional until A-6 is confirmed.
+**NFR-PERF-004 Settle-check delay: WITHDRAWN**
+The agent no longer waits a set time for anything but the ceiling (FR-079), so
+there is no such value to set. The number is retired rather than reused, so
+nothing that cited it can quietly come to mean something else.
 
 **NFR-PERF-005 Idle cost**
 Priority: Must
@@ -1235,16 +1314,16 @@ Counted from this document rather than carried forward, because the previous
 figures had drifted about ten below the requirements actually written. Recounted
 on 2026-09-20 by scanning every `Priority:` line: the Must figure had been
 written as 56 against 65 actually present, a transposition that the earlier
-recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. Recounted again on 2026-09-21 with FR-077 in: 74, where the table said 72 before it, because FR-074 had been added without the figure moving. Withdrawn requirements carry no
+recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. Recounted again on 2026-09-21 with FR-077 in: 74, where the table said 72 before it, because FR-074 had been added without the figure moving. FR-079 added one and withdrawing NFR-PERF-004 took one away, leaving 74. FR-080 took it to 75. Withdrawn requirements carry no
 `Priority:` line, so they are not in the Must or Should figures.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 74 | The product does not work without any one of them. |
+| Must | 75 | The product does not work without any one of them. |
 | Should | 18 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, FR-078, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
-| Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
+| Withdrawn | 7 | FR-020, FR-021, FR-022, FR-028, FR-030, NFR-PERF-002 and NFR-PERF-004. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
 
 The Must proportion is high for a first release of a utility whose whole purpose
 is one behaviour. The check that keeps it honest: every Must names a failure the
