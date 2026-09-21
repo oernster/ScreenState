@@ -44,8 +44,10 @@ const (
 // SW_SHOWNA does not activate, where showing a maximised window through
 // SetWindowPlacement did, which a shell watcher recorded for PigeonPost,
 // Stellody and Claude. Its place in the stacking order: a window shown again
-// goes on top, so it is put back beneath the window that was directly above
-// it, which is why Terminal came back on top of everything.
+// goes on top, so it is put back beneath the nearest window above it that a
+// person would call a window. Not simply the one directly above: that was a
+// hidden input method window for the left Terminal, which came back on top of
+// Claude beneath it (see nearestWindowAbove).
 func (desktop *Desktop) RebuildTaskbarButton(
 	ctx context.Context,
 	id application.WindowID,
@@ -57,7 +59,7 @@ func (desktop *Desktop) RebuildTaskbarButton(
 	if alive, _, _ := pIsWindow.Call(handle); alive == 0 {
 		return application.ErrWindowGone
 	}
-	above, _, _ := pGetWindow.Call(handle, gwHwndPrev)
+	above := nearestWindowAbove(handle, windowDirectlyAbove, isCandidate)
 	if above == 0 {
 		above = hwndTop
 	}
@@ -70,4 +72,11 @@ func (desktop *Desktop) RebuildTaskbarButton(
 	_, _, _ = pSetWindowPos.Call(handle, above, 0, 0, 0, 0,
 		swpNoMove|swpNoSize|swpNoActivate)
 	return nil
+}
+
+// windowDirectlyAbove answers the window immediately above another in the
+// stacking order, whatever it is; zero at the top.
+func windowDirectlyAbove(handle uintptr) uintptr {
+	above, _, _ := pGetWindow.Call(handle, gwHwndPrev)
+	return above
 }

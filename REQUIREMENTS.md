@@ -524,7 +524,8 @@ agent shall have the shell build afresh the taskbar button of every window it
 placed. When a restore the user asked for has settled, it shall do so for the
 windows of the applications that restore started and for no others. It shall
 record in the log how many buttons were built afresh; each window shall keep its
-place, its size and its show state.
+place, its size, its show state and its position in the stacking order among
+the windows a person can see.
 Rationale: reported and measured 2026-09-21. A taskbar marks the window last
 activated on its display; an application puts its own window in front as it
 starts, so a desktop assembled at sign-in comes back marked on every display
@@ -534,10 +535,17 @@ marks has not finished its work. Hiding a window and showing it again is the
 only answer measured to clear a mark: the button is dropped and built anew. It
 costs a visible flicker of each window, which the owner ruled is the lesser
 evil. Where a restore started nothing, nothing gained a mark, so nothing
-flickers.
+flickers. A window shown again goes on top, so each is put back beneath the
+nearest window above it that a person can see. Measured 2026-09-21: putting it
+back beneath the window directly above, whatever it was, left the left Windows
+Terminal on top of Claude, since that window was Terminal's own hidden input
+method window and came to the top with it. Restoring the stacking order a
+profile recorded stays out of scope (OOS-2); this only keeps the rebuild from
+disturbing the order it found.
 Acceptance: Given a sign-in restore that placed four windows, when it settles,
-then the log says four buttons were built afresh, no button carries a mark and
-every window is where the profile put it.
+then the log says four buttons were built afresh, no button carries a mark,
+every window is where the profile put it and no window has moved above one it
+was beneath.
 
 **FR-076 Installing arranges nothing**
 Priority: Must
@@ -575,6 +583,42 @@ come up red; nothing measured prevents that on those routes.
 Acceptance: Given Claude in front and Windows Terminal closed, when a restore
 started at sign-in starts Terminal by its path, then its window appears without
 taking the keyboard and its taskbar button is not red.
+
+**FR-078 Saying the desktop is being prepared**
+Priority: Should
+Requirement: When a restore begins, whether at sign-in or from the manager, the
+ScreenState agent shall show a splash on every display, above every other
+window, carrying the application's artwork and the words "Please wait while
+your desktop is prepared". When the restore ends, every splash shall say "Your
+desktop is ready". Where any entry is still outstanding it shall add "N
+application did not start" for one entry or "N applications did not start" for
+more, with N the outstanding count. Every splash shall then close at the user's
+next key press or mouse click anywhere on the desktop. A click on any splash,
+while the restore runs or after, shall close them all at once. The splash shall never take the keyboard from the window
+that holds it; it is not a window any capture records, FR-064 closes or FR-075
+rebuilds. When setup starts the agent (FR-076) no splash is shown.
+Rationale: requested by the owner 2026-09-21. A sign-in restore takes tens of
+seconds while windows open, move and flicker (FR-075), which reads as a desktop
+misbehaving unless something says the arranging is deliberate and when it is
+over. Every display, because the owner may be looking at any of four. The ready
+message closes on the user's next input rather than after a pause: the owner
+first asked for three to five seconds, then ruled that the product acts on
+events and never waits. The splash receives that input without holding the
+keyboard. A user away from the machine at sign-in comes back to "Your desktop
+is ready" rather than to a message that has already gone. A click closes the splash
+early because it sits above everything for as long as a restore runs, which the
+ceiling allows to be fifteen minutes. The shortfall is stated rather than hidden
+because "ready" over a desktop missing an application is a claim the product
+knows to be false; the detail stays in the report. Drawn with the artwork EIR-003
+names, reduced from the master and never enlarged.
+Acceptance: Given a sign-in restore of the owner's profile on four displays,
+when it begins, then each display shows the artwork and "Please wait while your
+desktop is prepared" and the window the user is typing into keeps the keyboard.
+When all five entries are satisfied, then each splash says "Your desktop is
+ready" and all four close at the next key press or mouse click. Given a restore that ends with one
+entry outstanding, then each splash says "Your desktop is ready" and "1
+application did not start". Given any splash clicked while the restore runs,
+then all four close and the restore carries on.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -1197,7 +1241,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. Reco
 | Priority | Count | Notes |
 |---|---|---|
 | Must | 74 | The product does not work without any one of them. |
-| Should | 17 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Should | 18 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, FR-078, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
