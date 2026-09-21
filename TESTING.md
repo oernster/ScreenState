@@ -70,7 +70,7 @@ It ends with `All checks passed.` Trust the exit code, not the text:
 functions: the gate reads `go tool cover -func` and fails naming the package
 when any function in it has no statement a test reached. It is a floor on
 functions, not on statements; measured statement coverage is 100% for the
-domain and 97.1% for the application. They are the layers a machine can
+domain and a little short of it for the application. They are the layers a machine can
 exercise with no filesystem, no clock and no desktop, so a function nothing
 calls there is a decision nobody made.
 
@@ -86,16 +86,20 @@ on screen. What it does have is listed below.
 `internal/domain` holds what a profile is and what a placement means, with no
 I/O and no clock: `profile_test.go` covers naming, entries and the default
 marking, `geometry_test.go` the rectangles, the display matching and the
-window states.
+window states. `recognises_test.go` holds the rule that a packaged application
+is still recognised once an update has moved its path; both sides must carry
+the same model id.
 
 ### The decisions
 
 `internal/application` is the largest suite, because every decision lives
 there behind an interface and every failure can therefore be caused on demand
 with a hand-written fake. It covers the capture and what it leaves out, the
-restore and its lifecycle, waiting for a window that has not appeared, the
-report, the tray, profile naming and marking, the update check and the failure
-wording.
+applications running with no window that a capture offers apart, the restore
+and its lifecycle, stopping a restore part way, placing a packaged
+application's window after an update has moved its path, waiting for a window
+that has not appeared, the report, the tray, profile naming and marking, the
+update check and the failure wording.
 
 There are no mocking libraries. The fakes are written by hand, in
 `fakes_test.go`, `fakes_desktop_test.go` and `fakes_store_test.go`, with fields
@@ -106,14 +110,14 @@ tests share.
 
 | Package | What its tests use |
 |---|---|
-| `store` | a real temporary directory: round trips, the file's shape, a missing file, a corrupt file, an unwritable directory, an interrupted write that must leave the old file whole |
-| `settings` | the same, for `settings.json` and its absent-means-on reading |
+| `store` | a real temporary directory: round trips, the default marking, a profile that is not there, a broken file that costs only itself, a profile in a newer format left alone, a store that cannot be read or has gone away, an interrupted write that must leave the old file whole |
+| `settings` | the same, for `settings.json`: its absent-means-on reading and a damaged file reported as a fault rather than read as the defaults |
 | `runlog` | a real log file, its header and its steps |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
-| `win32` | the naming rules and the stacking-order rule, on any platform; behind a build tag, the probes of the real desktop and the flash series worked out from the machine's settings |
+| `win32` | the naming rules, the stacking-order rule and the rule that a program under the Windows directory is part of Windows, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and the applications running with no window shown) and the flash series worked out from the machine's settings |
 | `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
-| `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input |
+| `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
 `startup`, `update` and `window` have no tests of their own: they are the
 registry, the network and the desktop. What can be decided about them was
@@ -135,6 +139,13 @@ depends on: no list may reach a page as `null`. A nil slice is marshalled as
 null rather than as an empty array, which a page then reads a length from and
 throws, leaving the window on the panel it was waiting with. That was a real
 defect, on 2026-09-20, on a capture that found nothing unreadable.
+
+Two more facade tests sit beside it. `window_test.go` holds FR-048: a sign-in
+start leaves the window off screen, a start by hand takes the keyboard and
+closing the manager puts the window back off screen. `capture_test.go` carries
+FR-005 across the wire against the real store in a temporary directory: only
+the applications running with no window that the user ticked are saved, each
+as running with no placement.
 
 ### The structure
 
@@ -193,7 +204,8 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | A packaged application is named and started by its path (FR-071) | Recapture with Claude and Windows Terminal open: the review should show each as a path under `WindowsApps`, not as a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
 | A packaged application survives its own update (FR-071) | After Claude next updates, apply the profile without recapturing: it should start and be placed, never put away; the log should say it did not start from its path so its model id was used. |
 | An application running with no window is offered (FR-005) | With NordVPN in the notification area and its window closed, capture: NordVPN should be listed under "Running with no window shown", unticked, with nothing from under the Windows directory there. Tick it and save; the profile should show NordVPN with no window placed. Quit NordVPN and apply: it should start and no window of its should be moved. |
-| The tray icon asks for attention (FR-045) | Apply a profile naming an application that is not installed: once the restore ends, the tray icon should carry a red badge in its corner, in the light theme and in the dark one. Apply a profile that completes: the badge should go. |
+| The tray icon asks for attention (FR-045) | Apply a profile naming an application that is not installed: once the restore ends, the tray icon should carry a badge in the theme's danger colour in its bottom-right corner, in the light theme and in the dark one. Apply a profile that completes: the badge should go. After a restore started from the manager and after one at sign-in, rest the pointer on the icon: the tooltip should describe that restore. |
+| A restore can be stopped (FR-049) | Apply a profile holding several applications that are not running, then press Stop the restore on the Applying panel: the report should say the restore was cancelled and every window already placed should stay where it is. |
 | A sign-in start opens no window (FR-048) | Sign in with the option ticked: the agent should be in the notification area only. The log says so where the page asked for the keyboard and was left alone. |
 | Several displays, mixed scaling (FR-027, FR-031, FR-032) | Capture and restore across monitors at different scales. |
 | The update check (FR-058, FR-059) | Once per run against the real release feed, then again with the setting off, where nothing should reach the network. |

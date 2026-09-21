@@ -16,13 +16,16 @@ is cut. Every command is PowerShell, run from the repository root.
 
 staticcheck is not installed: `test.ps1` fetches the latest release through
 `go run`, which needs the network on first use and can move between runs.
+`./test.ps1 -Quick` skips that one step while working; the build always runs it.
 
 cgo is off for everything that ships. The only exception is the race detector,
 which needs it and is therefore its own pass inside the gate; that pass is why
 a build needs a C compiler although nothing shipped is compiled with one.
 
-Allow Go's scratch directory in your anti-virus before the first test run;
-without that the suite cannot run at all. See [TESTING.md](TESTING.md).
+Allow Go's scratch directory in your anti-virus before the first test run: an
+anti-virus product that quarantines Go's unsigned test binaries, as
+Malwarebytes did on this project, stops the suite running. See
+[TESTING.md](TESTING.md).
 
 ## Building
 
@@ -70,14 +73,29 @@ rest of `installer/build/` (the setup program's icon, manifest and
 ### A note on `-ldflags`
 
 `-X` only reaches a `var`. Against a `const` it silently does nothing, which
-is a whole release shipping while announcing `0.0.0-dev`, so `main.version`
-and the setup program's `main.appVersion` are both declared `var` on purpose.
+is a whole release shipping while announcing the placeholder written in the
+source, so `main.version` and the setup program's `main.appVersion` are both
+declared `var` on purpose.
 
 ## Running from source
 
+Build the agent, then start it:
+
 ```powershell
-go run .
+./build.ps1 -SkipInstaller
+./build/bin/ScreenState.exe -quiet
 ```
+
+Plain `go run .` does not work: without the Wails build tags that `wails build`
+supplies, Wails shows its "will not build without the correct build tags"
+message instead of the manager.
+
+How the agent is started decides what it does. With `-quiet`, which is what
+the setup program passes, it opens the manager and arranges nothing. With
+`-hidden`, which is what the sign-in entry passes, it applies the default
+profile and waits in the notification area without opening a window. With
+neither it applies the default profile and opens the manager, so start it
+with `-quiet` unless the desktop is meant to be rearranged.
 
 Only one copy runs per user session. A second start opens the running copy's
 manager rather than starting again, which the log says in as many words.
@@ -118,8 +136,8 @@ Every piece of artwork has its master in `assets/`: `application-icon.png` for
 the mark, plus one each for the light and dark toggle faces, the help, profile
 and donate art. `tools/genicons.py` makes the `.ico` beside the mark and writes
 each piece, reduced from its master, into the page directories that want it.
-The site under `docs/` carries copies of the mark and the toggle faces as the
-manager has them.
+The site under `docs/` carries copies of the mark, the toggle faces and the
+donate art as the manager has them.
 
 ```powershell
 python tools/genicons.py
@@ -144,7 +162,8 @@ python stamp_version.py
 ## The site
 
 `docs/` is the GitHub Pages site, served from the `main` branch: plain HTML and
-CSS with no build step, wearing the palette in `assets/theme.css`. It shows no
+CSS with no build step, wearing a copy in `docs/styles.css` of the palette in
+`assets/theme.css`; a change to one is made to the other by hand. It shows no
 dates anywhere; the version is its only changing text and is stamped as above.
 
 ## Cutting a release
@@ -170,9 +189,10 @@ installed copy that there is a newer version.
   layer and the infrastructure.
 - No Go file over 400 lines, none left between 381 and 400.
 - Every exported type has a doc comment.
-- Nothing above infrastructure ends the program.
-- No version string outside `VERSION`.
+- Nothing above infrastructure can end a program.
+- No release version written anywhere but `VERSION`.
 - No em dashes anywhere, in code, comments or documents.
 
 The reasons are in [ARCHITECTURE.md](ARCHITECTURE.md); the checks that enforce
-them are in [TESTING.md](TESTING.md).
+the first six are in [TESTING.md](TESTING.md). The last two are held by
+review: no test checks them.

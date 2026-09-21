@@ -33,23 +33,29 @@ Windows.
   window. It starts what is missing and places each window as soon as it appears, without waiting
   for the slowest application. A message on every display says the desktop is being prepared, then
   that it is ready.
-- **Applies any profile on demand** from the tray menu or the manager.
+- **Applies any profile on demand** from the tray menu or the manager. A restore started from the
+  manager can be stopped with Stop the restore on its Applying panel; every window already placed
+  stays where it is and the report says the restore was cancelled.
 - **Knows displays apart** by the identity Windows gives each screen, so two monitors of the same
   model are never confused. A display that is gone sends its windows to the primary one.
 - **Names applications by what survives their updates**: the path, the updater that does not move
   or (for a packaged application whose path moves with every version) its model id kept beside the
-  path so it can still be started.
+  path. The model id is what still starts it and what still recognises its window once an update
+  has moved it to a new path.
 - **Leaves the keyboard and the taskbar alone.** Nothing it starts or places takes the keyboard
   from the window you are typing in; no taskbar button is left lit, red or missing its icon.
-- **Puts away the windows a profile does not name**, by minimising them; at sign-in it can close
+- **Puts away the windows the profile does not name**, by minimising them; at sign-in it can close
   them instead, if you turn that on.
 - **Reports what it could not do**, naming each application and the reason; the report is a click
-  away in the tray menu and in the manager's Help.
+  away in the tray menu and in the manager's Help. The tray icon's tooltip says what the last
+  restore did and is read again after every restore, wherever it was started. While the last
+  restore left something outstanding, the icon carries a red badge.
 
 ## What it does not do
 
-- **It never ends a program.** It closes a window only where you have turned that on, only at
-  sign-in and only for a window no profile names.
+- **It never ends another program.** The one process anything here ends is its own agent, which
+  the setup program stops before replacing its files. It closes a window only where you have
+  turned that on, only at sign-in and only for a window the profile being restored does not name.
 - **It does not restore what is inside an application**: browser tabs, open documents and the
   folder an Explorer window shows are the application's business. Nor stacking order, Snap groups
   or virtual desktops.
@@ -92,8 +98,8 @@ tick the box that says otherwise.
 
 The agent waits in the notification area. Click its icon or launch it again from the Start Menu or
 the desktop and the manager opens: the profiles and the settings, with what the selected profile
-arranges a button away. Right-click the icon instead for the menu, which applies a profile, starts a
-capture, opens the report of the last restore or quits.
+arranges a button away. Right-click the icon instead for the menu, which applies a profile, opens the
+manager, starts a capture, opens the report of the last restore or quits.
 
 Capture the desktop to make a profile. Marking a profile as the default is what makes it the one
 applied after you sign in; while there is only one profile, it is the default.
@@ -134,7 +140,7 @@ every tool a build needs and what the build does, in order.
 - [DEVELOPMENT.md](DEVELOPMENT.md): building from source and cutting a release.
 - [TESTING.md](TESTING.md): the gate, what the tests prove and the checks done by hand.
 
-## Supporting the project
+## Supporting ScreenState
 
 ScreenState is free and stays free: there is no paid tier, no licence key and no feature held back
 behind a donation. The same link sits at the foot of the manager; pressing it there hands the

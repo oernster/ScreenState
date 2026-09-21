@@ -1277,7 +1277,7 @@ requirement or is recorded as deliberately unaddressed.
 | A profile naming an application that is no longer installed | FR-026. Reported, the restore continues. |
 | A display arrangement that has changed since capture | FR-031 and FR-032. |
 | The largest plausible input | An entry per running application, a placement per window. NFR-PERF-001 fixes the number tested at 20 windows. |
-| A restore interrupted part way | FR-049, FR-061 and FR-052. The report records how far it got. FR-049 is not yet built as a control; see ARCHITECTURE.md. |
+| A restore interrupted part way | FR-049, FR-061 and FR-052. The report records how far it got. FR-049 is built: the manager's Applying panel carries a control to stop the restore. |
 | Two restores at once | FR-047 gives one agent per user. FR-061 settles what that one agent does: the newer request replaces the running restore, undoing nothing already placed; both reports say so. |
 | Upgrade from a previous version | DATA-002 and DATA-003. |
 | The user having no permission | OOS-5 and FR-035. |
