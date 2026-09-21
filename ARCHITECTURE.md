@@ -195,17 +195,20 @@ Windows itself decides where to maximise it.
    per missing window, each run given the settle-check delay before the next (FR-069). With no window
    showing, the run signals the instance already running to show and draw its own (FR-036, FR-056);
    acting on the hidden window from outside was measured producing an empty frame. With some showing,
-   the run is for another window: Windows Terminal opens one each time it is run. A run that opens no
+   the run is for another window, since some applications open one each time they are run. A run that opens no
    window ends the asking for that entry and the report says how many opened, since an application
    allowing one copy would otherwise hold the restore until the ceiling. An application this restore
    has just started is never run again inside that delay: on 2026-09-21 every launched application
    was started twice in the same second, which is a second copy FR-025 forbids.
-4. Once placed, a window is read again after the settle-check delay and put back **once** if the
+4. A packaged application, named by its model id, is launched and never placed (FR-070): capture
+   records it with no placement and a restore ignores any placement an older profile holds for it.
+   `ApplicationIdentity.Placeable` is the one home for that rule, so the two cannot disagree.
+5. Once placed, a window is read again after the settle-check delay and put back **once** if the
    application has moved it (FR-033). After that one further attempt the agent gives up and says so,
    rather than fighting an application for its own window (FR-034).
-5. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+6. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
    against the displays as they then stand and the change is recorded (FR-057).
-6. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
+7. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 
@@ -508,7 +511,8 @@ properly. Four answers were measured on the reference machine and none cured it:
 to repaint, telling the shell its icons may have changed, a restore mid-session long after the shell
 was up and starting them through the activation manager. On the boot after the last, Claude's button
 carried its icon on the primary display's taskbar and on no other; Terminal's was grey on all of them.
-The shell draws these buttons and nothing this product can reach changes how, so it is left.
+The owner's answer is FR-070: those two are launched and left where they open. Whether that cures the
+grey buttons is unproven until a boot says so.
 
 **Unverified against a real desktop.** Moving a window and starting an application are implemented and
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They

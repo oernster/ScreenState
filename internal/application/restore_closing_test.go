@@ -15,9 +15,9 @@ func TestAStrangerIsAskedToCloseWhenTheSettingSaysSo(t *testing.T) {
 	stranger := aWindow(2, nordvpn, at(1))
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
@@ -47,9 +47,9 @@ func TestApplyNeverClosesAnythingWhateverTheSettingSays(t *testing.T) {
 	stranger := aWindow(2, nordvpn, at(1))
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
@@ -81,9 +81,9 @@ func TestAStartByHandClosesNothingEither(t *testing.T) {
 	stranger := aWindow(2, nordvpn, at(1))
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
@@ -108,10 +108,10 @@ func TestAStrangerThatRefusesToCloseIsPutAway(t *testing.T) {
 	stranger := aWindow(2, nordvpn, at(1))
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
 		refuses:  map[WindowID]bool{stranger.ID: true},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
@@ -134,10 +134,10 @@ func TestAStrangerThatCannotBeAskedToCloseIsReported(t *testing.T) {
 	stranger := aWindow(2, nordvpn, at(1))
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
 		closeErr: map[WindowID]error{stranger.ID: errors.New("the window is gone")},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
@@ -158,9 +158,9 @@ func TestASettingThatCannotBeReadMinimises(t *testing.T) {
 	stranger := aWindow(2, nordvpn, at(1))
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true, readErr: errors.New("the settings file is unreadable")})
 

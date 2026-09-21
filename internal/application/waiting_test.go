@@ -17,30 +17,30 @@ func TestARunningApplicationIsRunAgainForAWindowItIsMissing(t *testing.T) {
 	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	launcher := &fakeLauncher{}
-	launcher.onLaunch = func(domain.ApplicationIdentity) { desktop.addWindow(aWindow(2, claude, at(1))) }
-	service := restoreUnder(desktop, newFakeProcesses(claude), launcher,
+	launcher.onLaunch = func(domain.ApplicationIdentity) { desktop.addWindow(aWindow(2, pigeonpost, at(1))) }
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), launcher,
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
 	profile, _ := domain.NewProfile("Desk", domain.Entry{
-		Application: claude, Running: true,
+		Application: pigeonpost, Running: true,
 		Placements: []domain.Placement{onPrimary, second},
 	})
 	report, err := service.Restore(context.Background(), profile)
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if !reportOf(t, report, claude).Satisfied {
-		t.Fatalf("the entry never settled: %+v", reportOf(t, report, claude))
+	if !reportOf(t, report, pigeonpost).Satisfied {
+		t.Fatalf("the entry never settled: %+v", reportOf(t, report, pigeonpost))
 	}
 	placements := desktop.placements()
 	if len(placements) != 2 || placements[0].id != 1 || placements[1].id != 2 {
 		t.Fatalf("the windows were not placed oldest first: %+v", placements)
 	}
-	if launcher.launchCount(claude) != 1 {
-		t.Fatalf("it was run %d times for one missing window", launcher.launchCount(claude))
+	if launcher.launchCount(pigeonpost) != 1 {
+		t.Fatalf("it was run %d times for one missing window", launcher.launchCount(pigeonpost))
 	}
 }
 
@@ -113,12 +113,12 @@ func TestACaptureStopsWhenTheProfileCannotBeRead(t *testing.T) {
 // An application open now and named by the profile appears once, not twice.
 func TestAnApplicationInBothTheDesktopAndTheProfileAppearsOnce(t *testing.T) {
 	t.Parallel()
-	profile, _ := domain.NewProfile("Desk", domain.Entry{Application: claude, Running: true})
+	profile, _ := domain.NewProfile("Desk", domain.Entry{Application: pigeonpost, Running: true})
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
-	service := captureUnder(desktop, newFakeProcesses(claude), newFakeStore(profile))
+	service := captureUnder(desktop, newFakeProcesses(pigeonpost), newFakeStore(profile))
 
 	review, err := service.Review(context.Background(), "Desk")
 	if err != nil {
@@ -135,7 +135,7 @@ func TestAnApplicationInBothTheDesktopAndTheProfileAppearsOnce(t *testing.T) {
 // A store that will not answer or will not write is reported as it is.
 func TestAStoreThatWillNotAnswerIsReported(t *testing.T) {
 	t.Parallel()
-	entries := []domain.Entry{{Application: claude, Running: true}}
+	entries := []domain.Entry{{Application: pigeonpost, Running: true}}
 
 	cannotList := newFakeStore()
 	cannotList.namesErr = errRefused
@@ -159,11 +159,11 @@ func TestAStoreThatWillNotAnswerIsReported(t *testing.T) {
 func TestAReportListsWhatIsOutstandingAndWhatHappened(t *testing.T) {
 	t.Parallel()
 	report := NewReport("Desk", time.Now())
-	report.Track(claude)
+	report.Track(pigeonpost)
 	report.Track(stellody)
-	report.Satisfy(claude)
+	report.Satisfy(pigeonpost)
 	report.Fail(stellody, "did not start")
-	report.NoteEntry(claude, "placed at once")
+	report.NoteEntry(pigeonpost, "placed at once")
 	report.Note("a display went away")
 	report.Note("a display was connected")
 

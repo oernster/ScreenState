@@ -437,14 +437,34 @@ agent shall stop asking for that entry; the report shall say how many of the
 recorded windows opened.
 Rationale: reported 2026-09-21. A profile is the desktop as it was when it was
 recorded and a restore reproduces it, however many windows of one application
-that means; how many there should be is never a question for the user. Windows
-Terminal opens another window each time it is run. An application that allows
+that means; how many there should be is never a question for the user. Some
+applications open another window each time they are run. An application that allows
 one copy answers a second run by bringing its own window forward and opens
 nothing, which is why a run that opens no window ends the asking rather than
 repeating it until the ceiling.
-Acceptance: Given a profile recording two Windows Terminal windows and no
-Terminal running, when a restore runs, then Terminal is started, run once more
-after its first window appears and both windows are placed.
+Acceptance: Given a profile recording two windows of an application that opens
+another window each time it is run and that application not running, when a
+restore runs, then it is started, run once more after its first window appears
+and both windows are placed.
+
+**FR-070 A packaged application is launched and left where it opens**
+Priority: Must
+Requirement: The ScreenState agent shall not move the windows of an application
+named by its model id. A capture shall record such an application as running
+with no placement; a restore shall launch it where it is not running and shall
+count it satisfied once it is running, whatever placements a profile recorded
+for it before this requirement.
+Rationale: the owner's decision, 2026-09-21. The taskbar buttons of the two
+packaged applications on the reference machine, Claude and Windows Terminal,
+were drawn grey after a sign-in until the taskbar was clicked; four answers were
+measured and none cured it. On the last boot Claude's button carried its icon on
+the taskbar of the display its window had been placed on and on no other. What
+is inside an application is never restored by this product, so for these two
+nothing is lost by launching them and leaving them where they open. Whether that
+also cures the grey buttons is not yet known.
+Acceptance: Given a profile holding Claude with a placement and Claude not
+running, when a restore runs, then Claude is launched once, none of its windows
+is moved and its entry is satisfied.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -1066,7 +1086,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 69 | The product does not work without any one of them. |
+| Must | 70 | The product does not work without any one of them. |
 | Should | 16 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |

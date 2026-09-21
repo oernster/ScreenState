@@ -15,9 +15,9 @@ func TestARestorePlacesEveryEntryAndSaysSo(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay, leftDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
-	processes := newFakeProcesses(claude, nordvpn)
+	processes := newFakeProcesses(pigeonpost, nordvpn)
 	launcher := &fakeLauncher{}
 	clock := newFakeClock()
 	log := &fakeLog{}
@@ -32,7 +32,7 @@ func TestARestorePlacesEveryEntryAndSaysSo(t *testing.T) {
 	}
 
 	profile, err := domain.NewProfile("Desk",
-		domain.Entry{Application: claude, Running: true, Placements: []domain.Placement{
+		domain.Entry{Application: pigeonpost, Running: true, Placements: []domain.Placement{
 			aPlacement(primaryID, domain.Rect{X: 0, Y: 0, Width: 3440, Height: 1392})}},
 		domain.Entry{Application: stellody, Running: true, Placements: []domain.Placement{
 			aPlacement(leftID, domain.Rect{X: -3840, Y: 0, Width: 3840, Height: 2352})}},
@@ -52,7 +52,7 @@ func TestARestorePlacesEveryEntryAndSaysSo(t *testing.T) {
 	if satisfied != 3 || outstanding != 0 {
 		t.Fatalf("%d satisfied, %d outstanding: %s", satisfied, outstanding, report.Summary())
 	}
-	if launcher.launchCount(claude) != 0 {
+	if launcher.launchCount(pigeonpost) != 0 {
 		t.Fatal("an application already running was launched again")
 	}
 	if launcher.launchCount(stellody) != 1 {
@@ -151,7 +151,7 @@ func TestEachEntryIsPlacedAsItsOwnWindowAppears(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	clock := newFakeClock()
 	clock.onSleep = func(_ context.Context, _ *fakeClock, count int) {
@@ -159,12 +159,12 @@ func TestEachEntryIsPlacedAsItsOwnWindowAppears(t *testing.T) {
 			desktop.addWindow(aWindow(2, stellody, at(1)))
 		}
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, stellody), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody), &fakeLauncher{},
 		newFakeStore(), clock, &fakeLog{})
 
 	rect := domain.Rect{X: 0, Y: 0, Width: 800, Height: 600}
 	profile, _ := domain.NewProfile("Desk",
-		domain.Entry{Application: claude, Running: true,
+		domain.Entry{Application: pigeonpost, Running: true,
 			Placements: []domain.Placement{aPlacement(primaryID, rect)}},
 		domain.Entry{Application: stellody, Running: true,
 			Placements: []domain.Placement{aPlacement(primaryID, rect)}})
@@ -216,7 +216,7 @@ func TestARestoreContinuesWhenADisplayGoesAway(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay, leftDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	clock := newFakeClock()
 	clock.onSleep = func(_ context.Context, _ *fakeClock, count int) {
@@ -225,11 +225,11 @@ func TestARestoreContinuesWhenADisplayGoesAway(t *testing.T) {
 			desktop.addWindow(aWindow(2, stellody, at(1)))
 		}
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, stellody), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody), &fakeLauncher{},
 		newFakeStore(), clock, &fakeLog{})
 
 	profile, _ := domain.NewProfile("Desk",
-		domain.Entry{Application: claude, Running: true, Placements: []domain.Placement{
+		domain.Entry{Application: pigeonpost, Running: true, Placements: []domain.Placement{
 			aPlacement(primaryID, domain.Rect{X: 0, Y: 0, Width: 800, Height: 600})}},
 		domain.Entry{Application: stellody, Running: true, Placements: []domain.Placement{
 			aPlacement(leftID, domain.Rect{X: -3840, Y: 0, Width: 800, Height: 600})}})
@@ -252,7 +252,7 @@ func TestANewerRestoreReplacesTheOneRunning(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	clock := newFakeClock()
 	running := make(chan struct{})
@@ -269,19 +269,19 @@ func TestANewerRestoreReplacesTheOneRunning(t *testing.T) {
 		close(running)
 		<-ctx.Done()
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), clock, &fakeLog{})
 
 	rect := domain.Rect{X: 0, Y: 0, Width: 800, Height: 600}
 	first, _ := domain.NewProfile("Desk",
-		domain.Entry{Application: claude, Running: true,
+		domain.Entry{Application: pigeonpost, Running: true,
 			Placements: []domain.Placement{aPlacement(primaryID, rect)}},
 		// This entry never appears, so the first restore is still waiting when
 		// the second is asked for.
 		domain.Entry{Application: stellody, Running: true,
 			Placements: []domain.Placement{aPlacement(primaryID, rect)}})
 	second, _ := domain.NewProfile("Sofa",
-		domain.Entry{Application: claude, Running: true,
+		domain.Entry{Application: pigeonpost, Running: true,
 			Placements: []domain.Placement{aPlacement(primaryID, rect)}})
 
 	type outcome struct {

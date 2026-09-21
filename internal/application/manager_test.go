@@ -87,7 +87,7 @@ func markedProfiles(t *testing.T, store *fakeStore) []string {
 func TestProfilesListsEveryProfileInOrderWithItsCounts(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore(
-		profileOf(t, "Work", claude, stellody),
+		profileOf(t, "Work", pigeonpost, stellody),
 		profileOf(t, "admin", nordvpn),
 		profileOf(t, "Gaming").WithDefault(true),
 	)
@@ -118,7 +118,7 @@ func TestProfilesListsEveryProfileInOrderWithItsCounts(t *testing.T) {
 // rule: an unreadable profile costs the user that profile, never the list.
 func TestProfilesLeavesOutOneItCannotReadRatherThanFailing(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost))
 	store.loadErr = errors.New("the file is unreadable")
 	manager, _, log := managerOver(store)
 
@@ -147,7 +147,7 @@ func TestProfilesReportsAStoreItCannotList(t *testing.T) {
 
 func TestEntriesDescribesEveryEntryOfTheProfile(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude, stellody))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost, stellody))
 	manager, _, _ := managerOver(store)
 
 	views, err := manager.Entries(context.Background(), "Work")
@@ -157,11 +157,11 @@ func TestEntriesDescribesEveryEntryOfTheProfile(t *testing.T) {
 	if len(views) != 2 {
 		t.Fatalf("Entries returned %d views, want 2", len(views))
 	}
-	if views[0].Application != claude.Value {
-		t.Errorf("first entry names %q, want %q", views[0].Application, claude.Value)
+	if views[0].Application != pigeonpost.Value {
+		t.Errorf("first entry names %q, want %q", views[0].Application, pigeonpost.Value)
 	}
-	if views[0].Kind != claude.Kind.String() {
-		t.Errorf("first entry's kind is %q, want %q", views[0].Kind, claude.Kind.String())
+	if views[0].Kind != pigeonpost.Kind.String() {
+		t.Errorf("first entry's kind is %q, want %q", views[0].Kind, pigeonpost.Kind.String())
 	}
 	if !views[0].Running {
 		t.Error("the first entry does not say the application should be running")

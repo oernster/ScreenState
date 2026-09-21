@@ -12,7 +12,7 @@ import (
 func TestSetDefaultLeavesExactlyOneMarked(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore(
-		profileOf(t, "Work", claude).WithDefault(true),
+		profileOf(t, "Work", pigeonpost).WithDefault(true),
 		profileOf(t, "Gaming", nordvpn),
 		profileOf(t, "Admin", stellody).WithDefault(true),
 	)
@@ -36,7 +36,7 @@ func TestSetDefaultLeavesExactlyOneMarked(t *testing.T) {
 func TestSetDefaultOnTheProfileAlreadyMarkedChangesNothing(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore(
-		profileOf(t, "Work", claude).WithDefault(true),
+		profileOf(t, "Work", pigeonpost).WithDefault(true),
 		profileOf(t, "Gaming", nordvpn),
 	)
 	manager, _, _ := managerOver(store)
@@ -53,7 +53,7 @@ func TestSetDefaultOnTheProfileAlreadyMarkedChangesNothing(t *testing.T) {
 func TestClearDefaultLeavesNoneMarked(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore(
-		profileOf(t, "Work", claude).WithDefault(true),
+		profileOf(t, "Work", pigeonpost).WithDefault(true),
 		profileOf(t, "Gaming", nordvpn),
 	)
 	manager, _, log := managerOver(store)
@@ -74,7 +74,7 @@ func TestClearDefaultLeavesNoneMarked(t *testing.T) {
 // should be arranged sits in the list.
 func TestTheOnlyProfileIsMarkedWhereverTheListIsRead(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost))
 	manager, _, log := managerOver(store)
 
 	summaries, err := manager.Profiles(context.Background())
@@ -97,7 +97,7 @@ func TestTheOnlyProfileIsMarkedWhereverTheListIsRead(t *testing.T) {
 func TestDeletingTheMarkedProfileLeavesTheSurvivorMarked(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore(
-		profileOf(t, "Work", claude).WithDefault(true),
+		profileOf(t, "Work", pigeonpost).WithDefault(true),
 		profileOf(t, "Gaming", nordvpn),
 	)
 	manager, _, _ := managerOver(store)
@@ -114,7 +114,7 @@ func TestDeletingTheMarkedProfileLeavesTheSurvivorMarked(t *testing.T) {
 // back the next time anything reads the list.
 func TestTheOnlyProfileCannotBeUnmarked(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude).WithDefault(true))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost).WithDefault(true))
 	manager, _, _ := managerOver(store)
 
 	err := manager.ClearDefault(context.Background())
@@ -131,7 +131,7 @@ func TestTheOnlyProfileCannotBeUnmarked(t *testing.T) {
 func TestTheMarkingStaysTheUsersWhereThereAreTwoProfiles(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore(
-		profileOf(t, "Work", claude),
+		profileOf(t, "Work", pigeonpost),
 		profileOf(t, "Gaming", nordvpn),
 	)
 	manager, _, _ := managerOver(store)
@@ -161,7 +161,7 @@ func TestSetDefaultReportsEveryFailureItMeets(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 			store := newFakeStore(
-				profileOf(t, "Work", claude).WithDefault(true),
+				profileOf(t, "Work", pigeonpost).WithDefault(true),
 				profileOf(t, "Gaming", nordvpn),
 			)
 			breaking(store)
@@ -175,7 +175,7 @@ func TestSetDefaultReportsEveryFailureItMeets(t *testing.T) {
 
 func TestSetDefaultReportsAProfileItCannotReadWhileClearing(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude).WithDefault(true))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost).WithDefault(true))
 	manager, _, _ := managerOver(store)
 
 	// A name in the listing with nothing behind it is what a profile removed
@@ -189,7 +189,7 @@ func TestSetDefaultReportsAProfileItCannotReadWhileClearing(t *testing.T) {
 
 func TestRemoveEntryDropsOnlyThatApplication(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude, stellody, nordvpn))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost, stellody, nordvpn))
 	manager, _, log := managerOver(store)
 
 	if err := manager.RemoveEntry(context.Background(), "Work", stellody.Value); err != nil {
@@ -205,7 +205,7 @@ func TestRemoveEntryDropsOnlyThatApplication(t *testing.T) {
 	if _, held := profile.Find(stellody); held {
 		t.Error("the entry that was removed is still there")
 	}
-	if _, held := profile.Find(claude); !held {
+	if _, held := profile.Find(pigeonpost); !held {
 		t.Error("an entry that was not asked for was removed")
 	}
 	if !log.saying("was removed from profile") {
@@ -218,10 +218,10 @@ func TestRemoveEntryDropsOnlyThatApplication(t *testing.T) {
 // for separately.
 func TestRemoveEntryLeavesAProfileWithNothingInIt(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost))
 	manager, _, _ := managerOver(store)
 
-	if err := manager.RemoveEntry(context.Background(), "Work", claude.Value); err != nil {
+	if err := manager.RemoveEntry(context.Background(), "Work", pigeonpost.Value); err != nil {
 		t.Fatalf("RemoveEntry: %v", err)
 	}
 	profile, err := store.Load(context.Background(), "Work")
@@ -235,7 +235,7 @@ func TestRemoveEntryLeavesAProfileWithNothingInIt(t *testing.T) {
 
 func TestRemoveEntryReportsAnApplicationTheProfileDoesNotHold(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost))
 	manager, _, _ := managerOver(store)
 
 	err := manager.RemoveEntry(context.Background(), "Work", nordvpn.Value)
@@ -257,10 +257,10 @@ func TestRemoveEntryReportsEveryFailureItMeets(t *testing.T) {
 	for name, breaking := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			store := newFakeStore(profileOf(t, "Work", claude))
+			store := newFakeStore(profileOf(t, "Work", pigeonpost))
 			breaking(store)
 			manager, _, _ := managerOver(store)
-			if err := manager.RemoveEntry(context.Background(), "Work", claude.Value); err == nil {
+			if err := manager.RemoveEntry(context.Background(), "Work", pigeonpost.Value); err == nil {
 				t.Fatal("RemoveEntry reported success over a store that refused")
 			}
 		})

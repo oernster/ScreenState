@@ -13,18 +13,18 @@ import (
 // than reporting that something went wrong.
 func TestARestoreSaysWhichReadingOfTheDesktopFailed(t *testing.T) {
 	t.Parallel()
-	profile := oneEntry(claude, onPrimary)
+	profile := oneEntry(pigeonpost, onPrimary)
 
 	byWindows := restoreUnder(
 		&fakeDesktop{displays: []Display{primaryDisplay}, windowsErr: errRefused},
-		newFakeProcesses(claude), &fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
+		newFakeProcesses(pigeonpost), &fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
 	if _, err := byWindows.Restore(context.Background(), profile); !containsText(err.Error(), "reading the windows") {
 		t.Fatalf("the windows failure was reported as %v", err)
 	}
 
 	byDisplays := restoreUnder(
 		&fakeDesktop{displaysErr: errRefused},
-		newFakeProcesses(claude), &fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
+		newFakeProcesses(pigeonpost), &fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
 	if _, err := byDisplays.Restore(context.Background(), profile); !containsText(err.Error(), "reading the displays") {
 		t.Fatalf("the displays failure was reported as %v", err)
 	}
@@ -34,9 +34,9 @@ func TestARestoreSaysWhichReadingOfTheDesktopFailed(t *testing.T) {
 // so rather than guessing at coordinates.
 func TestARestoreWithNoDisplayConnectedSaysSo(t *testing.T) {
 	t.Parallel()
-	service := restoreUnder(&fakeDesktop{}, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(&fakeDesktop{}, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
-	if _, err := service.Restore(context.Background(), oneEntry(claude, onPrimary)); !errors.Is(err, ErrNoDisplays) {
+	if _, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary)); !errors.Is(err, ErrNoDisplays) {
 		t.Fatalf("expected ErrNoDisplays, got %v", err)
 	}
 	if _, err := newDisplaySet(nil); !errors.Is(err, ErrNoDisplays) {
@@ -49,7 +49,7 @@ func TestARestoreWithNoDisplayConnectedSaysSo(t *testing.T) {
 func TestAnApplicationThatCannotBeReadIsNamed(t *testing.T) {
 	t.Parallel()
 	for name, entry := range map[string]domain.Entry{
-		"with a placement": {Application: claude, Running: true,
+		"with a placement": {Application: pigeonpost, Running: true,
 			Placements: []domain.Placement{onPrimary}},
 		"without one": {Application: nordvpn, Running: true},
 	} {
@@ -106,10 +106,10 @@ func TestAnUnexpectedFailureIsRecordedAndTheAgentSurvives(t *testing.T) {
 	desktop := &fakeDesktop{displays: []Display{primaryDisplay}}
 	desktop.onWindows = func() { panic("the desktop fell over") }
 	log := &fakeLog{}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), log)
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err == nil {
 		t.Fatal("the restore reported success after falling over")
 	}
@@ -123,8 +123,8 @@ func TestAnUnexpectedFailureIsRecordedAndTheAgentSurvives(t *testing.T) {
 	// The agent is still able to restore, which is the half of FR-052 that
 	// matters: an agent that vanishes leaves a half arranged desktop.
 	desktop.onWindows = nil
-	desktop.addWindow(aWindow(1, claude, at(0)))
-	if _, err := service.Restore(context.Background(), oneEntry(claude, onPrimary)); err != nil {
+	desktop.addWindow(aWindow(1, pigeonpost, at(0)))
+	if _, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary)); err != nil {
 		t.Fatalf("the agent could not restore again: %v", err)
 	}
 }
@@ -136,9 +136,9 @@ func TestARestoreReportsAContextThatRanOut(t *testing.T) {
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(-time.Second))
 	defer cancel()
 	service := restoreUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(claude), &fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
+		newFakeProcesses(pigeonpost), &fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
 
-	if _, err := service.Restore(ctx, oneEntry(claude, onPrimary)); !errors.Is(err, context.DeadlineExceeded) {
+	if _, err := service.Restore(ctx, oneEntry(pigeonpost, onPrimary)); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatalf("expected the deadline, got %v", err)
 	}
 }
@@ -154,13 +154,13 @@ func TestADisplayArrivingDuringARestoreIsRecorded(t *testing.T) {
 			desktop.mutex.Lock()
 			desktop.displays = []Display{primaryDisplay, leftDisplay}
 			desktop.mutex.Unlock()
-			desktop.addWindow(aWindow(1, claude, at(0)))
+			desktop.addWindow(aWindow(1, pigeonpost, at(0)))
 		}
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), clock, &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
@@ -173,20 +173,20 @@ func TestADisplayArrivingDuringARestoreIsRecorded(t *testing.T) {
 // entry whose only window is unreadable waits rather than being placed wrongly.
 func TestAnUnreadableWindowIsNotPlaced(t *testing.T) {
 	t.Parallel()
-	unreadable := aWindow(1, claude, at(0))
+	unreadable := aWindow(1, pigeonpost, at(0))
 	unreadable.Unreadable = "access denied"
 	desktop := &fakeDesktop{displays: []Display{primaryDisplay}, windows: []Window{unreadable}}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
 	if len(desktop.placements()) != 0 {
 		t.Fatal("an unreadable window was placed")
 	}
-	if reportOf(t, report, claude).Satisfied {
+	if reportOf(t, report, pigeonpost).Satisfied {
 		t.Fatal("an entry was satisfied by a window that could not be read")
 	}
 }

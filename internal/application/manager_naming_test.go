@@ -8,7 +8,7 @@ import (
 
 func TestRenameKeepsTheEntriesAndTheDefaultMarking(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude, stellody).WithDefault(true))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost, stellody).WithDefault(true))
 	manager, _, log := managerOver(store)
 
 	if err := manager.Rename(context.Background(), "Work", "Office"); err != nil {
@@ -38,7 +38,7 @@ func TestRenameKeepsTheEntriesAndTheDefaultMarking(t *testing.T) {
 // delete what was just written.
 func TestRenameThatOnlyChangesCaseKeepsTheProfile(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost))
 	manager, _, _ := managerOver(store)
 
 	if err := manager.Rename(context.Background(), "Work", "WORK"); err != nil {
@@ -58,7 +58,7 @@ func TestRenameThatOnlyChangesCaseKeepsTheProfile(t *testing.T) {
 
 func TestRenameRefusesANameAlreadyInUse(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude), profileOf(t, "Gaming", nordvpn))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost), profileOf(t, "Gaming", nordvpn))
 	manager, _, _ := managerOver(store)
 
 	err := manager.Rename(context.Background(), "Work", "gaming")
@@ -89,7 +89,7 @@ func TestRenameReportsEveryFailureItMeets(t *testing.T) {
 	for name, breaking := range cases {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
-			store := newFakeStore(profileOf(t, "Work", claude))
+			store := newFakeStore(profileOf(t, "Work", pigeonpost))
 			breaking(store)
 			manager, _, _ := managerOver(store)
 			if err := manager.Rename(context.Background(), "Work", "Office"); err == nil {
@@ -101,7 +101,7 @@ func TestRenameReportsEveryFailureItMeets(t *testing.T) {
 
 func TestRenameRefusesANameTheDomainWillNotAccept(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost))
 	manager, _, _ := managerOver(store)
 
 	if err := manager.Rename(context.Background(), "Work", "   "); err == nil {
@@ -111,7 +111,7 @@ func TestRenameRefusesANameTheDomainWillNotAccept(t *testing.T) {
 
 func TestDeleteRemovesTheProfileAndSaysSo(t *testing.T) {
 	t.Parallel()
-	store := newFakeStore(profileOf(t, "Work", claude))
+	store := newFakeStore(profileOf(t, "Work", pigeonpost))
 	manager, _, log := managerOver(store)
 
 	if err := manager.Delete(context.Background(), "Work"); err != nil {

@@ -29,7 +29,7 @@ func TestACaptureReadsOneEntryPerApplication(t *testing.T) {
 			aWindow(4, screenst, at(3)),
 			hidden,
 			onTheLeft,
-			aWindow(1, claude, at(0)),
+			aWindow(1, pigeonpost, at(0)),
 		},
 	}
 	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
@@ -42,7 +42,7 @@ func TestACaptureReadsOneEntryPerApplication(t *testing.T) {
 		t.Fatalf("captured %d entries: %+v", len(review.Entries), review.Entries)
 	}
 	// Oldest window first, so Claude leads and NordVPN follows Stellody.
-	if !review.Entries[0].Application.Equal(claude) || !review.Entries[1].Application.Equal(stellody) {
+	if !review.Entries[0].Application.Equal(pigeonpost) || !review.Entries[1].Application.Equal(stellody) {
 		t.Fatalf("entries out of order: %+v", review.Entries)
 	}
 	if display := review.Entries[1].Placements[0].Display; !display.Equal(leftID) {
@@ -62,15 +62,38 @@ func TestACaptureReadsOneEntryPerApplication(t *testing.T) {
 	}
 }
 
+// FR-070: a packaged application's visible window is recorded as the
+// application running, with no placement, since its windows are never moved.
+func TestAPackagedApplicationIsRecordedWithNoPlacement(t *testing.T) {
+	t.Parallel()
+	desktop := &fakeDesktop{
+		displays: []Display{primaryDisplay},
+		windows:  []Window{aWindow(1, packaged, at(0)), aWindow(2, packaged, at(1))},
+	}
+	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
+
+	review, err := service.Review(context.Background(), "")
+	if err != nil {
+		t.Fatalf("the capture failed: %v", err)
+	}
+	if len(review.Entries) != 1 {
+		t.Fatalf("captured %d entries: %+v", len(review.Entries), review.Entries)
+	}
+	entry := review.Entries[0]
+	if !entry.Application.Equal(packaged) || !entry.Running || len(entry.Placements) != 0 {
+		t.Fatalf("not recorded as running with no placement: %+v", entry)
+	}
+}
+
 // FR-014: a window whose state could not be read is omitted and named.
 func TestAnUnreadableWindowIsNamedRatherThanDropped(t *testing.T) {
 	t.Parallel()
 	unreadable := Window{ID: 7, Description: "Some other window", Unreadable: "access denied"}
-	nameless := Window{ID: 8, Application: claude, Unreadable: "access denied"}
+	nameless := Window{ID: 8, Application: pigeonpost, Unreadable: "access denied"}
 	unknown := Window{ID: 9, Unreadable: "access denied"}
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{unreadable, nameless, unknown, aWindow(1, claude, at(0))},
+		windows:  []Window{unreadable, nameless, unknown, aWindow(1, pigeonpost, at(0))},
 	}
 	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
 
@@ -85,7 +108,7 @@ func TestAnUnreadableWindowIsNamedRatherThanDropped(t *testing.T) {
 		t.Fatalf("named %d unreadable windows: %v", len(review.Unreadable), review.Unreadable)
 	}
 	if !anyContaining(review.Unreadable, "Some other window") ||
-		!anyContaining(review.Unreadable, claude.String()) ||
+		!anyContaining(review.Unreadable, pigeonpost.String()) ||
 		!anyContaining(review.Unreadable, "window 9") {
 		t.Fatalf("an unreadable window was not named usefully: %v", review.Unreadable)
 	}
@@ -102,7 +125,7 @@ func TestRecapturingKeepsTheProfilesOwnApplications(t *testing.T) {
 	)
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	service := captureUnder(desktop, newFakeProcesses(nordvpn), newFakeStore(profile))
 
@@ -134,7 +157,7 @@ func TestRecapturingAProfileThatHasGoneCapturesTheDesktop(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
 
@@ -151,7 +174,7 @@ func TestRecapturingAProfileThatHasGoneCapturesTheDesktop(t *testing.T) {
 // against the primary one, so restoring the profile brings it back reachable.
 func TestAWindowOnNoDisplayIsRecordedAgainstThePrimaryOne(t *testing.T) {
 	t.Parallel()
-	stray := aWindow(1, claude, at(0))
+	stray := aWindow(1, pigeonpost, at(0))
 	stray.Rect = domain.Rect{X: 30000, Y: 30000, Width: 400, Height: 300}
 	desktop := &fakeDesktop{displays: []Display{leftDisplay}, windows: []Window{stray}}
 	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
@@ -175,7 +198,7 @@ func TestSavingUnderANameInUseIsRefused(t *testing.T) {
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
 		newFakeProcesses(), store)
 
-	entries := []domain.Entry{{Application: claude, Running: true}}
+	entries := []domain.Entry{{Application: pigeonpost, Running: true}}
 	if _, err := service.Save(context.Background(), "desk", entries, false); !errors.Is(err, ErrProfileNameInUse) {
 		t.Fatalf("expected ErrProfileNameInUse, got %v", err)
 	}
@@ -191,7 +214,7 @@ func TestSavingUnderANameInUseIsRefused(t *testing.T) {
 	if err != nil {
 		t.Fatalf("replacing: %v", err)
 	}
-	if !saved.Entries[0].Application.Equal(claude) {
+	if !saved.Entries[0].Application.Equal(pigeonpost) {
 		t.Fatal("the replacing save did not take")
 	}
 }
@@ -204,7 +227,7 @@ func TestSavingWritesTheConfirmedEntries(t *testing.T) {
 		newFakeProcesses(), store)
 
 	entries := []domain.Entry{
-		{Application: claude, Running: true},
+		{Application: pigeonpost, Running: true},
 		{Application: stellody, Running: true},
 	}
 	profile, err := service.Save(context.Background(), "  Desk  ", entries, false)
@@ -231,7 +254,7 @@ func TestTheFirstProfileBecomesTheDefault(t *testing.T) {
 	store := newFakeStore()
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
 		newFakeProcesses(), store)
-	entries := []domain.Entry{{Application: claude, Running: true}}
+	entries := []domain.Entry{{Application: pigeonpost, Running: true}}
 
 	first, err := service.Save(context.Background(), "Desk", entries, false)
 	if err != nil {
@@ -268,7 +291,7 @@ func TestAProfileIsStillWrittenWhenTheMarkingCannotBeRead(t *testing.T) {
 		newFakeProcesses(), store)
 
 	profile, err := service.Save(context.Background(), "Desk",
-		[]domain.Entry{{Application: claude, Running: true}}, false)
+		[]domain.Entry{{Application: pigeonpost, Running: true}}, false)
 	if err != nil {
 		t.Fatalf("saving: %v", err)
 	}
@@ -288,7 +311,7 @@ func TestAnInvalidReviewIsNotWritten(t *testing.T) {
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
 		newFakeProcesses(), store)
 
-	twice := []domain.Entry{{Application: claude, Running: true}, {Application: claude}}
+	twice := []domain.Entry{{Application: pigeonpost, Running: true}, {Application: pigeonpost}}
 	if _, err := service.Save(context.Background(), "Desk", twice, false); !errors.Is(err, domain.ErrDuplicateEntry) {
 		t.Fatalf("expected ErrDuplicateEntry, got %v", err)
 	}

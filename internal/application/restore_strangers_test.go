@@ -16,9 +16,9 @@ func TestAWindowTheProfileDoesNotNameIsPutAway(t *testing.T) {
 	stranger := aWindow(2, nordvpn, at(1))
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), stranger},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
 
 	report, err := service.Restore(context.Background(), deskProfile(t))
@@ -41,7 +41,7 @@ func TestAWindowTheProfileDoesNotNameIsPutAway(t *testing.T) {
 // and one already minimised, which has nothing left to do.
 func TestTheWindowsARestoreLeavesAlone(t *testing.T) {
 	t.Parallel()
-	named := aWindow(1, claude, at(0))
+	named := aWindow(1, pigeonpost, at(0))
 	minimised := aWindow(3, nordvpn, at(2))
 	minimised.State = domain.ShowMinimised
 	ours := aWindow(4, screenst, at(3))
@@ -49,7 +49,7 @@ func TestTheWindowsARestoreLeavesAlone(t *testing.T) {
 		displays: []Display{primaryDisplay},
 		windows:  []Window{named, minimised, ours},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
 
 	report, err := service.Restore(context.Background(), deskProfile(t))
@@ -71,7 +71,7 @@ func TestTheWindowsARestoreLeavesAlone(t *testing.T) {
 func deskProfile(t *testing.T) domain.Profile {
 	t.Helper()
 	profile, err := domain.NewProfile("Desk",
-		domain.Entry{Application: claude, Running: true, Placements: []domain.Placement{
+		domain.Entry{Application: pigeonpost, Running: true, Placements: []domain.Placement{
 			aPlacement(primaryID, domain.Rect{X: 0, Y: 0, Width: 3440, Height: 1392})}},
 	)
 	if err != nil {

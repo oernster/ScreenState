@@ -73,8 +73,8 @@ func TestAnEmptyStoreStillGivesAUsefulMenu(t *testing.T) {
 // default one marked.
 func TestEveryProfileIsOfferedWithTheDefaultMarked(t *testing.T) {
 	t.Parallel()
-	sofa, _ := domain.NewProfile("sofa", domain.Entry{Application: claude, Running: true})
-	desk, _ := domain.NewProfile("Desk", domain.Entry{Application: claude, Running: true})
+	sofa, _ := domain.NewProfile("sofa", domain.Entry{Application: pigeonpost, Running: true})
+	desk, _ := domain.NewProfile("Desk", domain.Entry{Application: pigeonpost, Running: true})
 	store := newFakeStore(sofa, desk.WithDefault(true))
 	tray, _ := trayOver(store, &fakeDesktop{displays: []Display{primaryDisplay}}, newFakeProcesses())
 
@@ -191,12 +191,12 @@ func TestChoosingAProfileRestoresIt(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	profile, _ := domain.NewProfile("Desk", domain.Entry{
-		Application: claude, Running: true, Placements: []domain.Placement{onPrimary},
+		Application: pigeonpost, Running: true, Placements: []domain.Placement{onPrimary},
 	})
-	tray, _ := trayOver(newFakeStore(profile), desktop, newFakeProcesses(claude))
+	tray, _ := trayOver(newFakeStore(profile), desktop, newFakeProcesses(pigeonpost))
 
 	report, err := tray.Apply(context.Background(), "Desk")
 	if err != nil {
@@ -235,15 +235,15 @@ func TestCapturingFromTheTrayWritesNothing(t *testing.T) {
 	store := newFakeStore()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
-	tray, _ := trayOver(store, desktop, newFakeProcesses(claude))
+	tray, _ := trayOver(store, desktop, newFakeProcesses(pigeonpost))
 
 	review, err := tray.Capture(context.Background(), "")
 	if err != nil {
 		t.Fatalf("capturing: %v", err)
 	}
-	if len(review.Entries) != 1 || !review.Entries[0].Application.Equal(claude) {
+	if len(review.Entries) != 1 || !review.Entries[0].Application.Equal(pigeonpost) {
 		t.Fatalf("captured %+v", review.Entries)
 	}
 	if names, _ := store.Names(context.Background()); len(names) != 0 {
@@ -257,7 +257,7 @@ func TestCapturingFromTheTrayWritesNothing(t *testing.T) {
 // user has to find another way into.
 func TestTheMenuHasASettledShape(t *testing.T) {
 	t.Parallel()
-	profile, _ := domain.NewProfile("Desk", domain.Entry{Application: claude, Running: true})
+	profile, _ := domain.NewProfile("Desk", domain.Entry{Application: pigeonpost, Running: true})
 	tray, _ := trayOver(newFakeStore(profile), &fakeDesktop{displays: []Display{primaryDisplay}},
 		newFakeProcesses())
 

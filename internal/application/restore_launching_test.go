@@ -147,20 +147,20 @@ func TestEveryWindowAProfileRecordsIsOpened(t *testing.T) {
 	launcher := &fakeLauncher{}
 	var owed []WindowID
 	launcher.onLaunch = func(domain.ApplicationIdentity) {
-		processes.start(terminal)
-		owed = append(owed, WindowID(launcher.launchCount(terminal)))
+		processes.start(notepad)
+		owed = append(owed, WindowID(launcher.launchCount(notepad)))
 	}
 	reads := 0
 	desktop.onWindows = func() {
 		reads++
 		if len(owed) > 0 && reads%windowArrivesOnRead == 0 {
-			desktop.addWindow(aWindow(owed[0], terminal, at(int(owed[0]))))
+			desktop.addWindow(aWindow(owed[0], notepad, at(int(owed[0]))))
 			owed = owed[1:]
 		}
 	}
 	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
 	profile, _ := domain.NewProfile("Desk", domain.Entry{
-		Application: terminal, Running: true,
+		Application: notepad, Running: true,
 		Placements: []domain.Placement{onPrimary, second},
 	})
 	service := restoreUnder(desktop, processes, launcher,
@@ -170,10 +170,10 @@ func TestEveryWindowAProfileRecordsIsOpened(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if launcher.launchCount(terminal) != 2 {
-		t.Fatalf("it was run %d times for two windows", launcher.launchCount(terminal))
+	if launcher.launchCount(notepad) != 2 {
+		t.Fatalf("it was run %d times for two windows", launcher.launchCount(notepad))
 	}
-	if entry := reportOf(t, report, terminal); !entry.Satisfied {
+	if entry := reportOf(t, report, notepad); !entry.Satisfied {
 		t.Fatalf("both windows were not placed: %+v", entry)
 	}
 	if placed := desktop.placements(); len(placed) != 2 {
@@ -189,24 +189,24 @@ func TestAnApplicationThatOpensNoFurtherWindowIsReported(t *testing.T) {
 	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	launcher := &fakeLauncher{}
-	service := restoreUnder(desktop, newFakeProcesses(claude), launcher,
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), launcher,
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
 	profile, _ := domain.NewProfile("Desk", domain.Entry{
-		Application: claude, Running: true,
+		Application: pigeonpost, Running: true,
 		Placements: []domain.Placement{onPrimary, second},
 	})
 	report, err := service.Restore(context.Background(), profile)
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if launcher.launchCount(claude) != 1 {
-		t.Fatalf("it was run %d times rather than once", launcher.launchCount(claude))
+	if launcher.launchCount(pigeonpost) != 1 {
+		t.Fatalf("it was run %d times rather than once", launcher.launchCount(pigeonpost))
 	}
-	entry := reportOf(t, report, claude)
+	entry := reportOf(t, report, pigeonpost)
 	if entry.Satisfied || !containsText(entry.Reason, "opened 1 of the 2 windows") {
 		t.Fatalf("the report does not say how many opened: %+v", entry)
 	}
@@ -254,5 +254,40 @@ func TestAnApplicationThatRefusesToBeAskedIsReported(t *testing.T) {
 	if entry := reportOf(t, report, nordvpn); entry.Satisfied ||
 		!containsText(entry.Reason, "could not be asked") {
 		t.Fatalf("the refusal was not reported: %+v", entry)
+	}
+}
+
+// FR-070: a packaged application is launched and left where it opens, even
+// where a profile recorded before that rule holds placements for it. It is
+// satisfied once it is running and none of its windows is moved.
+func TestAPackagedApplicationIsLaunchedAndNeverPlaced(t *testing.T) {
+	t.Parallel()
+	desktop := &fakeDesktop{displays: []Display{primaryDisplay}}
+	processes := newFakeProcesses()
+	launcher := &fakeLauncher{}
+	launcher.onLaunch = func(domain.ApplicationIdentity) {
+		processes.start(packaged)
+		desktop.addWindow(aWindow(1, packaged, at(0)))
+	}
+	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
+	profile, _ := domain.NewProfile("Desk", domain.Entry{
+		Application: packaged, Running: true,
+		Placements: []domain.Placement{onPrimary, second},
+	})
+	service := restoreUnder(desktop, processes, launcher,
+		newFakeStore(), newFakeClock(), &fakeLog{})
+
+	report, err := service.Restore(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("the restore failed: %v", err)
+	}
+	if launcher.launchCount(packaged) != 1 {
+		t.Fatalf("it was run %d times rather than once", launcher.launchCount(packaged))
+	}
+	if !reportOf(t, report, packaged).Satisfied {
+		t.Fatalf("it was not satisfied by running: %+v", reportOf(t, report, packaged))
+	}
+	if placed := desktop.placements(); len(placed) != 0 {
+		t.Fatalf("its windows were moved: %+v", placed)
 	}
 }

@@ -311,3 +311,16 @@ func TestAProfileFindsTheEntryForAnApplication(t *testing.T) {
 		t.Fatal("an entry that is not there was found")
 	}
 }
+
+// FR-070: a packaged application is launched and left where it opens; every
+// other kind of application has its windows placed.
+func TestOnlyAPackagedApplicationIsLeftWhereItOpens(t *testing.T) {
+	t.Parallel()
+	for kind, placeable := range map[IdentityKind]bool{
+		KindPath: true, KindUpdaterCommand: true, KindAppUserModelID: false,
+	} {
+		if got := (ApplicationIdentity{Kind: kind, Value: "x"}).Placeable(); got != placeable {
+			t.Errorf("%s: placeable %v, want %v", kind, got, placeable)
+		}
+	}
+}

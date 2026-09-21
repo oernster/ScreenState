@@ -35,7 +35,8 @@ async function openCapture() {
         const hint = document.createElement('span')
         hint.className = 'hint'
         hint.textContent = entry.kind + ', '
-            + (entry.windows === 1 ? '1 window placed' : entry.windows + ' windows placed')
+            + (entry.windows === 0 ? 'no window placed'
+                : entry.windows === 1 ? '1 window placed' : entry.windows + ' windows placed')
         text.append(title, hint)
         label.append(input, tick, text)
         rows.appendChild(label)

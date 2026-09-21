@@ -15,11 +15,11 @@ func TestTheProgressReadingFollowsTheRestore(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	clock := newFakeClock()
 	var duringFirst, duringLater RestoreProgress
-	service := restoreUnder(desktop, newFakeProcesses(claude, nordvpn),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
 		&fakeLauncher{}, newFakeStore(), clock, &fakeLog{})
 	clock.onSleep = func(_ context.Context, _ *fakeClock, count int) {
 		if count == 1 {
@@ -33,7 +33,7 @@ func TestTheProgressReadingFollowsTheRestore(t *testing.T) {
 	}
 
 	profile, err := domain.NewProfile("Desk",
-		domain.Entry{Application: claude, Running: true,
+		domain.Entry{Application: pigeonpost, Running: true,
 			Placements: []domain.Placement{onPrimary}},
 		domain.Entry{Application: nordvpn, Running: true,
 			Placements: []domain.Placement{aPlacement(primaryID,
@@ -64,9 +64,9 @@ func TestTheProgressReadingClearsWhenTheRestoreEnds(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude),
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost),
 		&fakeLauncher{}, newFakeStore(), newFakeClock(), &fakeLog{})
 
 	if reading := service.Progress(); reading.Running {

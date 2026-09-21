@@ -132,6 +132,15 @@ func (identity ApplicationIdentity) SameProgram(other ApplicationIdentity) bool 
 	return mine != "" && strings.EqualFold(mine, fileName(other.Value))
 }
 
+// Placeable reports whether this product moves the application's windows. A
+// Store-packaged application, named by its model id, is launched and left
+// where it opens (FR-070): the owner's decision on 2026-09-21, after its taskbar
+// buttons were measured drawn grey on every display but the one its window was
+// placed on.
+func (identity ApplicationIdentity) Placeable() bool {
+	return identity.Kind != KindAppUserModelID
+}
+
 // fileName is the last segment of a path. Both separators are cut on, because
 // the domain may not import path/filepath and a stored path may carry either.
 func fileName(value string) string {

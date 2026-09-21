@@ -32,23 +32,23 @@ func TestAWindowThatMovesItselfIsPutBackOnce(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	desktop.afterPlace = func(desk *fakeDesktop, id WindowID) {
 		desk.afterPlace = nil
 		desk.moveWindow(id, domain.Rect{X: 999, Y: 999, Width: 800, Height: 600})
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
 	if len(desktop.placements()) != 2 {
 		t.Fatalf("the window was placed %d times, wanted 2", len(desktop.placements()))
 	}
-	entry := reportOf(t, report, claude)
+	entry := reportOf(t, report, pigeonpost)
 	if !noteSaying(entry, "moved itself after being placed") {
 		t.Fatalf("the report does not record the second attempt: %+v", entry)
 	}
@@ -62,15 +62,15 @@ func TestAWindowThatKeepsMovingIsReportedAndLeft(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	desktop.afterPlace = func(desk *fakeDesktop, id WindowID) {
 		desk.moveWindow(id, domain.Rect{X: 999, Y: 999, Width: 800, Height: 600})
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
@@ -78,7 +78,7 @@ func TestAWindowThatKeepsMovingIsReportedAndLeft(t *testing.T) {
 		t.Fatalf("the window was placed %d times: the agent fought for it",
 			len(desktop.placements()))
 	}
-	entry := reportOf(t, report, claude)
+	entry := reportOf(t, report, pigeonpost)
 	if entry.Satisfied || entry.Reason == "" {
 		t.Fatalf("the entry was not reported as unsatisfied: %+v", entry)
 	}
@@ -90,21 +90,21 @@ func TestAWindowThatCannotBeMovedIsNamed(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), aWindow(2, stellody, at(1))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), aWindow(2, stellody, at(1))},
 		placeErr: map[WindowID]error{1: errRefused},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude, stellody), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
 	profile, _ := domain.NewProfile("Desk",
-		domain.Entry{Application: claude, Running: true, Placements: []domain.Placement{onPrimary}},
+		domain.Entry{Application: pigeonpost, Running: true, Placements: []domain.Placement{onPrimary}},
 		domain.Entry{Application: stellody, Running: true, Placements: []domain.Placement{onPrimary}})
 
 	report, err := service.Restore(context.Background(), profile)
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if entry := reportOf(t, report, claude); entry.Satisfied ||
+	if entry := reportOf(t, report, pigeonpost); entry.Satisfied ||
 		!containsText(entry.Reason, "could not be moved") {
 		t.Fatalf("the refusal was not reported: %+v", entry)
 	}
@@ -118,19 +118,19 @@ func TestExtraWindowsAreLeftAloneAndNamed(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0)), aWindow(2, claude, at(1))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0)), aWindow(2, pigeonpost, at(1))},
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
 	if placements := desktop.placements(); len(placements) != 1 || placements[0].id != 1 {
 		t.Fatalf("the wrong windows were placed: %+v", placements)
 	}
-	if entry := reportOf(t, report, claude); !noteSaying(entry, "more window(s) open") {
+	if entry := reportOf(t, report, pigeonpost); !noteSaying(entry, "more window(s) open") {
 		t.Fatalf("the extra window was not named: %+v", entry)
 	}
 }
@@ -140,21 +140,21 @@ func TestAWindowClosedAfterPlacingIsNotAFailure(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	desktop.afterPlace = func(desk *fakeDesktop, _ WindowID) {
 		desk.mutex.Lock()
 		defer desk.mutex.Unlock()
 		desk.windows = nil
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	entry := reportOf(t, report, claude)
+	entry := reportOf(t, report, pigeonpost)
 	if !entry.Satisfied || !noteSaying(entry, "closed after it was placed") {
 		t.Fatalf("a closed window was treated as a failure: %+v", entry)
 	}
@@ -166,21 +166,21 @@ func TestAWindowThatCannotBeReadAgainIsNoted(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	desktop.afterPlace = func(desk *fakeDesktop, _ WindowID) {
 		desk.mutex.Lock()
 		defer desk.mutex.Unlock()
 		desk.windowErr = errRefused
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if entry := reportOf(t, report, claude); !noteSaying(entry, "could not be read again") {
+	if entry := reportOf(t, report, pigeonpost); !noteSaying(entry, "could not be read again") {
 		t.Fatalf("the unreadable window was not noted: %+v", entry)
 	}
 }
@@ -190,7 +190,7 @@ func TestAWindowThatCannotBeMovedBackIsReported(t *testing.T) {
 	t.Parallel()
 	desktop := &fakeDesktop{
 		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, claude, at(0))},
+		windows:  []Window{aWindow(1, pigeonpost, at(0))},
 	}
 	desktop.afterPlace = func(desk *fakeDesktop, id WindowID) {
 		desk.afterPlace = nil
@@ -199,14 +199,14 @@ func TestAWindowThatCannotBeMovedBackIsReported(t *testing.T) {
 		defer desk.mutex.Unlock()
 		desk.placeErr = map[WindowID]error{id: errRefused}
 	}
-	service := restoreUnder(desktop, newFakeProcesses(claude), &fakeLauncher{},
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(), newFakeClock(), &fakeLog{})
 
-	report, err := service.Restore(context.Background(), oneEntry(claude, onPrimary))
+	report, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary))
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if entry := reportOf(t, report, claude); entry.Satisfied ||
+	if entry := reportOf(t, report, pigeonpost); entry.Satisfied ||
 		!containsText(entry.Reason, "could not be moved back") {
 		t.Fatalf("the refusal was not reported: %+v", entry)
 	}

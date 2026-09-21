@@ -110,8 +110,9 @@ func (service *CaptureService) fromWindows(windows []Window, set displaySet) Rev
 		}
 		// A hidden window is left without a placement. The entry then says the
 		// application should run without saying where, which is how the owner's
-		// tray applications are usually left (FR-005).
-		if !window.Visible {
+		// tray applications are usually left (FR-005). A packaged application's
+		// windows are never placed, so none is recorded for them (FR-070).
+		if !window.Visible || !window.Application.Placeable() {
 			continue
 		}
 		review.Entries[position] = review.Entries[position].

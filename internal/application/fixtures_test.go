@@ -39,10 +39,13 @@ var (
 )
 
 var (
-	claude   = domain.ApplicationIdentity{Kind: domain.KindAppUserModelID, Value: "Anthropic.Claude"}
-	stellody = domain.ApplicationIdentity{Value: `C:\Programs\Stellody\Stellody.exe`}
-	nordvpn  = domain.ApplicationIdentity{Value: `C:\Programs\NordVPN\NordVPN.exe`}
-	terminal = domain.ApplicationIdentity{Kind: domain.KindAppUserModelID, Value: "Microsoft.WindowsTerminal!App"}
+	pigeonpost = domain.ApplicationIdentity{Value: `C:\Programs\PigeonPost\PigeonPost.exe`}
+	stellody   = domain.ApplicationIdentity{Value: `C:\Programs\Stellody\Stellody.exe`}
+	nordvpn    = domain.ApplicationIdentity{Value: `C:\Programs\NordVPN\NordVPN.exe`}
+	// notepad opens another window each time it is run (FR-069).
+	notepad = domain.ApplicationIdentity{Value: `C:\Windows\notepad.exe`}
+	// packaged is a Store-packaged application, named by its model id (FR-070).
+	packaged = domain.ApplicationIdentity{Kind: domain.KindAppUserModelID, Value: "Anthropic.Claude"}
 	screenst = domain.ApplicationIdentity{Value: `C:\Programs\ScreenState\ScreenState.exe`}
 )
 
