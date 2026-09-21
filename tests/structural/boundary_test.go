@@ -14,15 +14,6 @@ import (
 	"testing"
 )
 
-// lineLimit is the module-size cap. dangerBand is five per cent below it: a file
-// that lands between them is refactored down to safeLanding rather than left one
-// edit away from breaching, because shaving a line or two buys nothing.
-const (
-	lineLimit   = 400
-	dangerBand  = lineLimit - lineLimit/20
-	safeLanding = 350
-)
-
 // modulePath prefixes every internal import.
 const modulePath = "github.com/oernster/ScreenState/"
 
@@ -64,11 +55,6 @@ func repoRoot(t *testing.T) string {
 }
 
 // goFiles returns every Go source file in the repository.
-//
-// It is the whole of what the size rule governs here, because this product has no
-// front end: the agent and its manager are native windows. The build script is
-// PowerShell, which the walk does not reach, so the exemption build scripts carry
-// elsewhere needs no expression in this repository.
 func goFiles(t *testing.T) []string {
 	t.Helper()
 	root := repoRoot(t)
@@ -122,16 +108,6 @@ func layerOf(root, path string) string {
 		return parts[1]
 	}
 	return ""
-}
-
-// lineCount counts the lines in a file.
-func lineCount(t *testing.T, path string) int {
-	t.Helper()
-	raw, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatalf("reading %s: %v", path, err)
-	}
-	return strings.Count(string(raw), "\n") + 1
 }
 
 func TestDomainHasNoOutwardImports(t *testing.T) {
@@ -209,26 +185,6 @@ func TestCompositionRootIsWhitelisted(t *testing.T) {
 		relative, _ := filepath.Rel(root, path)
 		if !compositionRoot[filepath.ToSlash(relative)] {
 			t.Errorf("%s wires application to infrastructure: only the composition root may", relative)
-		}
-	}
-}
-
-func TestNoFileExceedsLineLimit(t *testing.T) {
-	for _, path := range goFiles(t) {
-		if count := lineCount(t, path); count > lineLimit {
-			t.Errorf("%s has %d lines, over the %d limit", path, count, lineLimit)
-		}
-	}
-}
-
-func TestNoFileInDangerBand(t *testing.T) {
-	for _, path := range goFiles(t) {
-		count := lineCount(t, path)
-		if count > dangerBand && count <= lineLimit {
-			t.Errorf(
-				"%s has %d lines, inside the danger band %d to %d: reduce it to %d or fewer",
-				path, count, dangerBand+1, lineLimit, safeLanding,
-			)
 		}
 	}
 }

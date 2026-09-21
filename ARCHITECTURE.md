@@ -35,8 +35,8 @@ to fail is not yet a guard.
 | Domain is pure: no net, os, filepath, syscall, log, `time.Now`, `math/rand` | `TestDomainIsPure` | `boundary_test.go` |
 | Application never imports infrastructure or ui | `TestApplicationDoesNotImportInfrastructure` | `boundary_test.go` |
 | The composition root is the only place that wires concrete adapters | `TestCompositionRootIsWhitelisted` | `boundary_test.go` |
-| No Go source file exceeds the module-size limit | `TestNoFileExceedsLineLimit` | `boundary_test.go` |
-| No source file sits in the danger band below the limit | `TestNoFileInDangerBand` | `boundary_test.go` |
+| No Go source or page file (HTML, script, stylesheet) exceeds the module-size limit | `TestNoFileExceedsLineLimit` | `size_test.go` |
+| No such file sits in the danger band below the limit | `TestNoFileInDangerBand` | `size_test.go` |
 | Every exported type carries a doc comment | `TestEveryExportedTypeIsDocumented` | `boundary_test.go` |
 | No port above the Windows layer can terminate or kill anything; only the three methods FR-064 names may close a window | `TestNothingAboveInfrastructureCanEndAProgram` | `rulings_test.go` |
 | Domain and application import no Windows API | `TestTheDecisionsStayPortable` | `rulings_test.go` |
@@ -430,8 +430,9 @@ layer.
 buttons that belong to the window and the start of a run; beside it sit the interrupting surfaces
 (`manager-dialogs.js`), the profile list and everything done to a profile (`manager-profiles.js`),
 the capture review with the restore report (`manager-capture.js`), the settings dialog
-(`manager-settings.js`) and everything about the product rather than the desktop
-(`manager-help.js`), with the guide's words apart again in `guide.js`. `shell.js` is the furniture
+(`manager-settings.js`), everything about the product rather than the desktop
+(`manager-help.js`) and the update check (`manager-updates.js`), with the guide's words apart
+again in `guide.js`. `shell.js` is the furniture
 shared with the setup page and `autoscroll.js` the gentle self-reading scroll. They are plain
 scripts sharing one scope, so `index.html` loads the shared furniture and the guide first, then
 `manager.js` ahead of the other manager scripts; a structural test holds the tags and the files to
@@ -739,20 +740,16 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 
 Found by reading the source against every requirement during the documentation pass for the first
 release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Eight more were on this list and are now built: cancelling a restore (FR-049), matching a
+desktop. Nine more were on this list and are now built: cancelling a restore (FR-049), matching a
 packaged application's window after an update (FR-071), marking the tray icon after an incomplete
 restore (FR-045), capturing an application with only a hidden window (FR-005), counting the
-rebuilt buttons (FR-075), a click on the splash (FR-078), log retention (NFR-OBS-001) and setting
-the ceiling (NFR-PERF-003). Each item left is a defect or a requirement to amend; which is the
+rebuilt buttons (FR-075), a click on the splash (FR-078), log retention (NFR-OBS-001), setting
+the ceiling (NFR-PERF-003) and holding the page files to the module size (NFR-MAINT-003). Each item left is a defect or a requirement to amend; which is the
 owner's decision, so the specification still states what was asked for.
 
 - **What is stored (NFR-PRIV-001).** The notes of the restore the agent runs as it starts, written to
   the log, carry the titles of the windows put away.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.
-- **Module size (NFR-MAINT-003).** The structural test measures Go files only. Every page file is
-  under 400 lines today; the manager's stylesheet was cut into four to get there. Nothing fails the
-  suite when one grows past it, nor for the danger band below it, where `manager-help.js` sits at
-  394 lines.
 - **Placing a maximised window (FR-074).** The placing code says `SetWindowPlacement` was measured
   not to activate, while the rebuild's comment records it activating PigeonPost, Stellody and
   Claude. A shell trace of a maximising placement would settle which is right.

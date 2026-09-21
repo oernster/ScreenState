@@ -187,7 +187,7 @@ installed copy that there is a newer version.
 - The domain is pure: no I/O, no clock, no window.
 - One composition root; it is the only file importing both the application
   layer and the infrastructure.
-- No Go file over 400 lines, none left between 381 and 400.
+- No Go or page file (HTML, script, stylesheet) over 400 lines, none left between 381 and 400.
 - Every exported type has a doc comment.
 - Nothing above infrastructure can end a program.
 - No release version written anywhere but `VERSION`.

@@ -150,8 +150,8 @@ as running with no placement.
 ### The structure
 
 `tests/structural` parses the source and fails on a layer violation, an
-impure domain, a second composition root, a file over 400 lines or in the band
-just below it, an undocumented exported type, a program ended above
+impure domain, a second composition root, a Go or page file over 400 lines or
+in the band just below it, an undocumented exported type, a program ended above
 infrastructure, an application started in front, a decision that is not
 portable, a timing value with two homes, the product's name written twice, a
 page naming the product, a wire that disagrees with itself, a call to a method
