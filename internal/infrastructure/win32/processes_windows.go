@@ -165,11 +165,14 @@ func shellOpen(application domain.ApplicationIdentity) error {
 			return fmt.Errorf("preparing to start %s: %w", application, err)
 		}
 	}
+	// Shown without activating (FR-077): the agent holds no right to the
+	// foreground at sign-in, so an application asked to come to the front is
+	// refused and its taskbar button is marked red instead.
 	result, _, callErr := pShellExecute.Call(0,
 		uintptr(unsafe.Pointer(verb)),
 		uintptr(unsafe.Pointer(target)),
 		uintptr(unsafe.Pointer(parameters)),
-		0, swNormal)
+		0, swShowNoActivate)
 	// ShellExecuteW answers a value above 32 on success and an error code below
 	// it on failure, which is the opposite of every other call here.
 	if result <= shellExecuteFailure {

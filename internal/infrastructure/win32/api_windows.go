@@ -55,13 +55,13 @@ const (
 	// any user would say is open.
 	dwmwaCloaked = 14
 
-	swHide   = 0
-	swNormal = 1
+	swHide = 0
 	// swMaximize is also the show state SetWindowPlacement is given to maximise
 	// a window without activating it (FR-074).
 	swMaximize = 3
 	// swShowNoActivate shows a window in its current size and place without
-	// making it the active one, which SW_RESTORE would (FR-074).
+	// making it the active one, which SW_RESTORE would (FR-074). It is also
+	// the show state every application is started with (FR-077).
 	swShowNoActivate = 4
 	swMinimize       = 6
 	swMinNoActive    = 7

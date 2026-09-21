@@ -34,8 +34,10 @@ every plant restored afterwards. An assertion never seen to fail is not yet a gu
 | No port above the Windows layer can terminate or kill anything; only the three methods FR-064 names may close a window | `TestNothingAboveInfrastructureCanEndAProgram` | `rulings_test.go` |
 | Domain and application import no Windows API | `TestTheDecisionsStayPortable` | `rulings_test.go` |
 | Every timing has one home in `ports.go` | `TestEveryTimingHasOneHome` | `rulings_test.go` |
+| The product's name is written down once, in `product.go` | `TestTheProductIsNamedOnce` | `rulings_test.go` |
+| Every application is started shown without activating (FR-077) | `TestNothingIsStartedInFront` | `rulings_test.go` |
 
-The last three are not style. Each holds a decision the specification makes that a later edit could
+The `rulings_test.go` rows are not style. Each holds a decision the specification makes that a later edit could
 undo without anybody noticing.
 
 ## Layers
@@ -179,6 +181,15 @@ display, so a restore that used them left one lit button per display. The window
 `SW_SHOWNOACTIVATE`, moved with `SWP_NOACTIVATE` and maximised through `SetWindowPlacement`, which
 sets the show state and leaves the active window alone. Measured on 2026-09-21 against a window whose
 button had been cleared: activating it lit the button, setting its show state did not.
+
+**Nothing a restore starts asks for the front** (FR-077). The agent is started at sign-in and
+holds no right to the foreground, so an application it starts with `SW_SHOWNORMAL` asks for the
+front and is refused; Windows then marks its taskbar button red to ask for attention. `ShellExecuteW`
+is given `SW_SHOWNOACTIVATE` instead. Measured on 2026-09-21 from a process started at sign-in with
+Claude in front: Windows Terminal by path with the ordinary show state flashed and went red, shown
+without activating it came up plain behind Claude. The two model-id routes, `shell:AppsFolder` and
+the activation manager, pass no show state on and still go red; they are only taken once an update
+has moved a packaged application's path.
 
 The order is `restore, set the rectangle, then set the show state`; it is not a preference.
 Maximising acts on whichever display the window's rectangle is on, so maximising first would maximise

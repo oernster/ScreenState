@@ -172,6 +172,55 @@ func TestTheProductIsNamedOnce(t *testing.T) {
 	}
 }
 
+// launchShowState is the only show state an application may be started with
+// (FR-077): displayed without being activated.
+const launchShowState = "swShowNoActivate"
+
+// TestNothingIsStartedInFront holds FR-077. The agent holds no right to the
+// foreground at sign-in, so an application started with any show state that
+// activates is refused the front and has its taskbar button marked red. Every
+// call to ShellExecuteW must therefore end with the one show state that does not
+// ask for the front.
+func TestNothingIsStartedInFront(t *testing.T) {
+	calls := 0
+	for _, path := range goFiles(t) {
+		if strings.HasSuffix(path, "_test.go") {
+			continue
+		}
+		parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
+		if err != nil {
+			t.Fatalf("parsing %s: %v", path, err)
+		}
+		ast.Inspect(parsed, func(node ast.Node) bool {
+			call, ok := node.(*ast.CallExpr)
+			if !ok || !callsShellExecute(call) || len(call.Args) == 0 {
+				return true
+			}
+			calls++
+			shown, ok := call.Args[len(call.Args)-1].(*ast.Ident)
+			if !ok || shown.Name != launchShowState {
+				t.Errorf("%s starts an application with a show state other than %s: "+
+					"it would be refused the front and marked red (FR-077)",
+					filepath.Base(path), launchShowState)
+			}
+			return true
+		})
+	}
+	if calls == 0 {
+		t.Fatal("no ShellExecuteW call was found: this test is no longer looking at the launcher")
+	}
+}
+
+// callsShellExecute reports whether a call is pShellExecute.Call.
+func callsShellExecute(call *ast.CallExpr) bool {
+	selector, ok := call.Fun.(*ast.SelectorExpr)
+	if !ok || selector.Sel.Name != "Call" {
+		return false
+	}
+	receiver, ok := selector.X.(*ast.Ident)
+	return ok && receiver.Name == "pShellExecute"
+}
+
 // stringLiterals returns every string literal in a file except the import
 // paths, which carry the module's name and are not a copy of anything.
 func stringLiterals(t *testing.T, path string) []string {

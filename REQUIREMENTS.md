@@ -554,6 +554,28 @@ Acceptance: Given a profile recording two Terminal windows and one open, when
 setup installs and starts the agent, then no window is opened, moved or closed
 and the log says setup started that copy so nothing was arranged.
 
+**FR-077 Starting an application never asks for the front**
+Priority: Must
+Requirement: The ScreenState agent shall start an application by its path or by
+its updater with the show state that displays its window without activating it.
+Rationale: reported and measured 2026-09-21. After a sign-in restore Windows
+Terminal's taskbar button was red. The agent is started at sign-in and holds no
+right to the foreground. An application it starts that asks to come to the front
+is refused; Windows marks its button to ask for attention instead, which is the
+red. Reproduced without this product: Terminal started from a process that
+did not hold the foreground came up red. Then five launches from a process
+started at sign-in, as the agent is, with Claude in front each time. By path
+with the ordinary show state: eight attention flashes, red. By path shown
+without activating: no flash, no activation, plain, behind Claude. By path shown
+minimised without activating: activated, on top, which takes the keyboard from
+the user. By `shell:AppsFolder` and by the activation manager: eight flashes,
+red, since neither passes a show state on. A packaged application whose path an
+update has moved is started by its model id (FR-071, FR-067), so it can still
+come up red; nothing measured prevents that on those routes.
+Acceptance: Given Claude in front and Windows Terminal closed, when a restore
+started at sign-in starts Terminal by its path, then its window appears without
+taking the keyboard and its taskbar button is not red.
+
 **FR-029 Never terminate**
 Priority: Must
 Requirement: The ScreenState agent shall not terminate any process it did not
@@ -1169,12 +1191,12 @@ Counted from this document rather than carried forward, because the previous
 figures had drifted about ten below the requirements actually written. Recounted
 on 2026-09-20 by scanning every `Priority:` line: the Must figure had been
 written as 56 against 65 actually present, a transposition that the earlier
-recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. Withdrawn requirements carry no
+recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. Recounted again on 2026-09-21 with FR-077 in: 74, where the table said 72 before it, because FR-074 had been added without the figure moving. Withdrawn requirements carry no
 `Priority:` line, so they are not in the Must or Should figures.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 72 | The product does not work without any one of them. |
+| Must | 74 | The product does not work without any one of them. |
 | Should | 17 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
