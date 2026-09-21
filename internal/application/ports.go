@@ -88,11 +88,6 @@ type Desktop interface {
 	// sign-in without its icon on every display but the first and leaves it so
 	// until any taskbar is clicked. It touches no window of any application.
 	NudgeTaskbars(ctx context.Context) (int, error)
-	// StopDrawingAttention puts a window's taskbar button back in its ordinary
-	// state and answers whether it was drawing attention to itself (FR-073).
-	// Placing a window leaves its button lit, which is the state Windows uses
-	// for a window that wants looking at. It moves and activates nothing.
-	StopDrawingAttention(ctx context.Context, id WindowID) (bool, error)
 	// Close asks a window to close, which is a request rather than an order:
 	// the application decides what to do with it and may show a prompt, take
 	// itself to the notification area or end. It is used on a window no

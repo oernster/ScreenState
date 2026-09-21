@@ -210,7 +210,11 @@ func (desktop *Desktop) Place(
 	}
 	// ShowWindow answers whether the window was previously visible rather than
 	// whether it worked, so there is nothing here to read as success.
-	_, _, _ = pShowWindow.Call(handle, swRestore)
+	//
+	// SW_SHOWNOACTIVATE rather than SW_RESTORE, because restoring activates the
+	// window and a taskbar marks the window last activated on its display
+	// (FR-074).
+	_, _, _ = pShowWindow.Call(handle, swShowNoActivate)
 	moved, _, err := pSetWindowPos.Call(handle, 0,
 		uintptr(target.X), uintptr(target.Y),
 		uintptr(target.Width), uintptr(target.Height),
@@ -220,7 +224,7 @@ func (desktop *Desktop) Place(
 	}
 	switch state {
 	case domain.ShowMaximised:
-		_, _, _ = pShowWindow.Call(handle, swMaximize)
+		maximiseWithoutActivating(handle)
 	case domain.ShowMinimised:
 		// Minimised without activating, so a restore does not pull the
 		// keyboard away from whatever the user is already typing into.
@@ -229,6 +233,31 @@ func (desktop *Desktop) Place(
 		// The window is already restored, which is what normal means.
 	}
 	return nil
+}
+
+// maximiseWithoutActivating maximises a window without making it the active
+// one (FR-074).
+//
+// ShowWindow with SW_MAXIMIZE would activate it. A taskbar marks the window
+// last activated on its display, so a restore that used it left one lit button
+// per display. SetWindowPlacement sets the show state and leaves the active window
+// alone, measured on the reference machine on 2026-09-21 against a window whose
+// button had been cleared.
+//
+// The placement is read and written back with only the show state changed, so
+// the rectangle it carries is whatever Windows itself last reported. That
+// matters because a placement's rectangle is in workspace coordinates, which are
+// not always the screen coordinates the rest of this file works in; reading
+// before writing keeps this out of that difference entirely.
+func maximiseWithoutActivating(handle uintptr) {
+	placement := windowPlacement{}
+	placement.length = uint32(unsafe.Sizeof(placement))
+	if read, _, _ := pGetWindowPlacement.Call(handle,
+		uintptr(unsafe.Pointer(&placement))); read == 0 {
+		return
+	}
+	placement.showCmd = swMaximize
+	_, _, _ = pSetWindowPlacement.Call(handle, uintptr(unsafe.Pointer(&placement)))
 }
 
 // Close asks a window to close, which is what pressing the cross on its title

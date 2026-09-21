@@ -53,11 +53,6 @@ func (desktop *Desktop) NudgeTaskbars(context.Context) (int, error) {
 	return 0, ErrNotWindows
 }
 
-// StopDrawingAttention refuses: the taskbar button belongs to Windows.
-func (desktop *Desktop) StopDrawingAttention(context.Context, application.WindowID) (bool, error) {
-	return false, ErrNotWindows
-}
-
 // Close refuses.
 func (desktop *Desktop) Close(context.Context, application.WindowID) error {
 	return ErrNotWindows

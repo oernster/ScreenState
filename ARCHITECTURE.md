@@ -173,6 +173,13 @@ wrong screen.
 
 ## Placing a window
 
+**Nothing a restore places is activated** (FR-074). `ShowWindow` with restore or maximise activates
+the window, which lights its taskbar button: a taskbar marks the window last activated on its
+display, so a restore that used them left one lit button per display. The window is shown with
+`SW_SHOWNOACTIVATE`, moved with `SWP_NOACTIVATE` and maximised through `SetWindowPlacement`, which
+sets the show state and leaves the active window alone. Measured on 2026-09-21 against a window whose
+button had been cleared: activating it lit the button, setting its show state did not.
+
 The order is `restore, set the rectangle, then set the show state`; it is not a preference.
 Maximising acts on whichever display the window's rectangle is on, so maximising first would maximise
 it where it already was; and a maximised window ignores a move until it has been restored. Measured
@@ -214,14 +221,9 @@ Windows itself decides where to maximise it.
    running, so the fault is Windows and the click is the repair. The message goes straight to the
    taskbar's window, so the pointer does not move, nothing is activated and no application's window
    is touched.
-6. Every window the restore placed has its taskbar button put back into the ordinary state
-   (FR-073). Placing a window leaves its button lit, the state Windows uses for a window that wants
-   looking at, so a desktop nobody has touched yet appears to be calling for attention everywhere.
-   Only the windows this restore placed are settled: a lit button elsewhere may be a message
-   genuinely meant for the user. Nothing is moved and nothing is activated.
-7. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+6. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
    against the displays as they then stand and the change is recorded (FR-057).
-8. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
+7. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 

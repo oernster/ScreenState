@@ -59,10 +59,6 @@ type restoreState struct {
 	report  *Report
 	pending []*pendingEntry
 	placed  []*placedWindow
-	// arranged records every window this restore placed, in the order it placed
-	// them. Unlike placed, which is the queue of windows still to be checked,
-	// nothing is ever taken out of it: it is what the restore did (FR-073).
-	arranged []WindowID
 	// displays is the identities connected at the last pass, kept so that a
 	// change part way through can be recorded rather than passed over (FR-057).
 	displays []string
@@ -115,14 +111,6 @@ func (state *restoreState) drop(pending *pendingEntry) {
 // track records a window just placed, for the settle check FR-033 makes.
 func (state *restoreState) track(placed *placedWindow) {
 	state.placed = append(state.placed, placed)
-	state.arranged = append(state.arranged, placed.id)
-}
-
-// arrangedWindows answers every window this restore placed.
-func (state *restoreState) arrangedWindows() []WindowID {
-	windows := make([]WindowID, len(state.arranged))
-	copy(windows, state.arranged)
-	return windows
 }
 
 // forget stops checking a placed window.

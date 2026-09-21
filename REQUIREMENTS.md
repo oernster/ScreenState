@@ -491,24 +491,22 @@ Acceptance: Given a restore that has just settled, when the log is read, then
 it says how many taskbars were sent a click; the pointer has not moved and the
 window the user was working in is still in front.
 
-**FR-073 The taskbar buttons after a restore**
-Priority: Should
-Requirement: When a restore has settled, the ScreenState agent shall put the
-taskbar button of every window it placed back into its ordinary state and shall
-record in the log how many buttons were settled and how many of those were
-drawing attention. It shall not settle the button of a window it did not place;
-it shall move and activate nothing.
-Rationale: reported 2026-09-21. After a sign-in the buttons of the applications
-the restore had placed were drawn lit, which is the state Windows uses for a
-window that wants looking at, so a desktop the user had not yet touched looked
-as though everything on it was calling them. Measured on the reference machine:
-a window the restore had placed reported its caption drawn active while another
-window held the foreground; FLASHW_STOP put it back. A window the restore
-never placed is left alone, since a lit button there may be a message genuinely
-meant for the user.
-Acceptance: Given a restore that placed three windows, when it settles, then
-the log says three buttons were settled and how many of them were drawing
-attention; a window the profile does not name keeps whatever state it had.
+**FR-074 Placing a window never activates it**
+Priority: Must
+Requirement: The ScreenState agent shall place a window without making it the
+active window. The window the user is working in shall still hold the keyboard
+when a restore ends; no taskbar button shall be lit by the placing.
+Rationale: measured 2026-09-21. A taskbar highlights the window last activated
+on its display, so a restore that activated each window as it placed it left one
+lit button per display and a desktop that looked as though everything on it
+wanted the user. Measured on the reference machine with a window whose button
+had been cleared: activating it lit the button again, while setting its show
+state without activating did not. The window's own application is never asked to
+come forward, so nothing is taken from whatever the user is doing while the
+restore runs.
+Acceptance: Given a restore that places windows on three displays, when it ends,
+then the window the user was typing into still has the keyboard and no taskbar
+button is lit by the restore.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -1131,7 +1129,7 @@ recount did not catch. FR-061 took it to 66, FR-062 to 67 and FR-063 to 68. With
 | Priority | Count | Notes |
 |---|---|---|
 | Must | 70 | The product does not work without any one of them. |
-| Should | 18 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, FR-073, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
+| Should | 17 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, NFR-PERF-006, NFR-USE-001 and NFR-USE-002, plus the second half of FR-045, which is a Should inside a Must. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 6 | FR-020, FR-021, FR-022, FR-028, FR-030 and NFR-PERF-002. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |

@@ -29,7 +29,7 @@ var (
 	pGetWindowPlacement       = user32.NewProc("GetWindowPlacement")
 	pSetWindowPos             = user32.NewProc("SetWindowPos")
 	pShowWindow               = user32.NewProc("ShowWindow")
-	pFlashWindowEx            = user32.NewProc("FlashWindowEx")
+	pSetWindowPlacement       = user32.NewProc("SetWindowPlacement")
 	pPostMessage              = user32.NewProc("PostMessageW")
 	pEnumDisplayMonitors      = user32.NewProc("EnumDisplayMonitors")
 	pGetMonitorInfo           = user32.NewProc("GetMonitorInfoW")
@@ -55,12 +55,16 @@ const (
 	// any user would say is open.
 	dwmwaCloaked = 14
 
-	swHide        = 0
-	swNormal      = 1
-	swMaximize    = 3
-	swMinimize    = 6
-	swRestore     = 9
-	swMinNoActive = 7
+	swHide   = 0
+	swNormal = 1
+	// swMaximize is also the show state SetWindowPlacement is given to maximise
+	// a window without activating it (FR-074).
+	swMaximize = 3
+	// swShowNoActivate shows a window in its current size and place without
+	// making it the active one, which SW_RESTORE would (FR-074).
+	swShowNoActivate = 4
+	swMinimize       = 6
+	swMinNoActive    = 7
 
 	swpNoZOrder   = 0x0004
 	swpNoActivate = 0x0010
