@@ -22,12 +22,6 @@ type Review struct {
 	// Unreadable names every window omitted because its state could not be
 	// read, so the user is told rather than left to notice (FR-014).
 	Unreadable []string
-	// Background are the applications running with every window hidden, by
-	// name, each an entry running with no placement (FR-005). They are offered
-	// rather than proposed: measured on 2026-09-21, a desktop held 25 such
-	// applications, helpers that must never be started directly among them, so
-	// the review shows them unticked and only the ones the user ticks are kept.
-	Background []domain.Entry
 }
 
 // CaptureService reads the desktop as it stands and turns it into a profile.
@@ -80,43 +74,9 @@ func (service *CaptureService) Review(ctx context.Context, basedOn string) (Revi
 	if err := service.addProfileOnly(ctx, basedOn, &review); err != nil {
 		return Review{}, err
 	}
-	service.addBackground(ctx, &review)
-	service.log.Step(fmt.Sprintf(
-		"capture read %d entries, %d unreadable windows and %d applications running with no window shown",
-		len(review.Entries), len(review.Unreadable), len(review.Background)))
+	service.log.Step(fmt.Sprintf("capture read %d entries and %d unreadable windows",
+		len(review.Entries), len(review.Unreadable)))
 	return review, nil
-}
-
-// addBackground offers the applications running with every window hidden, one
-// entry each, leaving out any the review already holds and this product itself
-// (FR-005). They are an offer, so failing to read them costs the offer rather
-// than the capture: the log says so and the review goes ahead without them.
-func (service *CaptureService) addBackground(ctx context.Context, review *Review) {
-	running, err := service.desktop.Background(ctx)
-	if err != nil {
-		service.log.Step(fmt.Sprintf(
-			"the applications running with no window shown could not be read, so none are offered: %v", err))
-		return
-	}
-	seen := make(map[string]struct{}, len(review.Entries)+len(running))
-	for _, entry := range review.Entries {
-		seen[strings.ToLower(entry.Application.String())] = struct{}{}
-	}
-	for _, application := range running {
-		key := strings.ToLower(application.String())
-		if _, already := seen[key]; already {
-			continue
-		}
-		if application.Validate() != nil || service.self.SameProgram(application) {
-			continue
-		}
-		seen[key] = struct{}{}
-		review.Background = append(review.Background,
-			domain.Entry{Application: application, Running: true})
-	}
-	sort.SliceStable(review.Background, func(one, two int) bool {
-		return review.Background[one].Application.String() < review.Background[two].Application.String()
-	})
 }
 
 // fromWindows turns the windows now open into one entry per application.

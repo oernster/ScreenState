@@ -272,9 +272,6 @@ type ReviewEntryDTO struct {
 type ReviewDTO struct {
 	Entries    []ReviewEntryDTO `json:"entries"`
 	Unreadable []string         `json:"unreadable"`
-	// Background are the applications running with every window hidden,
-	// shown unticked: kept only where the user ticks them (FR-005).
-	Background []ReviewEntryDTO `json:"background"`
 }
 
 // EntryReportDTO is one line of the report of the most recent restore.

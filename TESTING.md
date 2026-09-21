@@ -96,8 +96,7 @@ the same model id.
 `internal/application` is the largest suite, because every decision lives
 there behind an interface and every failure can therefore be caused on demand
 with a hand-written fake. It covers the capture and what it leaves out, the
-applications running with no window that a capture offers apart, the restore
-and its lifecycle, stopping a restore part way, starting applications and
+restore and its lifecycle, stopping a restore part way, starting applications and
 opening every window a profile records, placing a packaged application's
 window after an update has moved its path, waiting for a window that has not
 appeared, the ceiling the user chooses, putting away the windows a profile does
@@ -121,7 +120,7 @@ tests share.
 | `runlog` | a real log file, its header and its steps; a run keeping the 10 most recent restores with the header of each one's run; a long log of fewer restores kept whole |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
-| `win32` | the naming rules, the stacking-order rule and the rule that a program under the Windows directory is part of Windows and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application, the applications running with no window shown and a press on the taskbar traced to its top-level window) and the flash series worked out from the machine's settings; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it |
+| `win32` | the naming rules, the stacking-order rule and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window) and the flash series worked out from the machine's settings; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it |
 | `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
@@ -150,9 +149,8 @@ defect, on 2026-09-20, on a capture that found nothing unreadable.
 Two more facade tests sit beside it. `window_test.go` holds FR-048: a sign-in
 start leaves the window off screen, a start by hand takes the keyboard and
 closing the manager puts the window back off screen. `capture_test.go` carries
-FR-005 across the wire against the real store in a temporary directory: only
-the applications running with no window that the user ticked are saved, each
-as running with no placement.
+FR-011 across the wire against the real store in a temporary directory: an
+application unticked in the review is never saved.
 
 ### The structure
 
@@ -215,7 +213,6 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | Placing a window never activates it (FR-074) | Type into a window on one display, then apply a profile that places maximised windows on the others: the keyboard should stay where it was and no taskbar button should be lit when the restore ends. Each maximised window minimises and comes back maximised as it is placed; watch that an application that hides itself when minimised (one that goes to the notification area) comes back on screen. The rule itself is held by `TestMaximisingDoesNotActivate`, run with `$env:SCREENSTATE_DESKTOP_PROBE = '1'` since it opens two windows and takes the front. |
 | A packaged application is named and started by its path (FR-071) | Recapture with Claude and Windows Terminal open: the review should show each as a path under `WindowsApps`, not as a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
 | A packaged application survives its own update (FR-071) | After Claude next updates, apply the profile without recapturing: it should start and be placed, never put away; the log should say it did not start from its path so its model id was used. |
-| An application running with no window is offered (FR-005) | With NordVPN in the notification area and its window closed, capture: NordVPN should be listed under "Running with no window shown", unticked, with nothing from under the Windows directory there. Tick it and save; the profile should show NordVPN with no window placed. Quit NordVPN and apply: it should start and no window of its should be moved. |
 | The tray icon asks for attention (FR-045) | Apply a profile naming an application that is not installed: once the restore ends, the tray icon should carry a badge in the theme's danger colour in its bottom-right corner, in the light theme and in the dark one. Apply a profile that completes: the badge should go. After a restore started from the manager and after one at sign-in, rest the pointer on the icon: the tooltip should describe that restore. |
 | A start by hand arranges nothing (FR-038) | Quit from the tray, move a window the default profile places, then start the agent from its shortcut: the manager should open, nothing should move, no splash should appear and the log should say it was started by hand so nothing was arranged. |
 | Bringing the manager up takes the splash down (FR-078) | Sign in, then before touching anything else open the manager from the tray: every splash should close as the window comes up and the log should say the manager was opened so the splash was taken down. Again with a second launch from the shortcut. Before either, the log should say the splash is ready and closes at the next key press or click. |

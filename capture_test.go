@@ -9,10 +9,9 @@ import (
 	"github.com/oernster/ScreenState/internal/infrastructure/store"
 )
 
-// FR-005 across the wire: an application running in the background reaches the
-// profile only where the user ticked it, then as running with no placement.
-// The store is the real one, over a directory of the test's own.
-func TestOnlyTheTickedBackgroundApplicationsAreSaved(t *testing.T) {
+// FR-011 across the wire: an entry the user unticked in the review never reaches
+// the profile. The store is the real one, over a directory of the test's own.
+func TestOnlyTheTickedApplicationsAreSaved(t *testing.T) {
 	t.Parallel()
 	log := &recordingLog{}
 	profiles, err := store.New(t.TempDir(), log)
@@ -24,31 +23,28 @@ func TestOnlyTheTickedBackgroundApplicationsAreSaved(t *testing.T) {
 	app := NewApp(nil, nil, nil, captures, nil, log, silentSplash{}, "0.0.0-test", false)
 
 	pigeonpost := domain.ApplicationIdentity{Value: `C:\Programs\PigeonPost\PigeonPost.exe`}
-	nordvpn := domain.ApplicationIdentity{Value: `C:\Program Files\NordVPN\NordVPN.exe`}
-	gameglass := domain.ApplicationIdentity{Value: `C:\Program Files\GameGlass Hub\GameGlass Hub.exe`}
+	notepad := domain.ApplicationIdentity{Value: `C:\Windows\notepad.exe`}
 	app.review = application.Review{
-		Entries: []domain.Entry{{Application: pigeonpost, Running: true}},
-		Background: []domain.Entry{
-			{Application: gameglass, Running: true},
-			{Application: nordvpn, Running: true},
+		Entries: []domain.Entry{
+			{Application: pigeonpost, Running: true},
+			{Application: notepad, Running: true},
 		},
 	}
 
-	if err := app.SaveCapture("Desk", []string{pigeonpost.Value, nordvpn.Value}, false); err != nil {
+	if err := app.SaveCapture("Desk", []string{pigeonpost.Value}, false); err != nil {
 		t.Fatalf("saving: %v", err)
 	}
 	saved, err := profiles.Load(context.Background(), "Desk")
 	if err != nil {
 		t.Fatalf("reading the profile back: %v", err)
 	}
-	if len(saved.Entries) != 2 {
-		t.Fatalf("saved %d entries, wanted PigeonPost and NordVPN: %+v", len(saved.Entries), saved.Entries)
+	if len(saved.Entries) != 1 {
+		t.Fatalf("saved %d entries, wanted PigeonPost alone: %+v", len(saved.Entries), saved.Entries)
 	}
-	kept, found := saved.Find(nordvpn)
-	if !found || !kept.Running || len(kept.Placements) != 0 {
-		t.Errorf("NordVPN was saved as %+v (found %v)", kept, found)
+	if _, found := saved.Find(pigeonpost); !found {
+		t.Error("PigeonPost was ticked and not saved")
 	}
-	if _, found := saved.Find(gameglass); found {
-		t.Error("GameGlass was saved although it was never ticked")
+	if _, found := saved.Find(notepad); found {
+		t.Error("Notepad was saved although it was unticked")
 	}
 }

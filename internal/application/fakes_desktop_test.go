@@ -59,21 +59,6 @@ type fakeDesktop struct {
 	// onWindows runs before the windows are read, which is how a test makes the
 	// desktop fail in a way no error return can express.
 	onWindows func()
-	// background are the applications running with every window hidden;
-	// backgroundErr is the refusal a test wants instead (FR-005).
-	background    []domain.ApplicationIdentity
-	backgroundErr error
-}
-
-func (desktop *fakeDesktop) Background(context.Context) ([]domain.ApplicationIdentity, error) {
-	desktop.mutex.Lock()
-	defer desktop.mutex.Unlock()
-	if desktop.backgroundErr != nil {
-		return nil, desktop.backgroundErr
-	}
-	copied := make([]domain.ApplicationIdentity, len(desktop.background))
-	copy(copied, desktop.background)
-	return copied, nil
 }
 
 func (desktop *fakeDesktop) Windows(context.Context) ([]Window, error) {

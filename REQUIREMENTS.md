@@ -184,22 +184,17 @@ it lands when it is restored down.
 
 **FR-005 End state with no window**
 Priority: Must
-Requirement: When an application in a capture is running with no visible window,
-the ScreenState agent shall offer it in the review unticked. Where the user ticks
-it, the agent shall record it as running with no placement.
-Rationale: an application can be wanted without any of its windows being wanted
-anywhere in particular, which is how the owner's tray applications are usually
-left. The entry says the application should run and says nothing about where,
-so a restore launches it if absent and then leaves its windows alone. It is
-offered rather than recorded outright: measured 2026-09-21 on the reference
-machine, 36 processes had a hidden window of the candidate shape and nothing
-shown. Leaving out the four whose program could not be read, the five under the
-Windows directory, this product and a second copy of one left 25 applications,
-among them helpers their parent starts, which a restore must never start
-directly. Revised 2026-09-21 by the owner from recording every one of them.
+Requirement: A capture shall record only the applications with a window shown.
+Where a recapture keeps an application of the profile it is based on that has no
+window shown now (FR-012), the ScreenState agent shall record it as running with
+no placement and a restore shall move nothing of its.
+Rationale: ScreenState arranges what is on the screen, not which applications
+are running (ruled by the owner 2026-09-21). An application with no window shown
+has nothing on screen to arrange. A capture offering every application running
+with its windows hidden was built and removed the same day: on the reference
+machine it listed 25, helpers their parent starts among them.
 Acceptance: Given NordVPN running with its window hidden, when the user captures
-a profile, then NordVPN is offered unticked; when the user ticks it and saves,
-then the NordVPN entry records running with no placement.
+a profile, then NordVPN is not in the review.
 
 **FR-006 Atomic write**
 Priority: Must

@@ -173,14 +173,9 @@ The consequences run right through the layer:
 
 - An entry with placements is satisfied when every placement has been applied.
 - An entry with no placements says the application should run without saying where. It is satisfied by
-  the application running; nothing of its is moved (FR-005). That is how the tray applications on
-  the reference machine are usually left. A capture offers such an application unticked, apart
-  from the entries: `Desktop.Background` answers the programs owning a hidden window of the
-  candidate shape and no candidate window shown, leaving out any whose program cannot be read and
-  any under the Windows directory (`partOfWindows`). `CaptureService.addBackground` drops those
-  the review already holds and this product itself. Measured on 2026-09-21 that was still 25
-  applications, helpers another application starts among them, which is why the user ticks the
-  ones to keep rather than unticking the rest.
+  the application running; nothing of its is moved (FR-005). A capture reads only the windows the
+  candidate rule passes, which are visible ones, so such an entry comes only from a recapture
+  keeping an application of the profile it is based on (FR-012).
 - An entry recorded as not running is left entirely alone. A restore ends nothing.
 - The ceiling bounds how long the agent keeps waiting for windows that may never appear (FR-023). It is
   a policy choice about when to stop waiting, deliberately not a prediction of how long the machine
@@ -676,8 +671,8 @@ it: the Windows half needs a real desktop; gating it would mean either a number 
 or tests that assert what happened to be on screen.
 
 Measured statement coverage on 2026-09-21: domain 100%, application 97.5%, clock 100%, store 93.8%,
-settings 91.2%, instance 90.9%, runlog 76.7%, win32 43.3%, setup 33.6%, ui 25.9%, the root package
-(the composition root and the manager's facade) 12.7%. The
+settings 91.2%, instance 90.9%, runlog 76.7%, win32 40.4%, setup 33.6%, ui 25.9%, the root package
+(the composition root and the manager's facade) 11.6%. The
 shortfalls outside the floor are IO and platform failures that would need the disk or the window
 manager to fail mid-call, plus the Win32 calls themselves; they are not padded with tests that
 assert nothing.
@@ -686,15 +681,14 @@ The structural suite also holds both pages' boundaries, which no compiler sees: 
 the product's name or its tagline down, every `state.` field it reads must be a json tag the program
 actually sends and every call it makes must be a method the program binds.
 
-Five integration tests in `win32` read the real machine and assert only what must hold anywhere.
-Three read the desktop and skip where there is none: the displays and windows, whether each
-application on screen is found running and the applications running with every window hidden, none
-of them part of Windows. The fourth traces a press in the middle of the taskbar to the taskbar's own
-top-level window, skipping where there is no taskbar. The fifth reads the flash count and caret
-blink the FR-080 wait is worked out from. None moves a window or starts an application, since either
-would disturb the desktop of whoever ran the suite. A sixth, `TestMaximisingDoesNotActivate`, does
-move windows (only two of its own), so it runs only when `SCREENSTATE_DESKTOP_PROBE` is set; the gate
-skips it.
+Four integration tests in `win32` read the real machine and assert only what must hold anywhere.
+Two read the desktop and skip where there is none: the displays and windows, then whether each
+application on screen is found running. The third traces a press in the middle of the taskbar to
+the taskbar's own top-level window, skipping where there is no taskbar. The fourth reads the flash
+count and caret blink the FR-080 wait is worked out from. None moves a window or starts an
+application, since either would disturb the desktop of whoever ran the suite. A fifth,
+`TestMaximisingDoesNotActivate`, does move windows (only two of its own), so it runs only when
+`SCREENSTATE_DESKTOP_PROBE` is set; the gate skips it.
 
 ## Design decisions
 
@@ -708,7 +702,7 @@ skips it.
 | The normal rectangle is recorded, even when maximised | It is what decides which display maximising puts the window on |
 | A display is named by its device instance path | Every number Windows offers was measured disagreeing with the others |
 | An application is named by what starts it, with what survives its updates kept beside it | The path starts it as a double-click does; a Store package's path carries its version, so the model id kept beside it recognises and starts it after an update; a window class carries a GUID that changes every reboot |
-| Applications running with no window shown are offered unticked | Helpers another application starts are among them; none of those should be started directly |
+| A capture records only applications with a window shown | ScreenState arranges the screen, not which applications run; an application with nothing shown has nothing to arrange |
 | A hidden window is shown by running the application again | Acting on the hidden window from outside produced an empty frame the application was not drawing |
 | One file per profile, not a database | A profile that cannot be read costs the user that profile rather than all of them |
 | The Windows layer is split into portable rules and system calls | The rules are string work and can be settled by tests on any machine |
@@ -737,15 +731,15 @@ path is proved only in the shape the adapter promises to produce.
 machine: the log records captures that read the desktop, a capture cancelled without writing
 anything, a profile written, a profile deleted, the default marking settled, restores at start and
 the quit from both the manager and the tray. The facade's own tests hold four things only: no list
-reaches the page as null, a capture saves only the background applications ticked, the window stays
-off screen at a sign-in start while a start by hand takes the keyboard and closing the manager puts
-the window back off screen. The panels themselves are still driven in a browser against a stand-in
+reaches the page as null, a capture saves only the applications ticked, the window stays off
+screen at a sign-in start while a start by hand takes the keyboard and closing the manager puts the
+window back off screen. The panels themselves are still driven in a browser against a stand-in
 for the agent, which settles the layout, the palette and the wiring and settles nothing else. What
 neither has settled: real keyboard focus and the ring, the second-launch message, the tray opening a
 named panel, the donate link and the update offer on screen. Those are read off a run, not off a
-suite, so they are checked by the list in TESTING.md. So are the ones added most recently, whose rules the suite holds where they have any: stopping a restore, the tray's badge,
-offering applications running with no window, matching a packaged application after an update, the
-ceiling set in the settings dialog, a start by hand arranging nothing, the manager taking the splash
+suite, so they are checked by the list in TESTING.md. So are the ones added most recently, whose
+rules the suite holds where they have any: stopping a restore, the tray's badge, matching a
+packaged application after an update, the ceiling set in the settings dialog, a start by hand arranging nothing, the manager taking the splash
 down and the three-part main screen.
 
 **The setup program has installed and nothing else.** It has installed on the reference machine
@@ -761,11 +755,10 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 ## Where the code falls short of the specification
 
 Found by reading the source against every requirement during the documentation pass for the first
-release. Nothing found that way is left open. Twelve items were on this list and are now built:
+release. Nothing found that way is left open. Eleven items were on this list and are now built:
 cancelling a restore (FR-049), matching a packaged application's window after an update (FR-071),
-marking the tray icon after an incomplete restore (FR-045), capturing an application with only a
-hidden window (FR-005), counting the rebuilt buttons (FR-075), a click on the splash (FR-078), log
-retention (NFR-OBS-001), setting the ceiling (NFR-PERF-003), holding the page files to the module
+marking the tray icon after an incomplete restore (FR-045), counting the rebuilt buttons (FR-075),
+a click on the splash (FR-078), log retention (NFR-OBS-001), setting the ceiling (NFR-PERF-003), holding the page files to the module
 size (NFR-MAINT-003), keeping window titles out of the log (NFR-PRIV-001), naming an unreadable
 profile in the manager (NFR-REL-002, DATA-003) and maximising a window without activating it
 (FR-074). A new shortfall found by reading the source against a requirement belongs here, with the

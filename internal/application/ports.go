@@ -80,11 +80,6 @@ type Desktop interface {
 	// Window re-reads one window, for the check FR-033 makes after placing it.
 	// It reports ErrWindowGone once the window no longer exists.
 	Window(ctx context.Context, id WindowID) (Window, error)
-	// Background returns the applications running with a window of the shape a
-	// person would point at while every such window of theirs is hidden (FR-005).
-	// An application that is part of Windows is not among them; nor is one whose
-	// program cannot be read. The same application may be answered twice.
-	Background(ctx context.Context) ([]domain.ApplicationIdentity, error)
 	// Displays returns every connected display.
 	Displays(ctx context.Context) ([]Display, error)
 	// Place sets the window's normal rectangle, then its show state.
