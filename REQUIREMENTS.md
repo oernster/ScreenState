@@ -16,7 +16,7 @@ desktop back into that state without the user arranging it by hand.
 ### 1.2 Intended audience
 
 The author, as implementer. Contributors reading the repository. Users reading
-the README, which is derived from section 1.3 and section 6.
+the README, which is derived from section 1.3 and NFR-PRIV-002.
 
 ### 1.3 Scope
 
@@ -105,7 +105,6 @@ There is one user class. ScreenState has no administrator role.
   exception is the update check (FR-058), which the user can turn off.
 - Reference machine for every measured requirement: the owner's desktop, four
   displays, one 3440x1440 primary plus three 3840x2400, mixed positions.
-- No network access is required at any point.
 - Installed and run per user. No administrator rights at install or at run.
 
 ### 2.4 Constraints
@@ -113,7 +112,9 @@ There is one user class. ScreenState has no administrator role.
 - **C-1** ScreenState never requests administrator rights.
 - **C-2** All files it writes live under the signed-in user's profile
   directories. No machine-wide registry keys, no machine-wide files.
-- **C-3** ScreenState never terminates a process it did not start.
+- **C-3** The ScreenState agent never terminates a process it did not start. The
+  setup program ends one process only: a running copy of the agent, when the
+  user chooses "Close it and continue", so that files in use can be replaced.
 - **C-4** ScreenState makes exactly one kind of network connection: the update
   check in FR-058, an anonymous request asking a release feed what the latest
   version is. It carries no identifier and no profile data, it can be turned
@@ -123,8 +124,9 @@ There is one user class. ScreenState has no administrator role.
 
 ### 2.5 Assumptions and dependencies
 
-Each assumption is unconfirmed. Every one of them has a matching open question
-in appendix B, an owner and a confirm-by date. No requirement below may depend
+Every assumption has been settled: each is marked confirmed, false as stated or
+no longer load-bearing, with the date and the measurement that settled it; each
+has its matching question in appendix B. No requirement below may depend
 on an assumption without naming it.
 
 | ID | Assumption | Owner | Confirm by |
@@ -634,7 +636,7 @@ Priority: Must
 Requirement: While a restore runs (and while FR-033 watches the windows it
 placed) the ScreenState agent shall read the desktop again only when Windows
 reports a change: a window created, shown, hidden, cloaked, uncloaked,
-destroyed or moved; the displays changing. Where the agent needs to know
+destroyed or moved; the displays changing; a taskbar button flashing (FR-080). Where the agent needs to know
 that something will not happen (an application asked for a window shows none,
 a window asked to close stays open) it shall stop waiting at whichever comes
 first of the user's first key press or mouse click after the restore began and
@@ -668,7 +670,8 @@ flash series. Each flash the shell reports for one of those windows shall begin
 the wait again. One full series is the machine's foreground flash count times
 twice its caret blink time, both read from Windows when the wait begins; where
 the caret does not blink or its blink time cannot be read, the Windows default
-of 530 milliseconds stands in for it. The user's first key press or mouse click
+of 530 milliseconds stands in for it. Where the flash count cannot be read (or
+is zero) there is no series and nothing is waited for. The user's first key press or mouse click
 and the ceiling shall end the wait early, as they end every wait (FR-079). Only
 then shall the buttons be rebuilt and the splash say ready (FR-078).
 Rationale: measured by a shell trace at the owner's sign-in on 2026-09-21. An
@@ -996,7 +999,7 @@ Method: timestamps in the step log, from the first placement to the last.
 
 **NFR-PERF-002 Quiet period: WITHDRAWN**
 The agent no longer waits for a quiet period, so there is no such value to set.
-FR-020 settles on the profile's own entries alone. The number is retired rather
+Each entry is settled on its own, as its window appears (FR-055). The number is retired rather
 than reused, so nothing that cited it can quietly come to mean something else.
 
 **NFR-PERF-003 Ceiling**
@@ -1017,8 +1020,8 @@ order of magnitude against the only figure that was ever clean, which is what a
 ceiling should be: the point at which waiting is abandoned, not a prediction.
 
 **NFR-PERF-004 Settle-check delay: WITHDRAWN**
-The agent no longer waits a set time for anything but the ceiling (FR-079), so
-there is no such value to set. The number is retired rather than reused, so
+The agent no longer waits a set time for anything but the ceiling (FR-079) and
+the flash series FR-080 reads from Windows, so there is no such value to set. The number is retired rather than reused, so
 nothing that cited it can quietly come to mean something else.
 
 **NFR-PERF-005 Idle cost**
@@ -1062,9 +1065,10 @@ administrator rights.
 
 **NFR-SEC-002 No network**
 Priority: Must
-Requirement: The ScreenState agent shall open no network connection.
+Requirement: The ScreenState agent shall open no network connection other than
+the update check of FR-058; none at all while FR-059 has turned that off.
 Method: an observation of the process's connections over a full capture and
-restore cycle.
+restore cycle, with the update check off.
 
 **NFR-PRIV-001 What is stored**
 Priority: Must
@@ -1083,7 +1087,8 @@ is not there.
 **NFR-PORT-001 Target**
 Priority: Must
 Requirement: ScreenState shall run on Windows 11 64 bit.
-Open: Windows 10 (OQ-9).
+Windows 10 is untested and therefore unsupported, though nothing prevents it
+running there (OQ-9).
 
 **NFR-MAINT-001 Layering**
 Priority: Must
@@ -1129,8 +1134,9 @@ each profile, a capture, the manager, the report and an exit.
 
 **EIR-002 Manager window**
 Priority: Must
-Requirement: The ScreenState manager shall present the profile list, the entries
-of the selected profile, the default marking and the settings in one window.
+Requirement: The ScreenState manager shall present the profile list, the default
+marking and the settings in one window, with the entries of the selected profile
+a button away in a dialog of that window (FR-068).
 
 **EIR-003 Artwork**
 Priority: Must
@@ -1263,13 +1269,13 @@ requirement or is recorded as deliberately unaddressed.
 | A profile naming an application that is no longer installed | FR-026. Reported, the restore continues. |
 | A display arrangement that has changed since capture | FR-031 and FR-032. |
 | The largest plausible input | An entry per running application, a placement per window. NFR-PERF-001 fixes the number tested at 20 windows. |
-| A restore interrupted part way | FR-049 and FR-052. The report records how far it got. |
+| A restore interrupted part way | FR-049, FR-061 and FR-052. The report records how far it got. FR-049 is not yet built as a control; see ARCHITECTURE.md. |
 | Two restores at once | FR-047 gives one agent per user. FR-061 settles what that one agent does: the newer request replaces the running restore, undoing nothing already placed; both reports say so. |
 | Upgrade from a previous version | DATA-002 and DATA-003. |
 | The user having no permission | OOS-5 and FR-035. |
 | Disk unavailable or store unreadable | NFR-REL-002. |
 | The user signing out during a restore | The agent's session ends with it. Nothing is written half way, per FR-006. |
-| A display connected during a restore | Out of scope per OOS-6. The restore continues against the arrangement it read at the start. Recorded as OQ-10. |
+| A display connected during a restore | FR-057. The restore continues against the displays as they then stand and the report records the change (OQ-10). Switching to a different profile because the displays changed stays out of scope (OOS-6). |
 | Time or timezone change | No requirement depends on wall-clock time, only on elapsed spans. |
 
 ---
@@ -1298,13 +1304,12 @@ that settles it. The first five form the spike.
 
 ## Appendix C: Traceability
 
-The matrix is filled as implementation proceeds. Every requirement names the
-test that verifies it. No requirement holding an open question is entered until
-that question is closed.
-
-| Requirement | Design element | Test |
-|---|---|---|
-| (to be completed) | | |
+No matrix is kept. A table here would be a second copy of what the code already
+says; a copy drifts. The trace runs the other way: for nearly every
+requirement the ID is written in the comments of the code and the tests that
+carry it, so a search for `FR-061` finds both. `ARCHITECTURE.md` names the structural test
+behind each invariant and `TESTING.md` the check done by hand behind each
+requirement a suite cannot reach.
 
 ---
 

@@ -10,14 +10,16 @@ is cut. Every command is PowerShell, run from the repository root.
 | Go, at the version `go.mod` names or later | everything | [go.dev/dl](https://go.dev/dl/) |
 | Wails CLI v2.12.0 | both programs, each of which has a window | `go install github.com/wailsapp/wails/v2/cmd/wails@v2.12.0` |
 | WebView2 runtime | running either program | ships with Windows 11 |
-| Python 3 with Pillow | regenerating the icons only | [python.org](https://www.python.org/downloads/), then `python -m pip install pillow` |
+| A C compiler for cgo, such as [WinLibs](https://winlibs.com/) gcc on `PATH` | the race-detector pass of the gate, which every build runs | [winlibs.com](https://winlibs.com/) |
+| Python 3 | stamping the version into the site, which every build does | [python.org](https://www.python.org/downloads/) |
+| Pillow | regenerating the icons only | `python -m pip install pillow` |
 
-staticcheck is not installed: `test.ps1` fetches it through `go run`, so
-nothing about building unchanged code depends on what is on the machine.
+staticcheck is not installed: `test.ps1` fetches the latest release through
+`go run`, which needs the network on first use and can move between runs.
 
 cgo is off for everything that ships. The only exception is the race detector,
-which needs it and is therefore its own pass inside the gate. No C compiler is
-needed for a build.
+which needs it and is therefore its own pass inside the gate; that pass is why
+a build needs a C compiler although nothing shipped is compiled with one.
 
 Allow Go's scratch directory in your anti-virus before the first test run;
 without that the suite cannot run at all. See [TESTING.md](TESTING.md).
@@ -31,23 +33,26 @@ without that the suite cannot run at all. See [TESTING.md](TESTING.md).
 In order, it:
 
 1. Reads `VERSION`.
-2. Runs [`test.ps1`](TESTING.md). A failure stops the build; there is no
+2. Runs `stamp_version.py`, which writes that version into the site under
+   `docs/`, since a page cannot read `VERSION` for itself.
+3. Runs [`test.ps1`](TESTING.md). A failure stops the build; there is no
    switch to skip it.
-3. Refuses to go on without `assets/application-icon.png` and its `.ico`,
+4. Refuses to go on without `assets/application-icon.png` and its `.ico`,
    which are committed rather than derived at build time.
-4. Copies that one icon into both programs' build directories, so the agent,
+5. Copies that one icon into both programs' build directories, so the agent,
    the setup program, both shortcuts, the taskbar button and the notification
    area icon all wear it.
-5. Copies `assets/theme.css` and `assets/shell.js` over the copies each page
+6. Copies `assets/theme.css` and `assets/shell.js` over the copies each page
    directory holds, which is why those two are edited in `assets/` and nowhere
    else.
-6. Builds `build/bin/ScreenState.exe` with `wails build`, with the version
+7. Builds `build/bin/ScreenState.exe` with `wails build`, with the version
    passed in through `-ldflags`.
-7. Zips the agent and its licence into `installer/payload.zip`.
-8. Builds the setup program from `installer/`, the same way.
-9. Copies the result to `dist-installer/ScreenStateSetup.exe`, the one file
-   that ships.
-10. Puts the 22-byte empty zip back in `installer/payload.zip`, so
+8. Copies the licence beside the agent and zips everything in `build/bin`
+   into `installer/payload.zip`.
+9. Builds the setup program from `installer/`, the same way.
+10. Copies the result to `dist-installer/ScreenStateSetup.exe`, the one file
+    that ships.
+11. Puts the 22-byte empty zip back in `installer/payload.zip`, so
     `go build ./...` and the tests keep working without a full build and no
     payload can reach a commit.
 
@@ -57,8 +62,10 @@ To build only the agent:
 ./build.ps1 -SkipInstaller
 ```
 
-Everything generated is ignored by git: `build/`, `installer/build/`,
-`dist-installer/`, `frontend/wailsjs/` and `installer/frontend/wailsjs/`.
+Everything generated is ignored by git: `build/`, `installer/build/bin/`,
+`dist-installer/`, `frontend/wailsjs/` and `installer/frontend/wailsjs/`. The
+rest of `installer/build/` (the setup program's icon, manifest and
+`info.json`) is committed, since Wails reads it from there.
 
 ### A note on `-ldflags`
 
@@ -107,28 +114,44 @@ a field on one side only and the test says so.
 
 ## The icons
 
-`assets/application-icon.png` is the master. `tools/genicons.py` makes the
-`.ico` beside it and writes the page artwork (the mark, the light and dark
-toggle faces, the help, profile and donate art) into the page directories that
-want them.
+Every piece of artwork has its master in `assets/`: `application-icon.png` for
+the mark, plus one each for the light and dark toggle faces, the help, profile
+and donate art. `tools/genicons.py` makes the `.ico` beside the mark and writes
+each piece, reduced from its master, into the page directories that want it.
+The site under `docs/` carries copies of the mark and the toggle faces as the
+manager has them.
 
 ```powershell
 python tools/genicons.py
 ```
 
 It is not part of the build. Its outputs are committed, so a clone builds
-without Python or Pillow. Run it when the artwork changes, then commit the
-results.
+without Pillow. Run it when the artwork changes, then commit the results.
 
 ## Versioning
 
-`VERSION` holds the only version string in the repository. Change it there and
-nowhere else; the build carries it into both programs through the linker.
+`VERSION` holds the only version string anyone writes by hand. Change it there
+and nowhere else: the build carries it into both programs through the linker
+and into the site through `stamp_version.py`, which rewrites whatever sits
+between `<!--VERSION-->` and `<!--/VERSION-->` in `docs/` and touches nothing
+else. Run it on its own after changing `VERSION`; a second run changes nothing
+and says so.
+
+```powershell
+python stamp_version.py
+```
+
+## The site
+
+`docs/` is the GitHub Pages site, served from the `main` branch: plain HTML and
+CSS with no build step, wearing the palette in `assets/theme.css`. It shows no
+dates anywhere; the version is its only changing text and is stamped as above.
 
 ## Cutting a release
 
 1. Set `VERSION`.
-2. Run `./build.ps1`, which will not build from a failing tree.
+2. Run `./build.ps1`, which will not build from a failing tree and stamps the
+   site on the way.
 3. Install the result and use it: see the by-hand checks in
    [TESTING.md](TESTING.md).
 4. Commit, tag `v<version>` and push.
@@ -140,12 +163,12 @@ installed copy that there is a newer version.
 
 ## Standing rules
 
-- `internal/domain` and `internal/application` stay at 100% coverage together;
-  the gate fails otherwise.
+- Every function in `internal/domain` and in `internal/application` is
+  exercised by a test; the gate fails otherwise.
 - The domain is pure: no I/O, no clock, no window.
-- One composition root; it is the only file importing both the UI and the
-  infrastructure.
-- No Go file over 400 lines, none left between 381 and 399.
+- One composition root; it is the only file importing both the application
+  layer and the infrastructure.
+- No Go file over 400 lines, none left between 381 and 400.
 - Every exported type has a doc comment.
 - Nothing above infrastructure ends the program.
 - No version string outside `VERSION`.

@@ -13,8 +13,9 @@ import (
 // flashes its button instead, in a series that ran on for up to 7 seconds after
 // the last entry was settled. A rebuild clears the mark only as it stands, so a
 // flash after it puts the mark back. Nothing says a series has ended, so this is
-// the one wait the owner allowed that is not an event: one full series with no
-// flash, begun again at each flash from one of these windows.
+// the one wait besides the ceiling that is not an event, allowed by the owner
+// for this problem alone: one full series with no flash, begun again at each
+// flash from one of these windows.
 //
 // The user's first key press or click and the ceiling end it, as they end every
 // wait (FR-079). It answers an error only where the restore was stopped.

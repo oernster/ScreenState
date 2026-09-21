@@ -11,14 +11,15 @@ unsigned executable in a temporary directory as `Malware.AI` and quarantines
 it, which stops the suite running at all. Measured on this project on
 2026-09-20: one package's test binary was taken five times in six minutes.
 
-Allow the folder `go env GOTMPDIR` names, which is Go's own scratch directory
-and is written by nothing else:
+Give Go a scratch directory of its own, which nothing else writes to, then
+allow that folder. `GOTMPDIR` is empty until it is set, so set it once:
 
-```
-C:\Users\<you>\AppData\Local\Temp\go-tmp
+```powershell
+go env -w GOTMPDIR="$env:LOCALAPPDATA\Temp\go-tmp"
+New-Item -ItemType Directory -Force "$env:LOCALAPPDATA\Temp\go-tmp"
 ```
 
-In Malwarebytes: Settings, then the allow list, then a file or folder, then
+`go env GOTMPDIR` then names the folder to allow. In Malwarebytes: Settings, then the allow list, then a file or folder, then
 that path with both protections left ticked. Other anti-virus products behave
 the same way and want the same folder allowed.
 
@@ -44,15 +45,16 @@ order:
 2. `go vet ./...` must pass.
 3. staticcheck must report nothing. It is fetched through `go run` rather than
    installed. `./test.ps1 -Quick` skips this one step while working.
-4. `GOOS=linux go build ./...`: the two portable layers must still build for a
+4. `GOOS=linux go build ./...`: the whole module must still build for a
    platform that is not Windows.
 5. The suite with the race detector, built with cgo on.
 6. The suite as the product ships, with cgo off, measuring coverage.
-7. Coverage of `internal/domain` and `internal/application` must be 100%.
+7. Every function in `internal/domain` and every function in
+   `internal/application` must be exercised by at least one test.
 
-Two suite runs, because they cannot be one: the race detector needs cgo, while
-the binary that ships is built without it. Running only one would leave the
-other configuration untested.
+Two suite runs, because they cannot be one: the race detector needs cgo (and
+with it a C compiler) while the binary that ships is built without it. Running
+only one would leave the other configuration untested.
 
 It ends with `All checks passed.` Trust the exit code, not the text:
 
@@ -64,9 +66,13 @@ It ends with `All checks passed.` Trust the exit code, not the text:
 
 ### The coverage floor
 
-`internal/domain` and `internal/application` are held at 100% together. They
-are the layers a machine can exercise with no filesystem, no clock and no
-desktop, so anything short of whole there is a decision nobody made.
+`internal/domain` and `internal/application` are each held at 100% of their
+functions: the gate reads `go tool cover -func` and fails naming the package
+when any function in it has no statement a test reached. It is a floor on
+functions, not on statements; measured statement coverage is 100% for the
+domain and 97.1% for the application. They are the layers a machine can
+exercise with no filesystem, no clock and no desktop, so a function nothing
+calls there is a decision nobody made.
 
 Infrastructure is deliberately not floored. Its Windows half needs a real
 desktop, a real registry and real windows to move; a number over those would
@@ -92,7 +98,9 @@ report, the tray, profile naming and marking, the update check and the failure
 wording.
 
 There are no mocking libraries. The fakes are written by hand, in
-`fakes_test.go` and `fakes_store_test.go`, with fields that inject failures.
+`fakes_test.go`, `fakes_desktop_test.go` and `fakes_store_test.go`, with fields
+that inject failures; `fixtures_test.go` holds the windows and profiles the
+tests share.
 
 ### The infrastructure that can be exercised
 
@@ -101,23 +109,26 @@ There are no mocking libraries. The fakes are written by hand, in
 | `store` | a real temporary directory: round trips, the file's shape, a missing file, a corrupt file, an unwritable directory, an interrupted write that must leave the old file whole |
 | `settings` | the same, for `settings.json` and its absent-means-on reading |
 | `runlog` | a real log file, its header and its steps |
-| `clock` | the injected clock the domain is given |
+| `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
-| `win32` | the real Windows naming and probing paths, behind a build tag |
-| `setup` | the route decisions, the payload extraction with its fence against an archive entry that climbs out of the install directory, the version comparison |
+| `win32` | the naming rules and the stacking-order rule, on any platform; behind a build tag, the probes of the real desktop and the flash series worked out from the machine's settings |
+| `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
+| `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input |
 
-`startup`, `update`, `window` and `internal/ui` have no tests of their own:
-they are the registry, the network and the desktop. What can be decided about
-them was moved into `internal/application`, which is tested; what is left is
-the call itself.
+`startup`, `update` and `window` have no tests of their own: they are the
+registry, the network and the desktop. What can be decided about them was
+moved into `internal/application`, which is tested; what is left is the call
+itself. Which screen the setup program shows is decided in its page and in
+`installer/app.go`, neither of which has a Go test; it is checked by hand.
 
 ### The wire between the program and its pages
 
-Neither page has a build step, so nothing compiles or type checks them. Three
-structural tests stand in for that: a page may read only fields the
-program actually sends; it may call only methods the program actually binds;
-it may not write the product's name down anywhere. Both pages are held to all
-three.
+Neither page has a build step, so nothing compiles or type checks them.
+Structural tests stand in for that, holding three rules: a page may read only
+fields the program actually sends; it may call only methods the program
+actually binds; it may not write the product's name down anywhere. Both pages
+are held to all three; every script in the manager's page directory must be
+loaded by its `index.html`.
 
 The facade's own test, `wire_test.go`, holds the other rule that the page
 depends on: no list may reach a page as `null`. A nil slice is marshalled as
@@ -128,12 +139,13 @@ defect, on 2026-09-20, on a capture that found nothing unreadable.
 ### The structure
 
 `tests/structural` parses the source and fails on a layer violation, an
-impure domain, a second composition root, a file over 400 lines or in the 381
-to 399 band, an undocumented exported type, a program ended above
-infrastructure, a decision that is not portable, a timing value with two
-homes, the product's name written twice, a page naming the product, a wire
-that disagrees with itself and a shared asset that has drifted from its
-master in `assets/`.
+impure domain, a second composition root, a file over 400 lines or in the band
+just below it, an undocumented exported type, a program ended above
+infrastructure, an application started in front, a decision that is not
+portable, a timing value with two homes, the product's name written twice, a
+page naming the product, a wire that disagrees with itself, a call to a method
+nothing binds, a manager script nothing loads and a shared asset that has
+drifted from its master in `assets/`.
 
 Each assertion is proved by planting a violation and reading the failure, not
 by being believed.
@@ -158,8 +170,8 @@ go test -cover ./internal/infrastructure/store
 ## Checked by hand
 
 Some requirements need a real desktop, a real sign-in or a real release feed.
-They are checked on the reference machine and recorded in `REQUIREMENTS.md`
-beside each requirement.
+They are checked on the reference machine by the list below; what was measured
+while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 
 | Check | How |
 |---|---|
@@ -171,17 +183,17 @@ beside each requirement.
 | The report names what it could not do (FR-044) | Apply a profile naming an application that is not installed. |
 | The bar moves while a restore runs (FR-065, FR-066) | Apply a profile holding several applications that are not running: the bar should fill as each is placed. Closing the report should leave the profile list showing. |
 | Sign-in (FR-053) | Tick the option, sign out and in again. |
-| A packaged application is started by the activation manager (FR-067) | Sign in and read the log: for each packaged application it says whether the activation manager started it or the shell was asked instead. The grey taskbar buttons are a known limit in ARCHITECTURE.md, not a failure of this check. |
-| Every window a profile records is opened (FR-069) | Capture with two Notepad windows open, close Notepad, then apply the profile: both windows should come back and be placed, with the unnamed windows closed straight after rather than at the ceiling. |
+| A packaged application whose path has moved is started by the activation manager (FR-067) | Only after an update has moved a packaged application's path: sign in and read the log, which says whether the activation manager started it or the shell was asked instead. Before that, the application is started from its path and the log says so. |
+| Every window a profile records is opened (FR-069) | Capture with two Notepad windows open, close Notepad, then apply the profile: both windows should come back and be placed, with the unnamed windows put away straight after rather than at the ceiling. |
 | The taskbar buttons carry their icons (FR-072) | Sign in and look at every taskbar without clicking one: each button should carry its icon. The log says how many taskbars were sent a click. The pointer should not have moved and the window in front should be the one the restore left there. |
 | The desktop comes back unmarked (FR-075) | Sign in and look at the taskbars: no button should carry the mark a taskbar puts on the window last activated on its display; every window should be where the profile put it. The log says how many buttons were built afresh. Each window flickers once as that happens; a maximised window must come back maximised rather than at its normal rectangle. |
-| The flashing has ended before the rebuild (FR-080) | Sign in without touching anything until the splash says ready, then look at the taskbars: no button should be red or flashing. The log says how long the restore waited for the buttons to stop flashing and how often a flash began the wait again. Only a real sign-in shows it: whether an application asks for the front (and when) belongs to that application. |
+| The flashing has ended before the rebuild (FR-080) | Sign in without touching anything until the splash says ready, then look at the taskbars: no button should be red or flashing, the underline should sit on the window that has the front and clicking a button should bring its window forward rather than minimise it. The log says how long the restore waited for the buttons to stop flashing and how often a flash began the wait again. Only a real sign-in shows it: whether an application asks for the front (and when) belongs to that application. |
 | Installing arranges nothing (FR-076) | With a profile recording two Terminal windows and one open, install over an existing copy and let setup start the agent: no window should open, move or close; the log should say setup started that copy so nothing was arranged. |
 | Placing a window never activates it (FR-074) | Type into a window on one display, then apply a profile that places windows on the others: the keyboard should stay where it was and no taskbar button should be lit when the restore ends. |
 | A packaged application is named and started by its path (FR-071) | Recapture with Claude and Windows Terminal open: the review should show each as a path under `WindowsApps`, not as a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
 | A packaged application survives its own update (FR-071) | After Claude next updates, apply the profile without recapturing: it should start; the log should say it did not start from its path so its model id was used. |
 | A sign-in start opens no window (FR-048) | Sign in with the option ticked: the agent should be in the notification area only. The log says so where the page asked for the keyboard and was left alone. |
-| Several displays, mixed scaling | Capture and restore across monitors at different scales. |
+| Several displays, mixed scaling (FR-027, FR-031, FR-032) | Capture and restore across monitors at different scales. |
 | The update check (FR-058, FR-059) | Once per run against the real release feed, then again with the setting off, where nothing should reach the network. |
 | Setup, including what an uninstall removes (DATA-005) | Install, update, go back a version, repair and uninstall, each once, then inspect the registry and the folders. |
 

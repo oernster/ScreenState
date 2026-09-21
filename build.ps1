@@ -23,6 +23,14 @@ Set-Location $root
 $version = (Get-Content (Join-Path $root 'VERSION')).Trim()
 Write-Host "Building ScreenState $version"
 
+# The site cannot read VERSION, so its version tokens are stamped from it
+# before anything is built. A site showing an older number than the setup
+# program it offers is a quiet error nobody catches by eye. Ported from
+# WhatDay's build.
+Write-Host 'Stamping the version into the site...'
+python (Join-Path $root 'stamp_version.py')
+if ($LASTEXITCODE -ne 0) { throw "stamp_version.py failed with exit code $LASTEXITCODE" }
+
 # Set before the gate as well as the build, so the tests exercise the same
 # configuration that ships.
 $env:CGO_ENABLED = '0'

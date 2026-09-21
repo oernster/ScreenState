@@ -5,7 +5,9 @@ records which applications should be running and where their windows sit; a rest
 makes the desktop match it.
 
 It is local-first and offline. Nothing it needs arrives over a network; it writes nothing outside
-the signed-in user's own directories. It never ends a program it did not start.
+the signed-in user's own directories. It never terminates a program: the agent closes a window only
+where the user has turned FR-064 on; the setup program ends only a running copy of the agent, when
+the user tells it to.
 
 This file describes what is built. What is specified but not yet built is listed at the end rather
 than described here as though it existed.
@@ -15,12 +17,17 @@ than described here as though it existed.
 `UI -> Application -> Domain <- Infrastructure`
 
 Dependencies point inward. The Domain is the stable core and depends on nothing. Every rule below is
-enforced by a test under `tests/structural`, not by convention. The table is the whole set: a guard
-that is not listed here is undiscoverable, so a rule claimed in prose and enforced nowhere reads
-exactly like one that holds.
+enforced by a test under `tests/structural`, not by convention. The table is the whole set, all 19:
+a guard that is not listed here is undiscoverable, so a rule claimed in prose and enforced nowhere
+reads exactly like one that holds.
+
+One direction is not enforced: nothing stops `internal/ui` importing infrastructure; it does.
+The tray and the splash hand the manager's webview the keyboard through
+`internal/infrastructure/window`, since on Windows nothing else reliably does.
 
 Each assertion was proved to bite by planting a violation against it and reading the exit code, with
-every plant restored afterwards. An assertion never seen to fail is not yet a guard.
+every plant restored afterwards, except the three page rules marked below. An assertion never seen
+to fail is not yet a guard.
 
 | Invariant | Enforcing test | File |
 |---|---|---|
@@ -33,9 +40,20 @@ every plant restored afterwards. An assertion never seen to fail is not yet a gu
 | Every exported type carries a doc comment | `TestEveryExportedTypeIsDocumented` | `boundary_test.go` |
 | No port above the Windows layer can terminate or kill anything; only the three methods FR-064 names may close a window | `TestNothingAboveInfrastructureCanEndAProgram` | `rulings_test.go` |
 | Domain and application import no Windows API | `TestTheDecisionsStayPortable` | `rulings_test.go` |
-| Every timing has one home in `ports.go` | `TestEveryTimingHasOneHome` | `rulings_test.go` |
+| Every timing in the application layer has one home in `ports.go` | `TestEveryTimingHasOneHome` | `rulings_test.go` |
 | The product's name is written down once, in `product.go` | `TestTheProductIsNamedOnce` | `rulings_test.go` |
-| Every application is started shown without activating (FR-077) | `TestNothingIsStartedInFront` | `rulings_test.go` |
+| Every application started through the shell is shown without activating (FR-077) | `TestNothingIsStartedInFront` | `rulings_test.go` |
+| The shared palette and page furniture match their masters in `assets/` | `TestTheSharedAssetsHaveNotDrifted` | `shared_assets_test.go` |
+| The manager's page names nothing: no product name, no tagline | `TestTheManagerPageNamesNothing` | `shared_assets_test.go` |
+| Every script in the manager's page is loaded by its `index.html` | `TestEveryManagerScriptIsLoadedByThePage` | `shared_assets_test.go` |
+| The manager's page reads only fields the program sends and calls only what it binds | `TestTheManagerWireIsStatedTwiceAndAgrees` | `shared_assets_test.go` |
+| The setup page names nothing (not proved by a plant) | `TestTheSetupPageNamesNothing` | `setup_page_test.go` |
+| The setup page reads only fields the program sends (not proved by a plant) | `TestTheWireIsStatedTwiceAndAgrees` | `setup_page_test.go` |
+| The setup page calls only what the program binds (not proved by a plant) | `TestThePageCallsOnlyWhatIsBound` | `setup_page_test.go` |
+
+The timing rule covers the application layer, where every decision about waiting lives; a timeout
+inside an adapter (the release feed's, the setup program's wait for the agent to close) and the
+fallback caret blink FR-080 names sit beside the call they bound.
 
 The `rulings_test.go` rows are not style. Each holds a decision the specification makes that a later edit could
 undo without anybody noticing.
@@ -47,18 +65,22 @@ undo without anybody noticing.
   `ApplicationIdentity` and `DisplayIdentity` in `identity.go`, `Placement`, `Entry` and `Profile` in
   `profile.go`. No IO and no wall-clock reads: time enters the product through an injected clock and
   never reaches here at all. This is where a profile gets its meaning and its rules for being valid.
-- **Application** (`internal/application`): the two use cases, `CaptureService` and `RestoreService`,
-  plus the ports they depend on (`Desktop`, `Processes`, `Launcher`, `ProfileStore`, `Clock`, `Log`).
-  Depends on Domain and the standard library only. Every rule about what a restore does lives here and
-  is exercised against hand-written fakes, on any machine, with no desktop.
+- **Application** (`internal/application`): the use cases, `CaptureService`, `RestoreService`,
+  `ManagerService`, `TrayService` and `UpdateService`, plus the ports they depend on: `Desktop`,
+  `Processes`, `Launcher`, `ProfileStore`, `Clock`, `Log`, `StrangerPreferences`, `Splash` and
+  `DesktopEvents` with its `DesktopWatch` in `ports.go`; `Startup`, `ReleaseSource` and
+  `UpdatePreferences` beside the services that use them. Depends on Domain and the standard library
+  only. Every rule about what a restore does lives here and is exercised against hand-written fakes,
+  on any machine, with no desktop.
 - **Infrastructure** (`internal/infrastructure`): concrete adapters implementing the Application ports.
-  `win32` reads and moves real windows and displays, `store` keeps the profiles, `clock` is the real
-  clock, `runlog` is the step log and `instance` is the single-instance mutex. Never imported by Domain
-  or Application.
-- **UI** (`internal/ui`): the notification area icon, its menu, the message loop that serves them and
-  the keyboard handover for the manager's webview, a client of the Application use cases only. The
-  manager window itself is a page under `frontend/dist`, bound to `app.go` and `app_profiles.go`,
-  which are clients of the use cases too and reach no further.
+  `win32` reads and moves real windows and displays and hears the desktop change, `store` keeps the
+  profiles, `clock` is the real clock, `runlog` is the step log, `instance` is the single-instance
+  mutex and `startup` is the sign-in entry. Never imported by Domain or Application.
+- **UI** (`internal/ui`): the notification area icon, its menu, the message loop that serves them,
+  the splash and the keyboard handover for the manager's webview. It calls the Application use cases
+  plus, for the keyboard handover alone, `internal/infrastructure/window`. The manager window itself is
+  a page under `frontend/dist`, bound to `app.go`, `app_profiles.go` and `about.go`, which are clients
+  of the use cases too and reach no further.
 
 `internal/product` sits beside these holding the product's name and its tagline, which reach a path, a
 mutex, a log line, a menu entry and the setup program's header. A second copy of a name is how a rename
@@ -70,16 +92,21 @@ closes the windows a profile does not name at sign-in rather than minimising the
 apart from the profile store, because a profile is the user's work and a setting is a preference.
 `internal/infrastructure/update` is the release feed.
 
-Two further packages serve the setup program rather than the agent. `internal/infrastructure/setup`
-holds the install policy: the per-user paths, the payload extraction, the registry entries, the
-shortcuts and the process work. `internal/infrastructure/window` gives a WebView page the keyboard,
-which on Windows nothing else reliably does. Neither is imported by the agent.
+Two further packages were written for the setup program and are shared with the agent.
+`internal/infrastructure/setup` holds the install policy: the per-user paths, the payload extraction,
+the registry entries, the shortcuts and the process work; the agent uses it for the sign-in entry and
+for whether Windows is set to dark. `internal/infrastructure/window` gives a WebView page the
+keyboard, which on Windows nothing else reliably does; both programs need that.
 
 ## Composition root
 
 `main.go` is the single composition root. It opens the log, takes the single-instance mutex, builds the
-concrete adapters and injects them into the use cases by constructor injection. There are no global
-singletons, no service locator and no auto-wiring.
+concrete adapters and injects them into the use cases by constructor injection. There is no service
+locator and no auto-wiring; nothing above infrastructure holds state at package level. Inside
+the Windows layer some does, because a Win32 callback carries no pointer back to the object that set
+it: the tray and the splash each keep their one live instance, the event hooks keep the watches
+running now, the window enumeration keeps the list being gathered and the shell's registered message
+number is read once.
 
 The structural test whitelists `main.go` alone. That whitelist is load-bearing rather than decorative:
 emptying it makes the test fail naming `main.go`, which is how it was confirmed that the root is seen
@@ -102,7 +129,8 @@ at all.
                        +-----+---------------------------+
                        |        infrastructure           |
                        | win32, store, clock, runlog,    |
-                       | instance, setup, window         |
+                       | instance, startup, settings,    |
+                       | update, setup, window           |
                        +---------------------------------+
 ```
 
@@ -217,8 +245,9 @@ Windows itself decides where to maximise it.
    desktop changed (a window created, shown, hidden, cloaked, uncloaked, destroyed or moved; the
    displays changing) and for nothing else: it never looks again on a timer (FR-079). The
    `DesktopEvents` port carries that; `internal/infrastructure/win32/events_windows.go` implements it
-   with window event hooks, low-level keyboard and mouse hooks and a hidden window for display
-   changes, all on a thread of their own and taken down when the watch ends.
+   with window event hooks, low-level keyboard and mouse hooks and a hidden window that hears the
+   displays change plus, registered as a shell hook window, each taskbar button flashing
+   (`flash_windows.go`), all on a thread of their own and taken down when the watch ends.
 3. An entry with fewer windows showing than the profile records has the application run again, once
    per missing window, at sign-in or for an application this restore started itself, each run
    waiting for the window it opens before the next (FR-069). With no window showing, the run signals
@@ -266,7 +295,8 @@ Windows itself decides where to maximise it.
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 
-Every one of those is exercised against fakes in `internal/application`, which holds 100% coverage.
+Every one of those is exercised against fakes in `internal/application`, where every function is
+covered by a test.
 
 **An install arranges nothing.** The agent restores the default profile on every start; the setup
 program starts it, so installing used to rearrange the desktop and open another window of any
@@ -301,7 +331,7 @@ setting's other arm would have done; the report says which windows those were.
 |---|---|
 | Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
 | Step log | `%LOCALAPPDATA%\ScreenState\Log.txt` |
-| Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup |
+| Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup as `uninstall.exe` |
 | Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting, the skipped version and what a restore does with the windows a profile does not name |
 | Webview cache | `%LOCALAPPDATA%\ScreenState\webview`, pinned there so an uninstall knows to look |
 | Apps list entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenState` |
@@ -338,8 +368,9 @@ thread of its own, because a window belongs to the thread that made it. They mee
 tray is handed a callback and asks for the manager rather than opening anything itself.
 
 **The window is a client of the use cases and nothing else.** `app.go` holds the window plumbing and
-the shapes crossing the boundary; `app_profiles.go` holds the bound methods, each of which is one
-call into `ManagerService`, `CaptureService` or `RestoreService`. No rule about what a profile means
+the shapes crossing the boundary; `app_profiles.go` holds most of the bound methods and `about.go`
+the licence text, each a call into one of the services: `ManagerService`, `CaptureService`,
+`RestoreService`, `TrayService` for Apply and `UpdateService` for the update check. No rule about what a profile means
 lives in either, so none of them can be got wrong there without a test in the application layer
 failing first. The composition-root test proves it: `main.go` is still the only file that knows both
 the application layer and the Windows layer.
@@ -349,9 +380,11 @@ buttons that belong to the window and the start of a run; beside it sit the inte
 (`manager-dialogs.js`), the profile list and everything done to a profile (`manager-profiles.js`),
 the capture review with the restore report (`manager-capture.js`), the settings panel
 (`manager-settings.js`) and everything about the product rather than the desktop
-(`manager-help.js`), with the guide's words apart again in `guide.js`. They are plain scripts sharing
-one scope, so `index.html` loads `manager.js` first and a structural test holds the tags and the
-files to each other.
+(`manager-help.js`), with the guide's words apart again in `guide.js`. `shell.js` is the furniture
+shared with the setup page and `autoscroll.js` the gentle self-reading scroll. They are plain
+scripts sharing one scope, so `index.html` loads the shared furniture and the guide first, then
+`manager.js` ahead of the other manager scripts; a structural test holds the tags and the files to
+each other, though not their order.
 
 **The window asks how far a restore has got; nothing pushes it.** The Applying panel carries the same
 bar the setup program shows, filled from the entries the restore has satisfied out of the entries the
@@ -457,9 +490,9 @@ the setting a lie.
 
 ## Help, the guide and the licence
 
-Help is a panel of rows rather than a menu, because this window has no menu bar and a made-up one
-would be furniture nobody expects. It offers the guide, About, the licence, the update check and the
-report of the last restore.
+Help is a drop-down under its button rather than a menu bar, because this window has no menu bar
+and a made-up one would be furniture nobody expects. It offers the guide, the report of the last
+restore, About, the licence and the update check.
 
 The guide's words live in `frontend/dist/guide.js`, apart from the panel that draws them, so the panel
 stays a renderer and the words stay one readable document. Every entry carries the REAL control this
@@ -495,8 +528,9 @@ those four drifting apart.
 | Go back a version | the recorded version is newer |
 | Manage | the versions match, so there is nothing to install |
 
-Removal is a screen reachable from every other one rather than a route of its own, so cancelling it
-returns to whatever was due behind it.
+Removal is a screen reachable from every other one, so cancelling it returns to whatever was due
+behind it. The one exception is a start with `-uninstall`, which is how the Apps list asks for it:
+that goes straight to removal.
 
 **An operation moves to a different screen; nothing is greyed in place.** The progress screen offers no
 actions at all, because there is nothing there that can safely be interrupted. Every path ends in a
@@ -538,25 +572,28 @@ everything written there would otherwise be lost, including the Go runtime's own
 | `staticcheck` | a stricter superset of vet |
 | `go test -race` | the whole suite, with the race detector |
 | Structural suite | the invariants above, each proved by a planted violation |
-| Coverage floor | 100% over `internal/domain` and `internal/application` |
+| Coverage floor | every function in `internal/domain` and in `internal/application` exercised |
 
 The floor is scoped to the two layers a machine can exercise with no filesystem, no clock and no
-desktop. Anything short there is a decision nobody made. Infrastructure sits deliberately outside it:
-the Windows half needs a real desktop; gating it would mean either a number that means nothing or
-tests that assert what happened to be on screen.
+desktop. Anything short there is a decision nobody made. It counts functions, not statements: a
+function counts once a test reaches any statement in it. Infrastructure sits deliberately outside
+it: the Windows half needs a real desktop; gating it would mean either a number that means nothing
+or tests that assert what happened to be on screen.
 
-Measured coverage at the time of writing: domain 100%, application 100%, clock 100%, store 93.8%,
-instance 90.9%, win32 71.9%, runlog 66.7%. The shortfalls are IO and platform failures that would need
-the disk or the window manager to fail mid-call; they are not padded with tests that assert nothing.
+Measured statement coverage at the time of writing: domain 100%, application 97.1%, clock 100%,
+store 93.8%, instance 90.9%, settings 89.1%, runlog 66.7%, win32 38.6%, setup 33.6%, ui 15.0%. The
+shortfalls outside the floor are IO and platform failures that would need the disk or the window
+manager to fail mid-call, plus the Win32 calls themselves; they are not padded with tests that
+assert nothing.
 
-The structural suite also holds the setup program's boundary, which no compiler sees: the page may not
-write the product's name or its tagline down, every `state.` field it reads must be a json tag the
-program actually sends and every call it makes must be a method the program binds. These three are the
-newest assertions in the suite and are the only ones not yet proved by a planted violation.
+The structural suite also holds both pages' boundaries, which no compiler sees: a page may not write
+the product's name or its tagline down, every `state.` field it reads must be a json tag the program
+actually sends and every call it makes must be a method the program binds.
 
-Two integration tests in `win32` read the real machine and assert only what must hold anywhere, skipping
-where there is no desktop. They do not move a window or start an application, since either would disturb
-the desktop of whoever ran the suite.
+Three integration tests in `win32` read the real machine and assert only what must hold anywhere:
+two read the desktop and skip where there is none; the third reads the flash count and caret blink
+the FR-080 wait is worked out from. None moves a window or starts an application, since either would
+disturb the desktop of whoever ran the suite.
 
 ## Design decisions
 
@@ -584,9 +621,10 @@ they keep the order the first enumeration gave, which is a stacking order rather
 placements of an application whose windows were all open before the agent started are matched in
 stacking order; the user cannot predict that from the order they opened them.
 
-**Unverified against a real desktop.** Moving a window and starting an application are implemented and
-unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They
-need a deliberate run.
+**Moving a window and starting an application are proved by use, not by test.** No test calls
+either, because both would disturb the desktop of whoever ran the suite. Both are run at every
+sign-in on the reference machine, where the log records each application started and each window
+placed.
 
 **The update check has never asked the real feed.** Its rules are covered end to end against a
 stand-in; every outcome the window can show was driven in a browser. No request has left this
@@ -603,7 +641,7 @@ the tray opening a named panel, the donate link and the update offer on screen. 
 run, not off a suite, so they are checked by the list in TESTING.md.
 
 **The setup program has installed and nothing else.** It has installed on the reference machine
-twice, the second time over an existing install of the same version: the files are in
+many times, each over an existing install of the same version: the files are in
 `%LOCALAPPDATA%\Programs\ScreenState`, the Apps list entry carries its uninstall and modify
 commands, the sign-in entry names the installed file with the flag that keeps the window shut and
 both shortcuts are where they belong. So the payload extraction, the registry writes and the
@@ -612,7 +650,45 @@ newer version, going back to an older one, repair, uninstall, the scheduled remo
 of an install under a name the product used to carry. Its screens are still driven in a browser
 against a stand-in, which settles the layout and the wiring and settles nothing else.
 
-## Not built yet
+## Where the code falls short of the specification
 
-Nothing. Every requirement in the specification is built. What remains is proving it: see the known
-limits above.
+Found by reading the source against every requirement during the documentation pass for the first
+release. The first two and the three marked "read and confirmed" were checked against the code by
+hand; the rest were read by an automated audit and none was reproduced on a desktop. Each is a
+defect or a requirement to amend; which is the owner's decision, so the specification still states
+what was asked for.
+
+- **Cancelling a restore (FR-049).** The restore service stops and records the cancellation when its
+  context ends; nothing a user can press ends it: no control on the Applying panel, no tray
+  entry. The ways out are the user's first key press or click (FR-079), a newer restore (FR-061) and
+  quitting.
+- **Setting the ceiling (NFR-PERF-003).** The policy holds the bounds and a method that clamps a
+  value to them; nothing offers the setting: every restore waits the default 15 minutes, counted
+  from the start of the restore rather than from sign-in.
+- **Capturing an application with only a hidden window (FR-005), read and confirmed.** The desktop is
+  read through the candidate rule, which passes visible windows only, so a fresh capture leaves out
+  an application such as NordVPN that runs with its window hidden. It is kept only where an existing
+  entry already names it.
+- **The tray icon after an incomplete restore (FR-045), read and confirmed.** `NeedsAttention` is
+  never called outside its tests, so the icon itself never changes; the menu entry carries the count
+  and the tooltip is refreshed only after a restore started from the tray.
+- **Log retention (NFR-OBS-001), read and confirmed.** The log starts afresh once it passes 1 MB
+  rather than keeping the last 10 restores.
+- **A packaged application after an update (FR-071).** The running process is recognised by its
+  model id once the path has moved; a window is matched to its entry by the path alone, so that
+  window may be treated as one the profile does not name.
+- **What is stored (NFR-PRIV-001).** The notes of a sign-in restore, written to the log, carry the
+  titles of the windows put away.
+- **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.
+- **Module size (NFR-MAINT-003).** The structural test measures Go files only; `manager.css` is over
+  400 lines.
+- **Counting rebuilt buttons (FR-075).** The first button that cannot be rebuilt ends the loop, so
+  the rest are skipped and the count is not logged.
+- **A click on the splash (FR-078, FR-079).** The click is heard by the same mouse hook as any other,
+  so it counts as the user taking over: the entries still awaited are given up and the flash wait
+  is skipped, although FR-078 says the restore carries on.
+- **Placing a maximised window (FR-074).** The placing code says `SetWindowPlacement` was measured
+  not to activate, while the rebuild's comment records it activating PigeonPost, Stellody and
+  Claude. A shell trace of a maximising placement would settle which is right.
+
+What remains beyond these is proving the rest: see the known limits above.

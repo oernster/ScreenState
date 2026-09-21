@@ -1,60 +1,148 @@
 # ScreenState
-ScreenState: window layout profiles for Windows
 
-`REQUIREMENTS.md` is the specification. `ARCHITECTURE.md` describes how the product is built and
-which test enforces each invariant. [DEVELOPMENT.md](DEVELOPMENT.md) is how to build it from source;
-[TESTING.md](TESTING.md) is how it is tested, including what a first test run needs doing to the
-machine.
+Window layout profiles for Windows.
+
+> **Commercial licences available.** ScreenState is free and open source under the GNU General
+> Public License, version 3. If those terms do not suit what you are building, such as a
+> closed-source product, a commercial licence can be bought from me separately. It covers my own
+> code; third-party libraries keep their own licences. See
+> [commercial licensing](https://ernster.dev/commercial-licensing.html).
+
+ScreenState puts your desktop back after you sign in. Capture the desktop once as a named profile;
+from then on, signing in starts the applications the profile records as running and puts each of
+their windows on the display it belongs on, at the size and in the state it was captured in.
+
+Site: [oernster.github.io/ScreenState](https://oernster.github.io/ScreenState/)
+
+## Who it is for
+
+People who arrange the same windows across the same displays every time they sign in, especially
+across several monitors; they would rather not.
+
+It is not for arranging windows as you work: it acts when you sign in or press Apply, never
+continuously. Nor is it for bringing back what is inside an application, nor for anything but
+Windows.
+
+## What it does
+
+- **Captures the desktop as a profile.** It lists every application it found with where each
+  window sits; you untick what you do not want and name the profile. Nothing is written until you
+  confirm.
+- **Restores the default profile at sign-in**, waiting in the notification area without opening a
+  window. It starts what is missing and places each window as soon as it appears, without waiting
+  for the slowest application. A message on every display says the desktop is being prepared, then
+  that it is ready.
+- **Applies any profile on demand** from the tray menu or the manager.
+- **Knows displays apart** by the identity Windows gives each screen, so two monitors of the same
+  model are never confused. A display that is gone sends its windows to the primary one.
+- **Names applications by what survives their updates**: the path, the updater that does not move
+  or (for a packaged application whose path moves with every version) its model id kept beside the
+  path so it can still be started.
+- **Leaves the keyboard and the taskbar alone.** Nothing it starts or places takes the keyboard
+  from the window you are typing in; no taskbar button is left lit, red or missing its icon.
+- **Puts away the windows a profile does not name**, by minimising them; at sign-in it can close
+  them instead, if you turn that on.
+- **Reports what it could not do**, naming each application and the reason; the report is a click
+  away in the tray menu and in the manager's Help.
+
+## What it does not do
+
+- **It never ends a program.** It closes a window only where you have turned that on, only at
+  sign-in and only for a window no profile names.
+- **It does not restore what is inside an application**: browser tabs, open documents and the
+  folder an Explorer window shows are the application's business. Nor stacking order, Snap groups
+  or virtual desktops.
+- **It does not encrypt its profiles.** They are plain files in your own folder, holding
+  application paths, window positions, display identities and profile names.
+- **It sends nothing about you anywhere.** Its one network connection asks whether a newer version
+  has been released, carries no identifier and can be turned off, after which it connects to
+  nothing at all.
+- **It never asks for administrator rights**, to install or to run; so it cannot act on an
+  application running with them.
+
+Windows 11 is the supported target. Windows 10 will very likely work, since nothing Windows 11
+introduced is used; it is untested.
+
+## Stack
+
+| Part | What |
+|---|---|
+| Language | Go, no cgo in anything shipped |
+| Windows | Win32 through `golang.org/x/sys/windows`, with WinEvent, shell and low-level input hooks |
+| Manager window | Wails v2 hosting a plain HTML, CSS and JavaScript page in WebView2 |
+| Setup program | a second Wails program carrying the agent inside it |
+| Storage | one JSON file per profile, written atomically |
+| Tests | Go's `testing`, hand-written fakes, a structural suite |
+
+## Installing
+
+Download `ScreenStateSetup.exe` from the
+[latest release](https://github.com/oernster/ScreenState/releases/latest) and run it. Everything it
+writes is per user, so Windows never asks for administrator rights: the files go under
+`%LOCALAPPDATA%\Programs`, the Apps list entry and the sign-in entry under `HKCU`. The same program
+installs, updates, goes back a version, repairs, reinstalls and uninstalls. It registers itself with
+Windows, so Modify and Repair in the Apps list reopen it rather than sending you back to the
+download.
+
+Your captured profiles live somewhere else, so removing the product leaves them alone unless you
+tick the box that says otherwise.
+
+## Using it
+
+The agent waits in the notification area. Click its icon or launch it again from the Start Menu or
+the desktop and the manager opens: the profiles and the settings, with what the selected profile
+arranges a button away. Right-click the icon instead for the menu, which applies a profile, starts a
+capture, opens the report of the last restore or quits.
+
+Capture the desktop to make a profile. Marking a profile as the default is what makes it the one
+applied after you sign in; while there is only one profile, it is the default.
+
+Started by Windows at sign-in it opens no window at all, which is the point of it: it puts your
+windows back and waits.
+
+## Testing
+
+```powershell
+./test.ps1
+```
+
+Formatting, vet, staticcheck, a build for a platform that is not Windows, the whole suite twice
+(with the race detector, then as the product ships) and the coverage floor. Trust the exit code.
+[TESTING.md](TESTING.md) has what each part proves and what only a real desktop can settle,
+including what a first test run needs doing to the machine.
 
 ## Building
 
+```powershell
+./build.ps1                  # the agent and the setup program; the gate runs first
+./build.ps1 -SkipInstaller   # the agent only
 ```
-./test.ps1     every check: formatting, vet, staticcheck, the suite twice, the coverage floor
-./build.ps1    the agent and the setup program; the gate runs first and cannot be skipped
-```
-
-`./build.ps1 -SkipInstaller` stops after the agent. The setup program needs the Wails command line
-tool; the agent does not.
-
-Outputs:
 
 | File | What it is |
 |---|---|
 | `build/bin/ScreenState.exe` | the agent |
 | `dist-installer/ScreenStateSetup.exe` | the setup program, carrying the agent inside it |
 
-The icons are generated from `assets/application-icon.png` by `python tools/genicons.py` and committed,
-so a clone needs neither Python nor Pillow to build anything. Run it when the artwork changes.
+Both programs are built with the Wails command line tool. [DEVELOPMENT.md](DEVELOPMENT.md) lists
+every tool a build needs and what the build does, in order.
 
-## Installing
+## Documents
 
-Run `ScreenStateSetup.exe`. Everything it writes is per user, so Windows never asks for administrator
-rights: the files go under `%LOCALAPPDATA%\Programs`, the Apps list entry and the sign-in entry under
-`HKCU`. It covers install, update, going back a version, repair, reinstall and uninstall. It registers
-itself with Windows, so Modify and Repair in the Apps list reopen it rather than sending you back to
-the download.
-
-Your captured profiles live somewhere else, so removing the product leaves them alone unless you tick
-the box that says otherwise.
-
-## Using it
-
-The agent waits in the notification area. Click its icon or launch it again from the Start Menu
-or the desktop. Either way the manager opens with the profiles down the left, what the selected one arranges down
-the right and the sign-in setting under them. Right-click the icon instead for the menu, which
-applies a profile, starts a capture, opens the report of the last restore or quits.
-
-Capture the desktop to make a profile. Nothing is saved until you name it and confirm; anything you
-untick is left out. Marking a profile as the default is what makes it the one applied after you sign
-in; marking none means nothing is applied.
-
-Started by Windows at sign-in it opens no window at all, which is the point of it: it puts your
-windows back and waits.
+- [REQUIREMENTS.md](REQUIREMENTS.md): the specification, with the measurements each requirement rests on.
+- [ARCHITECTURE.md](ARCHITECTURE.md): how it is built and which test enforces each invariant.
+- [DEVELOPMENT.md](DEVELOPMENT.md): building from source and cutting a release.
+- [TESTING.md](TESTING.md): the gate, what the tests prove and the checks done by hand.
 
 ## Supporting the project
 
-The donation button sits at the far left of the row along the foot of the manager. ScreenState is
-free and stays free: there is no paid tier, no licence key and no feature held back behind a
-donation. Pressing the button hands the address to the desktop and your browser does the asking, so
-the application itself still makes no connection of its own beyond the update check you can turn
-off.
+ScreenState is free and stays free: there is no paid tier, no licence key and no feature held back
+behind a donation. The same link sits at the foot of the manager; pressing it there hands the
+address to your browser, so the application itself still makes no connection beyond the update
+check.
+
+<a href="https://www.paypal.com/ncp/payment/6FMTGJYFJXFTE"><img src="docs/donate.png" alt="Donate to ScreenState" width="120"></a>
+
+## Licence
+
+GPL-3.0; see [LICENSE](LICENSE). Commercial licences are available: see
+[commercial licensing](https://ernster.dev/commercial-licensing.html).

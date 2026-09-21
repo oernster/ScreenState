@@ -12,8 +12,9 @@ import (
 // time. Where it needs to know that something will not happen (an application
 // asked for a window shows none, a window asked to close stays open) the user's
 // first key press or mouse click is the event that says so: they have taken
-// the desktop over. The ceiling bounds a restore nobody touches and is the only
-// timer there is.
+// the desktop over. The ceiling bounds a restore nobody touches; it is one of
+// two timers, the other being the flash series FR-080 waits out before the
+// taskbar buttons are rebuilt.
 
 // waiting is what a restore waits on: the watch, the ceiling and whether the
 // user has taken over yet.

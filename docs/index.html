@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ScreenState: window layout profiles for Windows</title>
+    <meta name="description" content="ScreenState puts every window back where it belongs after you sign in to Windows: the right applications, on the right displays, at the right size. Local, free and open source.">
+    <meta name="theme-color" content="#0b0e14">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="ScreenState: window layout profiles for Windows">
+    <meta property="og:description" content="Sign in and your desktop arranges itself: every application started and every window on the display it belongs on. For Windows.">
+    <meta property="og:image" content="https://oernster.github.io/ScreenState/icon.png">
+    <meta property="og:url" content="https://oernster.github.io/ScreenState/">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        // Before first paint, so the page never flashes the wrong ground. A
+        // choice made with the toggle wins over the system's; storage can be
+        // refused, in which case the system decides.
+        (() => {
+            let chosen = null;
+            try { chosen = localStorage.getItem('screenstate-theme'); } catch (_) {}
+            const dark = chosen ? chosen === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+            document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        })();
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "ScreenState",
+        "applicationCategory": "UtilitiesApplication",
+        "operatingSystem": "Windows",
+        "description": "Captures window layouts as named profiles and restores the default one after you sign in to Windows.",
+        "author": {"@type": "Person", "name": "Oliver Ernster", "url": "https://ernster.dev"},
+        "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+        "offers": {"@type": "Offer", "price": "0", "priceCurrency": "GBP"}
+    }
+    </script>
+</head>
+<body>
+
+<header class="wrap site-head">
+    <a class="brand" href="#top"><img src="icon.png" alt="" width="40" height="40"> ScreenState</a>
+    <nav aria-label="Sections">
+        <a href="#how" class="hide-sm">How it works</a>
+        <a href="#what">Features</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/oernster/ScreenState">GitHub</a>
+        <button class="theme" id="theme" type="button" aria-label="Switch between light and dark">
+            <img id="theme-art" src="dark-mode.png" alt="" width="28" height="28">
+        </button>
+    </nav>
+</header>
+
+<main id="top">
+
+    <div class="wrap hero">
+        <div>
+            <p class="eyebrow">
+                <span class="pill">v<!--VERSION-->1.0.0<!--/VERSION--></span>
+                <span class="pill">Windows</span>
+                <span class="pill">Free and open source</span>
+            </p>
+            <h1>Sign in. Your desktop arranges itself.</h1>
+            <p class="lead">Every reboot, the same ritual: start the same applications,
+                drag each window to the same display, maximise it, repeat.
+                <strong>ScreenState does it for you.</strong> Capture your desktop once as
+                a profile; from then on, signing in starts what was running and puts
+                every window back on the display it belongs on.</p>
+            <div class="cta">
+                <a class="btn btn-primary" href="https://github.com/oernster/ScreenState/releases/latest">Download for Windows</a>
+                <a class="btn" href="https://github.com/oernster/ScreenState">View the source</a>
+            </div>
+        </div>
+        <div class="art">
+            <img src="icon.png" alt="The ScreenState mark" width="256" height="256">
+        </div>
+    </div>
+
+    <section class="wrap" id="how">
+        <p class="kicker">How it works</p>
+        <h2>Capture once. Restored at every sign-in.</h2>
+        <ol class="steps">
+            <li><strong>Capture.</strong> Arrange your desktop the way you like it and
+                capture it. ScreenState lists every application it found and where each
+                window sits; untick anything you want left out, name the profile and save.
+                Nothing is written until you confirm.</li>
+            <li><strong>Mark a default.</strong> The default profile is the one applied
+                after you sign in. With only one profile, it is the default.</li>
+            <li><strong>Sign in.</strong> ScreenState waits in the notification area,
+                starts whatever the profile says should be running and places each window
+                the moment it appears, without waiting for the slowest application. A
+                message on every display says the desktop is being prepared, then that it
+                is ready.</li>
+            <li><strong>Read what happened.</strong> If anything could not be done, the
+                splash says how many applications did not start and the report, in the
+                tray menu, names each one with the reason.</li>
+        </ol>
+    </section>
+
+    <section class="wrap" id="what">
+        <p class="kicker">The feature list</p>
+        <h2>It puts the desktop back. Carefully.</h2>
+        <div class="two-col">
+            <div class="card">
+                <h3>What it does</h3>
+                <ul>
+                    <li><strong>Knows your displays apart</strong>, even two of the same
+                        model, by the identity Windows gives each screen rather than a
+                        number that changes.</li>
+                    <li><strong>Names applications by what survives their updates.</strong>
+                        A packaged application whose path moves with every update keeps its
+                        model id beside the path, so it can still be started.</li>
+                    <li><strong>Leaves your keyboard alone.</strong> Nothing it places or
+                        starts takes the keyboard from the window you are typing in.</li>
+                    <li><strong>Leaves the taskbar clean.</strong> No button left lit, red
+                        or missing its icon once the restore is done.</li>
+                    <li><strong>Puts away what the profile does not name</strong>, by
+                        minimising it. At sign-in it can close those windows instead, if you
+                        turn that on.</li>
+                    <li><strong>Copes with change.</strong> A display that is gone sends its
+                        windows to the primary one; displays changing mid-restore do not
+                        stop it; a window that moves itself is put back once.</li>
+                    <li><strong>Applies any profile on demand</strong> from the tray or the
+                        manager, with a bar showing how far it has got.</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>What it does not do</h3>
+                <ul>
+                    <li><strong>End a program.</strong> It never terminates anything. It
+                        closes a window only where you have turned that on, only at sign-in
+                        and only for a window no profile names.</li>
+                    <li><strong>Restore what is inside an application.</strong> Browser
+                        tabs, open documents and folders are the application's business.</li>
+                    <li><strong>Stacking order, Snap groups or virtual desktops.</strong>
+                        Where each window sits, yes; which is on top, no.</li>
+                    <li><strong>Encrypt your profiles.</strong> They are plain files in your
+                        own folder, holding application paths, window positions and display
+                        names.</li>
+                    <li><strong>Send your desktop anywhere.</strong> The one connection it
+                        makes asks whether a newer version exists, carries nothing about you
+                        and can be turned off.</li>
+                    <li><strong>Ask for administrator rights.</strong> Installed and run for
+                        your account alone.</li>
+                    <li><strong>Anything but Windows.</strong> Built and tested on Windows
+                        11. Windows 10 will very likely work but is untested.</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="wrap" id="built">
+        <p class="kicker">How it is built</p>
+        <h2>Measured, not guessed.</h2>
+        <div class="prose">
+            <p>Every behaviour above was measured on a real four-display desktop before
+                it was written down; the specification records each measurement beside
+                the requirement it settled. Nothing on this page is a number made up for
+                it.</p>
+        </div>
+        <div class="stats">
+            <div class="stat">
+                <span class="n">93</span>
+                <p>Requirements in the specification: 75 the product cannot do without and
+                    18 more it carries.</p>
+            </div>
+            <div class="stat">
+                <span class="n">100%</span>
+                <p>Of the functions that decide what a profile means and what a restore
+                    does are covered by tests. The build refuses to run below it.</p>
+            </div>
+            <div class="stat">
+                <span class="n">19</span>
+                <p>Structural tests that fail the build if the architecture is broken or a
+                    rule is undone: nothing may end a program, nothing may start in front.</p>
+            </div>
+            <div class="stat">
+                <span class="n">2</span>
+                <p>Timers a restore ever waits on: the ceiling that bounds a restore
+                    nobody touches and the wait for a taskbar button to stop flashing.
+                    Everything else is an event Windows reports.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="wrap" id="install">
+        <p class="kicker">Install</p>
+        <h2>One file. No administrator rights.</h2>
+        <ol class="steps">
+            <li><strong>Download</strong> <code>ScreenStateSetup.exe</code> from the
+                <a href="https://github.com/oernster/ScreenState/releases/latest">latest
+                release</a>.</li>
+            <li><strong>Run it</strong> and choose Install. It installs for your account
+                only, so Windows never asks for administrator rights. The same program
+                updates, repairs and uninstalls.</li>
+            <li><strong>Capture your desktop</strong> from the manager, save the profile
+                and sign out and in again to watch it come back.</li>
+        </ol>
+        <div class="prose note">
+            <p>To remove it, uninstall from Settings &gt; Apps. Your profiles live apart
+                from the program, so they stay unless you tick the box that removes them
+                too.</p>
+        </div>
+    </section>
+
+    <section class="wrap support" id="support">
+        <p class="kicker">Supporting ScreenState</p>
+        <h2>Free. It stays free.</h2>
+        <div class="prose">
+            <p>There is no paid tier, no licence key and no feature held back behind a
+                donation. If ScreenState has saved you the morning drag-and-maximise, a
+                contribution supports its maintenance. The same link sits at the foot of
+                the manager.</p>
+        </div>
+        <div class="cta">
+            <a class="btn btn-donate" href="https://www.paypal.com/ncp/payment/6FMTGJYFJXFTE">
+                <img src="donate.png" alt="">
+                Donate
+            </a>
+        </div>
+    </section>
+
+</main>
+
+<footer class="wrap site-foot">
+    <span>&copy; Oliver Ernster. GPL-3.0.
+        <a href="https://ernster.dev/commercial-licensing.html">Commercial licences</a> available.</span>
+    <span><a href="https://github.com/oernster/ScreenState">Source</a> &middot;
+        <a href="https://ernster.dev">ernster.dev</a></span>
+</footer>
+
+<script>
+(() => {
+    'use strict';
+    // The toggle wears the product's own sun and moon and shows the appearance
+    // it would switch TO, as the manager's does.
+    const root = document.documentElement;
+    const art = document.getElementById('theme-art');
+    const show = () => {
+        art.src = root.dataset.theme === 'dark' ? 'light-mode.png' : 'dark-mode.png';
+    };
+    show();
+    document.getElementById('theme').addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem('screenstate-theme', root.dataset.theme); } catch (_) {}
+        show();
+    });
+})();
+</script>
+
+</body>
+</html>
