@@ -18,12 +18,14 @@ type Colour struct {
 	R, G, B uint8
 }
 
-// SplashPalette is the part of the palette a splash is drawn in.
+// SplashPalette is the part of the palette the agent draws natively: the
+// splash, plus the badge on the tray icon, which is Danger ringed in Panel.
 type SplashPalette struct {
 	Panel  Colour
 	Border Colour
 	Text   Colour
 	Muted  Colour
+	Danger Colour
 }
 
 // Themes is the splash palette in both of the product's themes.
@@ -44,6 +46,7 @@ const (
 	borderToken = "--border"
 	textToken   = "--text"
 	mutedToken  = "--muted"
+	dangerToken = "--danger"
 )
 
 // hexDigits is the length of a colour written #rrggbb, without the hash.
@@ -65,7 +68,7 @@ func ThemesFrom(css string) (Themes, error) {
 	return Themes{Light: light, Dark: dark}, nil
 }
 
-// paletteIn reads the four tokens out of one block.
+// paletteIn reads the palette's tokens out of one block.
 func paletteIn(css, block string) (SplashPalette, error) {
 	_, after, found := strings.Cut(css, block)
 	if !found {
@@ -81,6 +84,7 @@ func paletteIn(css, block string) (SplashPalette, error) {
 		{borderToken, &palette.Border},
 		{textToken, &palette.Text},
 		{mutedToken, &palette.Muted},
+		{dangerToken, &palette.Danger},
 	} {
 		colour, err := tokenIn(body, wanted.token)
 		if err != nil {

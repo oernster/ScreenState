@@ -158,6 +158,7 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 	// the user's work and a setting is a preference.
 	preferences := settings.New(filepath.Dir(directory))
 
+	drawn := readLook(steps)
 	ticking := clock.New()
 	restores := application.NewRestoreService(
 		win32.NewDesktop(ticking),
@@ -169,7 +170,7 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 		application.DefaultPolicy(),
 		self(),
 		preferences,
-		newSplash(steps, setup.SystemPrefersDark),
+		newSplash(steps, drawn, setup.SystemPrefersDark),
 		win32.NewEvents(),
 	)
 	captures := application.NewCaptureService(
@@ -191,7 +192,7 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 	} else {
 		go signIn(ctx, manager, restores, steps, hidden)
 	}
-	go runTray(ctx, tray, steps, app)
+	go runTray(ctx, tray, steps, app, drawn.attention(setup.SystemPrefersDark))
 
 	background := light
 	if setup.SystemPrefersDark() {
@@ -276,6 +277,7 @@ func runTray(
 	service *application.TrayService,
 	steps *runlog.Steps,
 	app *App,
+	attention ui.Attention,
 ) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -288,7 +290,7 @@ func runTray(
 	// way back to it; a process without one cannot be seen or reached. It is
 	// ended here rather than left to Wails, which knows nothing about the tray.
 	defer app.endRun()
-	if err := ui.NewTray(service, steps, app.ShowManager).Run(ctx); err != nil {
+	if err := ui.NewTray(service, steps, app.ShowManager, attention).Run(ctx); err != nil {
 		steps.Step(fmt.Sprintf("the tray could not be shown: %v", err))
 	}
 }

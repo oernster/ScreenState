@@ -36,6 +36,10 @@ var (
 	pRegisterWindowMsg   = user32.NewProc("RegisterWindowMessageW")
 	pFindWindow          = user32.NewProc("FindWindowW")
 	pMessageBox          = user32.NewProc("MessageBoxW")
+	pGetSystemMetrics    = user32.NewProc("GetSystemMetrics")
+	pCreateIconIndirect  = user32.NewProc("CreateIconIndirect")
+	pDestroyIcon         = user32.NewProc("DestroyIcon")
+	pCreateBitmap        = gdi32.NewProc("CreateBitmap")
 
 	pShellNotifyIcon = shell32.NewProc("Shell_NotifyIconW")
 	pExtractIconEx   = shell32.NewProc("ExtractIconExW")
@@ -98,7 +102,19 @@ const (
 
 	// tipLength is the room Windows gives a tray tooltip, in UTF-16 units.
 	tipLength = 128
+
+	// smallIconWidth is SM_CXSMICON, the side of the small icon the tray shows.
+	smallIconWidth = 49
 )
+
+// iconInfo is ICONINFO.
+type iconInfo struct {
+	isIcon   int32
+	hotspotX uint32
+	hotspotY uint32
+	mask     uintptr
+	colour   uintptr
+}
 
 // point is the Win32 POINT, used to open the menu where the pointer is.
 type point struct {

@@ -27,6 +27,10 @@ func TestTheSplashPaletteIsReadFromTheProductTheme(t *testing.T) {
 	if themes.Dark.Panel != (Colour{R: 0x14, G: 0x18, B: 0x20}) {
 		t.Errorf("the dark panel read as %+v", themes.Dark.Panel)
 	}
+	// #be123c is the light --danger the tray icon's badge is filled with.
+	if themes.Light.Danger != (Colour{R: 0xbe, G: 0x12, B: 0x3c}) {
+		t.Errorf("the light danger read as %+v", themes.Light.Danger)
+	}
 	if themes.Light.Text == themes.Dark.Text {
 		t.Error("both themes read the same text colour, so one block was read twice")
 	}

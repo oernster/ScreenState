@@ -188,9 +188,12 @@ does, with two rules around that (FR-071, measured 2026-09-21):
 | A versioned directory beside an updater | the updater command, which does not move | Discord |
 | Anything else | its own path | Stellody |
 
-The kept model id does two jobs once an update has moved the path: the package family inside it
+The kept model id does three jobs once an update has moved the path: the package family inside it
 matches the application's new directory, so a running copy is still recognised; the activation
-manager still starts it. Neither needs the profile recaptured.
+manager still starts it; a window reporting the new path carries the same model id, so
+`ApplicationIdentity.Recognises` in the domain matches it to its entry and the restore places it
+rather than putting it away. None of them needs the profile recaptured. `Equal` stays exact, since
+it says whether two stored entries are the same one.
 
 A window class is not an identity. NordVPN's main window class carried a GUID that changed on every
 reboot; the process image path did not.
@@ -460,6 +463,16 @@ than written again in Go; its logo is reduced from the embedded master artwork t
 size by an area average, never enlarged. A palette that cannot be read shows no splash and says so
 in the log; artwork that cannot be read shows the words alone.
 
+**The tray icon asks for attention the same way** (FR-045). While `NeedsAttention` says the last
+restore left something outstanding, the tray shows its icon with a badge in the bottom-right
+corner: a disc in the palette's `--danger` ringed in its `--panel`, so it stands clear of the mark
+and of any taskbar. There is no second piece of artwork. The badge is drawn in code
+(`internal/ui/badge.go`, portable and tested) over the same master artwork, reduced to the small
+icon's size, in whichever theme is in force; each palette's icon is built once and freed when the
+tray closes. The palette and the artwork are read once at start for both surfaces; where either
+cannot be read, the icon stays plain and the log says so. `RefreshTray` re-reads the badge with the
+tooltip after every restore.
+
 ## The update check
 
 The one outbound connection this product makes, which is what C-4 names: an anonymous request to a
@@ -655,7 +668,9 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 Found by reading the source against every requirement during the documentation pass for the first
 release. The first and the three marked "read and confirmed" were checked against the code by
 hand; the rest were read by an automated audit and none was reproduced on a desktop. Cancelling a
-restore (FR-049) was on this list and is now built: the Applying panel carries "Stop the restore". Each is a
+restore (FR-049) was on this list and is now built: the Applying panel carries "Stop the restore".
+So were matching a packaged application's window after an update (FR-071) and marking the tray
+icon after an incomplete restore (FR-045); both are now fixed. Each is a
 defect or a requirement to amend; which is the owner's decision, so the specification still states
 what was asked for.
 
@@ -666,15 +681,8 @@ what was asked for.
   read through the candidate rule, which passes visible windows only, so a fresh capture leaves out
   an application such as NordVPN that runs with its window hidden. It is kept only where an existing
   entry already names it.
-- **The tray icon after an incomplete restore (FR-045), read and confirmed.** `NeedsAttention` is
-  never called outside its tests, so the icon itself never changes: there is no artwork yet for an
-  icon asking for attention. The menu entry carries the count and the tooltip is refreshed after
-  every restore, whether it was started at sign-in, from the tray or from the manager.
 - **Log retention (NFR-OBS-001), read and confirmed.** The log starts afresh once it passes 1 MB
   rather than keeping the last 10 restores.
-- **A packaged application after an update (FR-071).** The running process is recognised by its
-  model id once the path has moved; a window is matched to its entry by the path alone, so that
-  window may be treated as one the profile does not name.
 - **What is stored (NFR-PRIV-001).** The notes of a sign-in restore, written to the log, carry the
   titles of the windows put away.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.

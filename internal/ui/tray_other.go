@@ -25,6 +25,7 @@ func NewTray(
 	*application.TrayService,
 	application.Log,
 	func(application.ManagerRequest),
+	Attention,
 ) *Tray {
 	return &Tray{}
 }

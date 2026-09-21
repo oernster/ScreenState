@@ -23,28 +23,54 @@ var theme string
 //go:embed assets/application-icon.png
 var artwork []byte
 
-// newSplash builds the splash that says the desktop is being prepared
-// (FR-078).
+// look is the palette and the artwork, read out of the binary once for the two
+// things the agent draws itself: the splash and the tray icon's badge.
+type look struct {
+	themes   ui.Themes
+	drawable bool
+	logo     image.Image
+}
+
+// readLook reads the palette and the artwork.
 //
-// Both inputs are built into the binary, so neither failing is something a
-// user did; it is still no reason to stop the agent, which would take the
-// restore down with it. A palette that cannot be read shows no splash at all,
-// since it cannot be drawn in the product's colours; artwork that cannot be
-// read shows the words alone. Either is said in the log.
-func newSplash(log application.Log, dark func() bool) application.Splash {
+// Both are built into the binary, so neither failing is something a user did;
+// it is still no reason to stop the agent, which would take the restore down
+// with it. A palette that cannot be read shows no splash at all and never marks
+// the tray icon, since neither can be drawn in the product's colours; artwork
+// that cannot be read shows the splash's words alone and never marks the icon.
+// Either is said in the log.
+func readLook(log application.Log) look {
 	themes, err := ui.ThemesFrom(theme)
 	if err != nil {
-		log.Step(fmt.Sprintf("the splash cannot be drawn, so none will be shown: %v", err))
-		return silentSplash{}
+		log.Step(fmt.Sprintf("the palette cannot be read, so no splash will be shown and the tray icon is never marked: %v", err))
+		return look{}
 	}
-	var logo image.Image
+	drawn := look{themes: themes, drawable: true}
 	decoded, err := png.Decode(bytes.NewReader(artwork))
 	if err != nil {
-		log.Step(fmt.Sprintf("the splash artwork could not be read, so the words are shown alone: %v", err))
+		log.Step(fmt.Sprintf("the artwork could not be read, so the splash shows its words alone and the tray icon is never marked: %v", err))
 	} else {
-		logo = decoded
+		drawn.logo = decoded
 	}
-	return ui.NewSplash(logo, themes, dark, log)
+	return drawn
+}
+
+// newSplash builds the splash that says the desktop is being prepared
+// (FR-078).
+func newSplash(log application.Log, drawn look, dark func() bool) application.Splash {
+	if !drawn.drawable {
+		return silentSplash{}
+	}
+	return ui.NewSplash(drawn.logo, drawn.themes, dark, log)
+}
+
+// attention is what the tray marks its icon from when a restore leaves
+// something outstanding (FR-045). Its zero value leaves the icon plain.
+func (drawn look) attention(dark func() bool) ui.Attention {
+	if !drawn.drawable || drawn.logo == nil {
+		return ui.Attention{}
+	}
+	return ui.Attention{Logo: drawn.logo, Themes: drawn.themes, Dark: dark}
 }
 
 // silentSplash shows nothing. It is the splash for a run that cannot draw one,

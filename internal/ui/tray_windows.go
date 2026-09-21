@@ -35,10 +35,15 @@ type Tray struct {
 	// reaching over.
 	onManager func(application.ManagerRequest)
 
-	hwnd    uintptr
-	icon    uintptr
-	added   bool
-	taskbar uint32
+	hwnd uintptr
+	icon uintptr
+	// attention draws the icon that says the last restore left something
+	// outstanding (FR-045); marked holds each one built, by the palette it was
+	// drawn in, so a change of theme is followed without rebuilding every time.
+	attention Attention
+	marked    map[SplashPalette]uintptr
+	added     bool
+	taskbar   uint32
 	// showManager is the message a second launch posts to ask this copy for
 	// its manager (FR-054).
 	showManager uint32
@@ -59,7 +64,7 @@ var current *Tray
 // while there is no tray.
 var trayWindow atomic.Uintptr
 
-// RefreshTray asks the tray to read its tooltip again (FR-045). A restore can
+// RefreshTray asks the tray to read its tooltip and badge again (FR-045). A restore can
 // finish on any thread and from the manager as well as the tray menu, so it
 // posts rather than touching the window, which belongs to the tray's thread.
 // It does nothing while there is no tray.
@@ -71,13 +76,19 @@ func RefreshTray() {
 
 // NewTray returns a tray over the given service. onManager is called when the
 // user asks for the manager, by clicking the icon or by choosing it from the
-// menu; it may be nil for a tray with no window behind it.
+// menu; it may be nil for a tray with no window behind it. attention is what
+// the icon is marked from when a restore leaves something outstanding; its zero
+// value leaves the icon plain.
 func NewTray(
 	service *application.TrayService,
 	log application.Log,
 	onManager func(application.ManagerRequest),
+	attention Attention,
 ) *Tray {
-	return &Tray{service: service, log: log, onManager: onManager}
+	return &Tray{
+		service: service, log: log, onManager: onManager,
+		attention: attention, marked: map[SplashPalette]uintptr{},
+	}
 }
 
 // manager asks for the manager window, saying so in the log where there is
@@ -152,6 +163,7 @@ func (tray *Tray) open() error {
 // clear without hovering over it.
 func (tray *Tray) close() {
 	tray.remove()
+	tray.forgetAttention()
 	trayWindow.Store(0)
 	if tray.hwnd != 0 {
 		_, _, _ = pDestroyWindow.Call(tray.hwnd)

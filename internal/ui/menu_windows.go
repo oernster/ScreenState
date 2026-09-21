@@ -32,13 +32,21 @@ func iconOf() uintptr {
 }
 
 // iconData describes the tray icon as it should stand now, tooltip included.
+// The icon carries a badge while the last restore left anything outstanding
+// (FR-045).
 func (tray *Tray) iconData() notifyIconData {
+	icon := tray.icon
+	if tray.service.NeedsAttention() {
+		if marked := tray.attentionIcon(); marked != 0 {
+			icon = marked
+		}
+	}
 	data := notifyIconData{
 		hwnd:            tray.hwnd,
 		id:              1,
 		flags:           nifMessage | nifIcon | nifTip,
 		callbackMessage: wmTray,
-		icon:            tray.icon,
+		icon:            icon,
 	}
 	data.cbSize = uint32(unsafe.Sizeof(data))
 	// The tooltip carries what the last restore did, so "did it work" is
@@ -72,8 +80,8 @@ func (tray *Tray) remove() {
 	tray.added = false
 }
 
-// refresh reads the tooltip again, which is how the icon comes to say what the
-// restore that just finished did.
+// refresh reads the tooltip and the badge again, which is how the icon comes to
+// say what the restore that just finished did.
 func (tray *Tray) refresh() {
 	if !tray.added {
 		return
