@@ -67,9 +67,13 @@ $('backdrop').onmousedown = (event) => {
 }
 
 // dialogStops are the controls inside the open dialog, in the order they are
-// drawn: the cross in its corner, then the row of actions along its foot.
+// drawn: the cross in its corner, the fields of the sheet showing (the
+// settings are the sheet that has any), then the row of actions along its foot.
+// A field on a sheet that is not showing is no stop.
 function dialogStops() {
-    return Array.from($('dialog').querySelectorAll('button:enabled'))
+    return Array.from($('dialog').querySelectorAll('button:enabled, input:enabled'))
+        .filter((control) => control.closest('.sheet') === null
+            || control.closest('.sheet').classList.contains('active'))
 }
 
 // The keyboard while a dialog is open. Escape closes it, which is the one key

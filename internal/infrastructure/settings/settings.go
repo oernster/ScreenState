@@ -1,7 +1,8 @@
 // Package settings keeps the small number of choices this product remembers
 // between runs: whether the update check is wanted (FR-059), which released
-// version the user has chosen to pass over (FR-058) and what a restore does
-// with the windows a profile does not name (FR-064).
+// version the user has chosen to pass over (FR-058), what a restore does with
+// the windows a profile does not name (FR-064) and how long a restore waits for
+// windows that have not appeared (NFR-PERF-003).
 //
 // It is deliberately separate from the profile store. A profile is the user's
 // work and a setting is a preference; a file holding both would mean an
@@ -14,6 +15,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"github.com/oernster/ScreenState/internal/infrastructure/store"
 )
@@ -34,10 +36,15 @@ const FileName = "settings.json"
 // application. The name in the file says what the setting does in the words the
 // manager uses, while the Go name beside it keeps the word the restore uses for
 // a window no profile names.
+//
+// Ceiling is written the way Go writes a duration ("20m0s"), so the file says
+// its own unit and a person editing it can read it. Empty is a user who has
+// chosen none and gets the default.
 type document struct {
 	UpdateCheck         *bool  `json:"updateCheck,omitempty"`
 	SkippedVersion      string `json:"skippedVersion,omitempty"`
 	CloseUnnamedWindows bool   `json:"closeUnnamedWindows,omitempty"`
+	Ceiling             string `json:"ceiling,omitempty"`
 }
 
 // Preferences is the settings file as the application layer sees it.
@@ -107,6 +114,32 @@ func (prefs *Preferences) CloseStrangers() (bool, error) {
 // (FR-064).
 func (prefs *Preferences) SetCloseStrangers(closing bool) error {
 	return prefs.change(func(held *document) { held.CloseUnnamedWindows = closing })
+}
+
+// Ceiling reports the ceiling the user chose for a restore (NFR-PERF-003); false
+// where the file says nothing, which means the default. A ceiling the file
+// states in a form that cannot be read is a fault, like a damaged file: taking
+// it as no choice would quietly replace what the user set.
+func (prefs *Preferences) Ceiling() (time.Duration, bool, error) {
+	prefs.mutex.Lock()
+	defer prefs.mutex.Unlock()
+	held, err := prefs.read()
+	if err != nil {
+		return 0, false, err
+	}
+	if held.Ceiling == "" {
+		return 0, false, nil
+	}
+	ceiling, err := time.ParseDuration(held.Ceiling)
+	if err != nil {
+		return 0, false, fmt.Errorf("reading the ceiling in %s: %w", FileName, err)
+	}
+	return ceiling, true, nil
+}
+
+// SetCeiling records the ceiling a restore runs to (NFR-PERF-003).
+func (prefs *Preferences) SetCeiling(ceiling time.Duration) error {
+	return prefs.change(func(held *document) { held.Ceiling = ceiling.String() })
 }
 
 // SkippedVersion returns the released version the user has chosen to pass over,

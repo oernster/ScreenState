@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/oernster/ScreenState/internal/application"
 	"github.com/oernster/ScreenState/internal/domain"
@@ -217,6 +218,17 @@ func (a *App) SetStartsWithWindows(enabled bool) error {
 // where it is not (FR-064).
 func (a *App) SetCloseUnnamedWindows(closing bool) error {
 	return a.restores.SetCloseStrangers(closing)
+}
+
+// SetCeilingMinutes chooses how long a restore waits for windows that have not
+// appeared (NFR-PERF-003) and answers the minutes kept, which differ from those
+// asked for only where the bounds held them in.
+func (a *App) SetCeilingMinutes(chosen int) (int, error) {
+	kept, err := a.restores.SetCeiling(time.Duration(chosen) * application.CeilingStep)
+	if err != nil {
+		return 0, err
+	}
+	return minutes(kept), nil
 }
 
 // noReport is the answer when no restore has run. Held says so; the two lists

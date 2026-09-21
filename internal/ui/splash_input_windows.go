@@ -43,9 +43,13 @@ func (splash *Splash) listen() {
 	registered, _, _ := pRegisterRawInput.Call(uintptr(unsafe.Pointer(&devices[0])),
 		uintptr(len(devices)), unsafe.Sizeof(devices[0]))
 	splash.listening = registered != 0
+	// Both arms are said, so a splash that stayed up can be told apart in the
+	// log from one that was never listening.
 	if !splash.listening {
 		splash.log.Step("the splash could not hear the keyboard or mouse, so only a click on it closes it")
+		return
 	}
+	splash.log.Step("the splash is ready and closes at the next key press or click")
 }
 
 // deafen gives the raw input back, so nothing is delivered to a window that

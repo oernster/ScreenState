@@ -46,7 +46,7 @@ func TestASignInRestoreSendsTheClickToo(t *testing.T) {
 	service := restoreUnder(desktop, newFakeProcesses(pigeonpost),
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{})
 
-	if _, marked, err := service.RestoreDefault(context.Background(), true); err != nil || !marked {
+	if _, marked, err := service.RestoreDefault(context.Background()); err != nil || !marked {
 		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
 	if sent := desktop.nudgeCount(); sent != 1 {

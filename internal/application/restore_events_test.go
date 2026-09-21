@@ -20,7 +20,7 @@ var errNoHook = errors.New("the desktop could not be hooked")
 func restoreWatching(desktop *fakeDesktop, clock *fakeClock, log *fakeLog, events *fakeEvents,
 	running ...domain.ApplicationIdentity) *RestoreService {
 	return NewRestoreService(desktop, newFakeProcesses(running...), &fakeLauncher{},
-		newFakeStore(), clock, log, Policy{Ceiling: time.Minute}, screenst,
+		newFakeStore(), clock, log, Policy{Ceiling: time.Minute}, &fakeCeilings{}, screenst,
 		&fakeStrangers{}, &fakeSplash{}, events)
 }
 

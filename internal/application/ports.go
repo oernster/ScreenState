@@ -117,6 +117,19 @@ type StrangerPreferences interface {
 	SetCloseStrangers(closing bool) error
 }
 
+// CeilingPreferences is how long the user has chosen a restore keeps waiting for
+// windows that have not appeared (NFR-PERF-003).
+//
+// It is read as each restore begins rather than held, for the same reason as
+// StrangerPreferences: a ceiling changed in the manager is the ceiling the next
+// restore runs to without anything having to be restarted.
+type CeilingPreferences interface {
+	// Ceiling answers the ceiling the user chose; false where they have chosen
+	// none, which is an answer rather than a fault.
+	Ceiling() (time.Duration, bool, error)
+	SetCeiling(ceiling time.Duration) error
+}
+
 // Splash tells the user a restore is arranging the desktop and when it is done
 // (FR-078). It answers nothing: a splash that cannot be shown must not stop a
 // restore, which matters more than the telling of it.
@@ -253,6 +266,10 @@ const (
 	// to (NFR-PERF-003).
 	MinimumCeiling = time.Minute
 	MaximumCeiling = 60 * time.Minute
+
+	// CeilingStep is the unit a user sets the ceiling in: whole minutes, both
+	// in the manager and in the file that keeps the choice.
+	CeilingStep = time.Minute
 )
 
 // DefaultPolicy returns the timing a restore runs to when the user has set

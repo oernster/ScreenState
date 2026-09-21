@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
@@ -37,6 +38,9 @@ type App struct {
 	updates  *application.UpdateService
 	log      application.Log
 	version  string
+	// splash is taken down whenever the manager is brought up (FR-078), since
+	// it sits above every window and would cover the one the user asked for.
+	splash interface{ Dismiss() }
 
 	// onScreen says whether the window is meant to be on screen at all.
 	//
@@ -63,6 +67,7 @@ func NewApp(
 	captures *application.CaptureService,
 	updates *application.UpdateService,
 	log application.Log,
+	splash interface{ Dismiss() },
 	version string,
 	hidden bool,
 ) *App {
@@ -73,6 +78,7 @@ func NewApp(
 		captures: captures,
 		updates:  updates,
 		log:      log,
+		splash:   splash,
 		version:  version,
 	}
 	app.onScreen.Store(!hidden)
@@ -128,11 +134,18 @@ func (a *App) ShowManager(request application.ManagerRequest) {
 	if a.ctx == nil {
 		return
 	}
+	a.bringUp()
+	wailsruntime.EventsEmit(a.ctx, "open", viewNames[request])
+	a.takeFocus()
+}
+
+// bringUp puts the window on screen and takes any splash down first, so the
+// window the user asked for is the one they see (FR-078).
+func (a *App) bringUp() {
+	a.splash.Dismiss()
 	a.onScreen.Store(true)
 	wailsruntime.WindowShow(a.ctx)
 	wailsruntime.WindowUnminimise(a.ctx)
-	wailsruntime.EventsEmit(a.ctx, "open", viewNames[request])
-	a.takeFocus()
 }
 
 // StateDTO is what the page needs before it can draw anything.
@@ -161,7 +174,20 @@ type StateDTO struct {
 	// CloseUnnamedError says why that setting could not be read, for the same
 	// reason as the two above.
 	CloseUnnamedError string `json:"closeUnnamedError"`
+	// CeilingMinutes is how long a restore waits for windows that have not
+	// appeared (NFR-PERF-003), in the whole minutes the user sets it in, with
+	// the bounds the setting may take. The bounds are sent rather than written
+	// into the page, so the field cannot offer a value the program would change.
+	CeilingMinutes int `json:"ceilingMinutes"`
+	CeilingMinimum int `json:"ceilingMinimum"`
+	CeilingMaximum int `json:"ceilingMaximum"`
+	// CeilingError says why the ceiling could not be read, for the same reason
+	// as the errors above.
+	CeilingError string `json:"ceilingError"`
 }
+
+// minutes states a ceiling in the unit the user sets it in.
+func minutes(ceiling time.Duration) int { return int(ceiling / application.CeilingStep) }
 
 // DetectState reads what the page opens on.
 func (a *App) DetectState(prefersDark bool) StateDTO {
@@ -171,6 +197,14 @@ func (a *App) DetectState(prefersDark bool) StateDTO {
 		Version:     a.version,
 		DonateURL:   donateURL,
 		PrefersDark: prefersDark,
+
+		CeilingMinimum: minutes(application.MinimumCeiling),
+		CeilingMaximum: minutes(application.MaximumCeiling),
+	}
+	if ceiling, err := a.restores.Ceiling(); err != nil {
+		state.CeilingError = err.Error()
+	} else {
+		state.CeilingMinutes = minutes(ceiling)
 	}
 	if enabled, err := a.manager.StartsWithWindows(); err != nil {
 		state.StartupError = err.Error()
@@ -283,9 +317,7 @@ func (a *App) Surface() {
 	if a.ctx == nil {
 		return
 	}
-	a.onScreen.Store(true)
-	wailsruntime.WindowShow(a.ctx)
-	wailsruntime.WindowUnminimise(a.ctx)
+	a.bringUp()
 	a.takeFocus()
 }
 

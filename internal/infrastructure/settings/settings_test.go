@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 // TestAFreshInstallWantsTheUpdateCheck holds the default: a check the user has
@@ -83,6 +84,60 @@ func TestAFreshInstallMinimisesTheWindowsItDoesNotKnow(t *testing.T) {
 	}
 	if closing {
 		t.Error("a fresh install closes the windows a profile does not name")
+	}
+}
+
+// TestAFreshInstallHasChosenNoCeiling holds NFR-PERF-003's default: a file that
+// says nothing is a user who has chosen none, which the restore turns into the
+// specification's fifteen minutes.
+func TestAFreshInstallHasChosenNoCeiling(t *testing.T) {
+	t.Parallel()
+	if _, set, err := New(t.TempDir()).Ceiling(); err != nil || set {
+		t.Fatalf("a fresh install has chosen a ceiling (set %v, %v)", set, err)
+	}
+}
+
+// TestTheCeilingSurvivesBesideTheOthers reads a chosen ceiling back through a
+// second reader, beside the other settings, so the file is what is asserted.
+func TestTheCeilingSurvivesBesideTheOthers(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	prefs := New(dir)
+	chosen := 7 * time.Minute
+	if err := prefs.SetCloseStrangers(true); err != nil {
+		t.Fatalf("SetCloseStrangers: %v", err)
+	}
+	if err := prefs.SetCeiling(chosen); err != nil {
+		t.Fatalf("SetCeiling: %v", err)
+	}
+	ceiling, set, err := New(dir).Ceiling()
+	if err != nil || !set || ceiling != chosen {
+		t.Fatalf("the ceiling reads back as %s (set %v, %v), wanted %s", ceiling, set, err, chosen)
+	}
+	if closing, err := New(dir).CloseStrangers(); err != nil || !closing {
+		t.Fatalf("the choice about unnamed windows did not survive the ceiling (%v)", err)
+	}
+	damaged := t.TempDir()
+	if err := os.WriteFile(filepath.Join(damaged, FileName), []byte("{not json"), 0o644); err != nil {
+		t.Fatalf("writing a damaged file: %v", err)
+	}
+	if _, _, err := New(damaged).Ceiling(); err == nil {
+		t.Error("a damaged settings file read as no ceiling chosen")
+	}
+}
+
+// TestAnUnreadableCeilingIsAFault holds the rule for a ceiling edited by hand
+// into something that is not a duration: saying so beats quietly waiting the
+// default while the file says otherwise.
+func TestAnUnreadableCeilingIsAFault(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	edited := []byte(`{"ceiling": "a quarter of an hour"}`)
+	if err := os.WriteFile(filepath.Join(dir, FileName), edited, 0o644); err != nil {
+		t.Fatalf("writing the file: %v", err)
+	}
+	if _, _, err := New(dir).Ceiling(); err == nil {
+		t.Error("a ceiling that is not a duration read as no ceiling chosen")
 	}
 }
 

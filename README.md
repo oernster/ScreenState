@@ -97,9 +97,11 @@ tick the box that says otherwise.
 ## Using it
 
 The agent waits in the notification area. Click its icon or launch it again from the Start Menu or
-the desktop and the manager opens: the profiles and the settings, with what the selected profile
-arranges a button away. Right-click the icon instead for the menu, which applies a profile, opens the
-manager, starts a capture, opens the report of the last restore or quits.
+the desktop and the manager opens: the profiles down the left, what the selected profile arranges
+beside them and its buttons down the right, with the settings behind the gear at the top. Starting it
+by hand arranges nothing; only a sign-in does that by itself, while Apply does it whenever you ask.
+Right-click the icon instead for the menu, which applies a profile, opens the manager, starts a
+capture, opens the report of the last restore or quits.
 
 Capture the desktop to make a profile. Marking a profile as the default is what makes it the one
 applied after you sign in; while there is only one profile, it is the default.

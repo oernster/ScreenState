@@ -21,7 +21,10 @@ import (
 type waiting struct {
 	watch    DesktopWatch
 	deadline time.Time
-	touched  bool
+	// ceiling is the span the deadline was set from, kept for the words that
+	// name it when it passes.
+	ceiling time.Duration
+	touched bool
 }
 
 // deadlineOnly is the watch a restore falls back on where the desktop cannot be
@@ -77,7 +80,7 @@ func (service *RestoreService) waitedOut(state *restoreState) bool {
 		return false
 	}
 	if !service.clock.Now().Before(state.waiting.deadline) {
-		state.abandonPending(service.policy.Ceiling)
+		state.abandonPending(state.waiting.ceiling)
 		service.log.Step("the ceiling passed with entries outstanding")
 		return true
 	}
@@ -127,7 +130,7 @@ func (service *RestoreService) keepWatching(ctx context.Context, state *restoreS
 	tail := &restoreState{
 		report:  scratch,
 		placed:  snapshotPlaced(state.placed),
-		waiting: waiting{watch: watch, deadline: state.waiting.deadline},
+		waiting: waiting{watch: watch, deadline: state.waiting.deadline, ceiling: state.waiting.ceiling},
 	}
 	for _, placed := range tail.placed {
 		scratch.Track(placed.application)

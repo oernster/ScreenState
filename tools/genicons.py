@@ -63,6 +63,7 @@ PAGE_ICONS = {
     "light-mode.png": ("manager", "setup"),
     "dark-mode.png": ("manager", "setup"),
     "help.png": ("manager",),
+    "settings.png": ("manager",),
     "profile.png": ("manager",),
     "donate.png": ("manager",),
 }

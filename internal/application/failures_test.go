@@ -199,7 +199,7 @@ func TestAFailureToReadTheDefaultProfileIsReported(t *testing.T) {
 	service := restoreUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
 		newFakeProcesses(), &fakeLauncher{}, store, newFakeClock(), &fakeLog{})
 
-	if _, _, err := service.RestoreDefault(context.Background(), true); !containsText(err.Error(), "the default profile") {
+	if _, _, err := service.RestoreDefault(context.Background()); !containsText(err.Error(), "the default profile") {
 		t.Fatalf("reported as %v", err)
 	}
 }

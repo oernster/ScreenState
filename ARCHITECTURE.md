@@ -67,7 +67,8 @@ later edit could undo without anybody noticing.
   never reaches here at all. This is where a profile gets its meaning and its rules for being valid.
 - **Application** (`internal/application`): the use cases, `CaptureService`, `RestoreService`,
   `ManagerService`, `TrayService` and `UpdateService`, plus the ports they depend on: `Desktop`,
-  `Processes`, `Launcher`, `ProfileStore`, `Clock`, `Log`, `StrangerPreferences`, `Splash` and
+  `Processes`, `Launcher`, `ProfileStore`, `Clock`, `Log`, `StrangerPreferences`,
+  `CeilingPreferences`, `Splash` and
   `DesktopEvents` with its `DesktopWatch` in `ports.go`; `Startup`, `ReleaseSource` and
   `UpdatePreferences` beside the services that use them. Depends on Domain, `internal/product` (the
   tray's tooltip carries the name) and the standard library only. Every rule about what a restore does lives here and is exercised against hand-written fakes,
@@ -89,8 +90,9 @@ mutex, a log line, a menu entry and the setup program's header. A second copy of
 leaves one surface still announcing the old one.
 
 `internal/infrastructure/settings` keeps the few choices remembered between runs: whether the update
-check is wanted (FR-059), which released version the user passed over (FR-058) and whether a restore
-closes the windows a profile does not name at sign-in rather than minimising them (FR-064). It is
+check is wanted (FR-059), which released version the user passed over (FR-058), whether a restore
+closes the windows a profile does not name at sign-in rather than minimising them (FR-064) and how
+long a restore waits for windows that have not appeared (NFR-PERF-003). It is
 deliberately apart from the profile store, because a profile is the user's work and a setting is a preference.
 `internal/infrastructure/update` is the release feed.
 
@@ -181,7 +183,10 @@ The consequences run right through the layer:
 - An entry recorded as not running is left entirely alone. A restore ends nothing.
 - The ceiling bounds how long the agent keeps waiting for windows that may never appear (FR-023). It is
   a policy choice about when to stop waiting, deliberately not a prediction of how long the machine
-  takes to start.
+  takes to start. The user sets it in the manager, 15 minutes until they do (NFR-PERF-003); each
+  restore reads it through `CeilingPreferences` as it begins and counts it from that moment, so a
+  changed ceiling governs the next restore without a restart. The `Policy` the service is built
+  with holds the default and the bounds a choice is held within (`ceiling.go`).
 
 ## Naming things so they survive
 
@@ -338,19 +343,21 @@ Windows itself decides where to maximise it.
 Every one of those is exercised against fakes in `internal/application`, where every function is
 covered by a test.
 
-**An install arranges nothing.** The agent restores the default profile on every start; the setup
-program starts it, so installing used to rearrange the desktop and open another window of any
-application whose entry records more than one. Setup now starts it with `-quiet`, which opens the
-manager and arranges nothing (FR-076); the profile is arranged at the next sign-in.
+**Only a sign-in arranges the desktop by itself** (FR-038). The agent restores the default profile
+when it is started with `-hidden` (the flag the sign-in entry passes) and on no other start. It used
+to restore on every start: installing rearranged the desktop and opened another window of any
+application whose entry records more than one, which is why setup starts it with `-quiet` (FR-076);
+a start by hand rearranged the windows the user was working in and left a splash over the manager
+they had asked for. Both now open the manager and arrange nothing, saying so in the log; Apply is
+the way to arrange the desktop mid-session.
 
 ## What a restore never does
 
 It never terminates a process (FR-029, C-3). It closes a window only during the restore that runs
 at sign-in, only where the user has turned FR-064 on and only a window the profile being restored
-does not name. Apply minimises whatever the setting says; so does the restore that runs when the
-agent is started by hand. The two are told apart by the flag the sign-in entry passes, since the
-agent restores the default profile on any start where no copy of it is already running, save a
-start from setup.
+does not name. Apply minimises whatever the setting says. The two are told apart by which door the
+restore came through: `RestoreDefault` is reached only from the sign-in start, `Restore` only from
+Apply.
 
 Closing was forbidden outright until the owner asked for it back. NordVPN and GameGlass survive their
 windows closing; Postal Gambit is ended by it (A-3 in `REQUIREMENTS.md`). Nothing about a window
@@ -373,7 +380,7 @@ setting's other arm would have done; the report says which windows those were.
 | Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
 | Step log | `%LOCALAPPDATA%\ScreenState\Log.txt`; each run cuts it down to the 10 most recent restores as it starts (NFR-OBS-001), counting the step `application.RestoreBegins` opens |
 | Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup as `uninstall.exe` |
-| Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting, the skipped version and what a restore does with the windows a profile does not name |
+| Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting, the skipped version, what a restore does with the windows a profile does not name and the ceiling, written as a Go duration such as `20m0s` |
 | Webview cache | `%LOCALAPPDATA%\ScreenState\webview`, pinned there so an uninstall knows to look |
 | Apps list entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\ScreenState` |
 | Sign-in entry | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `ScreenState` (FR-046) |
@@ -422,7 +429,7 @@ layer.
 **The page is a script per subject, not one file.** `manager.js` holds what the panels share, the
 buttons that belong to the window and the start of a run; beside it sit the interrupting surfaces
 (`manager-dialogs.js`), the profile list and everything done to a profile (`manager-profiles.js`),
-the capture review with the restore report (`manager-capture.js`), the settings panel
+the capture review with the restore report (`manager-capture.js`), the settings dialog
 (`manager-settings.js`) and everything about the product rather than the desktop
 (`manager-help.js`), with the guide's words apart again in `guide.js`. `shell.js` is the furniture
 shared with the setup page and `autoscroll.js` the gentle self-reading scroll. They are plain
@@ -439,15 +446,19 @@ through every layer between the desktop and the webview, while one reading half 
 harmless. The report then goes up over the profile list rather than over the Applying panel, so
 closing it leaves the user somewhere they can act (FR-066).
 
-**What a profile arranges is asked for, not always on screen.** The main screen holds the profile list
-and the settings; the button in the bar opens the selected profile's applications in a dialog, where a
-path can wrap and be read whole (FR-068). They shared the window before, which left all three cramped:
-a path cut off after a few words, a list one row tall and the settings squeezed under it. The button
-is inert while nothing is selected, since there is then nothing for it to show.
+**The main screen is three parts: the profiles, what the selected one arranges and the buttons.**
+The profile list runs down the left; the selected profile's applications fill the middle, where a
+path can wrap and be read whole (FR-068); the buttons of whatever panel is showing run down a rail on
+the right, with the donation button at its foot. The settings are a dialog behind the button in the
+bar (EIR-002), set apart from the theme and Help by a rule. The layout got here in two steps: the
+applications and the settings first shared one column, which left a path cut off after a few words
+and a list one row tall; the applications then went to a dialog; once the settings had a dialog of
+their own, the middle was free for the applications to come back with the room they lacked. A
+reading of a profile that arrives after the user has pressed another is dropped rather than drawn.
 
 **A sign-in start opens no window.** The setup program writes the sign-in entry with a flag that
 keeps it shut, so the agent waits in the notification area (FR-046, FR-048); launched by hand it
-opens the manager, which is what double-clicking a shortcut means. An entry written without that
+opens the manager and arranges nothing (FR-038), which is what double-clicking a shortcut means. An entry written without that
 flag reads as off, so turning the setting on rewrites it correctly rather than leaving a sign-in
 that opens a window over whatever the user is doing.
 
@@ -486,6 +497,14 @@ FR-064 or FR-075 acts on. It closes on events and never on a timer: a click on a
 them all; once the restore has ended, so does the user's next key press or mouse click anywhere,
 which raw input with the sink flag delivers to a window that does not hold the keyboard while the
 press still reaches its owner.
+
+**Bringing the manager up takes the splash down** (FR-078). The tray, a second launch and an update
+offer all bring the window up through `App.bringUp`, which tells the splash to go before the window
+is shown: a topmost splash would otherwise sit over the window the user asked for until their next
+key press. The message is posted to the splash's own thread; where its windows are still being made
+the request is remembered and acted on once they exist. The restore carries on either way. Once a
+splash has said ready and is listening for the next press, the log says so; where it could not
+listen, the log says that instead.
 
 A click on a splash is not the user taking over (FR-079), so it closes the splash and the restore
 carries on as FR-078 says. The restore's own mouse hook hears every click; `takesOver` in
@@ -691,9 +710,11 @@ the quit from both the manager and the tray. The panels themselves are still dri
 against a stand-in for the agent, which settles the layout, the palette and the wiring and settles
 nothing else. What neither has settled: real keyboard focus and the ring, the second-launch message,
 the tray opening a named panel, the donate link and the update offer on screen. Those are read off a
-run, not off a suite, so they are checked by the list in TESTING.md. So are the four added most
-recently, whose rules the suite holds: stopping a restore, the tray's badge, offering applications
-running with no window and matching a packaged application after an update.
+run, not off a suite, so they are checked by the list in TESTING.md. So are the ones added most
+recently, whose rules the suite holds where they have any: stopping a restore, the tray's badge,
+offering applications running with no window, matching a packaged application after an update, the
+ceiling set in the settings dialog, a start by hand arranging nothing, the manager taking the splash
+down and the three-part main screen.
 
 **The setup program has installed and nothing else.** It has installed on the reference machine
 many times, each over an existing install of the same version: the files are in
@@ -709,17 +730,13 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 
 Found by reading the source against every requirement during the documentation pass for the first
 release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Seven more were on this list and are now built: cancelling a restore (FR-049), matching a
+desktop. Eight more were on this list and are now built: cancelling a restore (FR-049), matching a
 packaged application's window after an update (FR-071), marking the tray icon after an incomplete
 restore (FR-045), capturing an application with only a hidden window (FR-005), counting the
-rebuilt buttons (FR-075), a click on the splash (FR-078) and log retention (NFR-OBS-001). Each item
-left is
-a defect or a requirement to amend; which is the owner's decision, so the specification still states
-what was asked for.
+rebuilt buttons (FR-075), a click on the splash (FR-078), log retention (NFR-OBS-001) and setting
+the ceiling (NFR-PERF-003). Each item left is a defect or a requirement to amend; which is the
+owner's decision, so the specification still states what was asked for.
 
-- **Setting the ceiling (NFR-PERF-003).** The policy holds the bounds and a method that clamps a
-  value to them; nothing offers the setting: every restore waits the default 15 minutes, counted
-  from the start of the restore rather than from sign-in.
 - **What is stored (NFR-PRIV-001).** The notes of the restore the agent runs as it starts, written to
   the log, carry the titles of the windows put away.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.

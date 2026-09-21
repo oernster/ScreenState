@@ -71,7 +71,7 @@ func TestARestoreSaysItIsPreparingThenReady(t *testing.T) {
 	service := restoreShowing(splash, desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
 		newFakeStore(profile), newFakeClock(), &fakeLog{}, &fakeStrangers{})
 
-	if _, marked, err := service.RestoreDefault(context.Background(), true); err != nil || !marked {
+	if _, marked, err := service.RestoreDefault(context.Background()); err != nil || !marked {
 		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
 	want := []string{

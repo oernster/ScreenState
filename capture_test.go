@@ -21,7 +21,7 @@ func TestOnlyTheTickedBackgroundApplicationsAreSaved(t *testing.T) {
 	}
 	self := domain.ApplicationIdentity{Value: `C:\Programs\ScreenState\ScreenState.exe`}
 	captures := application.NewCaptureService(nil, nil, profiles, log, self)
-	app := NewApp(nil, nil, nil, captures, nil, log, "0.0.0-test", false)
+	app := NewApp(nil, nil, nil, captures, nil, log, silentSplash{}, "0.0.0-test", false)
 
 	pigeonpost := domain.ApplicationIdentity{Value: `C:\Programs\PigeonPost\PigeonPost.exe`}
 	nordvpn := domain.ApplicationIdentity{Value: `C:\Program Files\NordVPN\NordVPN.exe`}

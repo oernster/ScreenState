@@ -12,12 +12,31 @@
     padding: 18px 22px 14px;
 }
 
+/* Under the bar, the panel showing and the rail of its buttons sit side by
+   side, so the buttons are always in the one place whatever the panel. */
+.main {
+    flex: 1 1 auto;
+    display: flex;
+    gap: 18px;
+    min-height: 0;
+    padding-top: 14px;
+}
+
 .body {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
     min-height: 0;
-    padding-top: 14px;
+    min-width: 0;
+}
+
+/* The rule between the settings and the two controls about this window. */
+.headsep {
+    align-self: stretch;
+    width: 1px;
+    margin: 18px 4px;
+    background: var(--border);
+    flex: 0 0 auto;
 }
 
 .view { display: none; flex: 1 1 auto; min-height: 0; }
@@ -34,9 +53,10 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 
 /* -------------------------------------------------------------- split */
 
-/* The list and the entries of the selected profile sit side by side, which is
-   EIR-002 in one window rather than two. The list is narrow because a profile
-   name is short; the entries are wide because a path is not. */
+/* The list and the applications of the selected profile sit side by side,
+   which is EIR-002 in one window rather than two. The list is narrow because a
+   profile name is short; the applications are wide because a path is not. A
+   path wraps there rather than being cut off (FR-068). */
 .split {
     display: flex;
     gap: 18px;
@@ -136,9 +156,8 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 
 .row .note.wrap { white-space: normal; }
 
-/* A name wraps only where there is room for it to: in the dialog that shows the
-   applications in full, never in the column, where a wrapped path would push
-   the next row off the bottom. */
+/* A name wraps only where there is room for it to: in the wide column that
+   shows the applications in full, never in the narrow list of profiles. */
 .row .name.wrap {
     white-space: normal;
     overflow-wrap: anywhere;
@@ -194,17 +213,31 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 
 /* ----------------------------------------------------------- settings */
 
-/* The settings have the right-hand column to themselves. They shared it with
-   the applications of the selected profile, which left both cramped: the
-   applications were cut off after a few words and the settings pushed the rows
-   above them down to one. The applications moved to a dialog of their own
-   (FR-068), so this scrolls within the column and nothing else is squeezed. */
-.settings {
-    flex: 0 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-    padding-top: 10px;
+/* The settings are a dialog of their own. The one that is not a tick box, how
+   long a restore waits, is laid out as the tick boxes are: the words, the
+   control, then the hint beneath, level with the words above it. */
+/* The border is the tick box row's own, unpainted, so the words line up with
+   theirs to the pixel. */
+.ceiling {
+    margin-top: 11px;
+    padding: 5px 7px 5px 41px;
+    border: 2px solid transparent;
 }
+
+.ceilingrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 4px;
+}
+
+.ceiling .hint {
+    display: block;
+    font-size: 15px;
+    color: var(--muted);
+}
+
+.field.minutes { flex: 0 0 auto; width: 96px; }
 
 /* ------------------------------------------------------------ capture */
 
@@ -246,30 +279,50 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
 
 /* ------------------------------------------------------------- donate */
 
-/* The row along the foot holds two things that do not belong together: the
-   donation button, which belongs to the window and never changes, then the
-   buttons of whatever panel is showing, replaced wholesale every time it does.
-   The rule the shared theme states for .footer is kept here on the bar, so the
-   line runs the width of the window rather than starting partway along it. */
-.footerbar {
+/* The rail down the right holds two things that do not belong together: the
+   buttons of whatever panel is showing, replaced wholesale every time it does,
+   then the donation button at its foot, which belongs to the window and never
+   changes. The rule the shared theme draws above .footer is drawn beside the
+   rail instead, since the rail stands beside the panel rather than under it. */
+.rail {
+    flex: 0 0 236px;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 13px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border);
-    flex: 0 0 auto;
+    min-height: 0;
+    padding-left: 18px;
+    border-left: 1px solid var(--border);
 }
 
-.footerbar .footer {
+.rail .footer {
     flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 0;
+    overflow-y: auto;
     padding-top: 0;
     border-top: 0;
 }
 
-/* The donation button wears the header's own button class, so the two bars match
-   by construction rather than by a second set of numbers kept in step by hand.
-   Only the picture differs: this one is wider than it is tall, so it is sized by
-   height and left to find its own width. */
+/* Every button takes the rail's width, so a column of them reads as one list
+   rather than a ragged edge; a long label wraps rather than widening the rail. */
+.rail .btn {
+    width: 100%;
+    white-space: normal;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+/* The gap between two groups takes whatever height the rail has spare, so the
+   group after it sits at the foot, just above the donation button. */
+.rail .btnsep { flex: 1 1 auto; min-height: 18px; }
+
+/* The donation button wears the header's own button class, so the two match by
+   construction rather than by a second set of numbers kept in step by hand.
+   Only its width differs, taking the rail's as the buttons above it do; the
+   picture is wider than it is tall, so it is sized by height. */
+.rail .donatebtn { width: 100%; flex: 0 0 auto; }
+
 .donatebtn img {
     height: 46px;
     width: auto;

@@ -21,3 +21,6 @@ func (*Splash) Preparing(application.SplashMessage) {}
 
 // Ready shows nothing.
 func (*Splash) Ready(application.SplashMessage) {}
+
+// Dismiss has nothing to take down.
+func (*Splash) Dismiss() {}

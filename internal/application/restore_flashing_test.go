@@ -28,10 +28,10 @@ func flashingRestore(t *testing.T, ctx context.Context, events *fakeEvents,
 	events.clock = clock
 	profile := oneEntry(pigeonpost, onPrimary).WithDefault(true)
 	service := NewRestoreService(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
-		newFakeStore(profile), clock, log, Policy{Ceiling: time.Minute}, screenst,
+		newFakeStore(profile), clock, log, Policy{Ceiling: time.Minute}, &fakeCeilings{}, screenst,
 		&fakeStrangers{}, &fakeSplash{}, events)
 	began := clock.Now()
-	if _, _, err := service.RestoreDefault(ctx, true); err != nil {
+	if _, _, err := service.RestoreDefault(ctx); err != nil {
 		t.Fatalf("restoring at sign-in: %v", err)
 	}
 	return clock.Now().Sub(began), desktop, log

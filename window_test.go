@@ -33,7 +33,7 @@ func (log *recordingLog) said(fragment string) bool {
 // Wails context: the guard under test runs before anything touches one.
 func appStartedHidden(hidden bool) (*App, *recordingLog) {
 	log := &recordingLog{}
-	return NewApp(nil, nil, nil, nil, nil, log, "0.0.0-test", hidden), log
+	return NewApp(nil, nil, nil, nil, nil, log, silentSplash{}, "0.0.0-test", hidden), log
 }
 
 // TestASignInStartLeavesTheWindowOffScreen is FR-048 as a test.

@@ -29,7 +29,7 @@ func TestASignInRunsARunningApplicationAgainForAWindowItIsMissing(t *testing.T) 
 	})
 	service := restoreUnder(desktop, newFakeProcesses(pigeonpost), launcher,
 		newFakeStore(profile.WithDefault(true)), newFakeClock(), &fakeLog{})
-	report, _, err := service.RestoreDefault(context.Background(), true)
+	report, _, err := service.RestoreDefault(context.Background())
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}

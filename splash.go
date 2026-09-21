@@ -55,9 +55,16 @@ func readLook(log application.Log) look {
 	return drawn
 }
 
+// splash is the splash as the composition root holds it: what a restore tells,
+// plus taking it down when the manager comes up (FR-078).
+type splash interface {
+	application.Splash
+	Dismiss()
+}
+
 // newSplash builds the splash that says the desktop is being prepared
 // (FR-078).
-func newSplash(log application.Log, drawn look, dark func() bool) application.Splash {
+func newSplash(log application.Log, drawn look, dark func() bool) splash {
 	if !drawn.drawable {
 		return silentSplash{}
 	}
@@ -80,3 +87,5 @@ type silentSplash struct{}
 func (silentSplash) Preparing(application.SplashMessage) {}
 
 func (silentSplash) Ready(application.SplashMessage) {}
+
+func (silentSplash) Dismiss() {}

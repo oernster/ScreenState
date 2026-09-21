@@ -34,6 +34,9 @@ const splashClass = product.SplashClass
 // WM_APP plus three, clear of the tray's own two.
 const wmSplashChanged = 0x8003
 
+// wmSplashDismiss asks the splash to take every window down. WM_APP plus four.
+const wmSplashDismiss = 0x8004
+
 // Splash is the desktop-being-prepared splash on every display.
 type Splash struct {
 	logo   image.Image
@@ -53,6 +56,9 @@ type Splash struct {
 	// restore has ended and only then: until then only a click on the splash
 	// closes it.
 	listening bool
+	// dismissed says the manager came up while the windows were still being
+	// made, so they are taken down as soon as they exist.
+	dismissed bool
 	// shrunk holds the logo reduced to each size a display has needed, since
 	// reducing the master is the slow part of drawing it.
 	shrunk map[int][]byte
@@ -84,6 +90,7 @@ func (splash *Splash) Preparing(message application.SplashMessage) {
 	splash.running = true
 	if start {
 		splash.generation++
+		splash.dismissed = false
 	}
 	generation := splash.generation
 	windows := append([]uintptr(nil), splash.windows...)
@@ -108,6 +115,27 @@ func (splash *Splash) Ready(message application.SplashMessage) {
 	windows := append([]uintptr(nil), splash.windows...)
 	splash.mutex.Unlock()
 	changed(windows)
+}
+
+// Dismiss takes every splash down, whatever it says, because the manager is
+// coming up (FR-078): a topmost splash would sit between the user and the
+// window they asked for. The restore it describes carries on, as it does when
+// the splash is clicked away. Posted rather than done here, since the windows
+// belong to the splash's own thread.
+func (splash *Splash) Dismiss() {
+	splash.mutex.Lock()
+	if !splash.running {
+		splash.mutex.Unlock()
+		return
+	}
+	windows := append([]uintptr(nil), splash.windows...)
+	if len(windows) == 0 {
+		splash.dismissed = true
+	}
+	splash.mutex.Unlock()
+	if len(windows) > 0 {
+		_, _, _ = pPostMessage.Call(windows[0], wmSplashDismiss, 0, 0)
+	}
 }
 
 // changed tells each window to draw again. Posting rather than calling: the
@@ -199,8 +227,15 @@ func (splash *Splash) open() error {
 		splash.windows = append(splash.windows, window)
 		splash.mutex.Unlock()
 	}
-	// Ready may have arrived while the windows were being made; its post found
-	// no window to reach, so the state it left is acted on here.
+	// Ready or a dismissal may have arrived while the windows were being made;
+	// the post found no window to reach, so the state left is acted on here.
+	splash.mutex.Lock()
+	dismissed, first := splash.dismissed, splash.windows[0]
+	splash.mutex.Unlock()
+	if dismissed {
+		_, _, _ = pPostMessage.Call(first, wmSplashDismiss, 0, 0)
+		return nil
+	}
 	if _, ready := splash.said(); ready {
 		splash.listen()
 	}
@@ -261,6 +296,10 @@ func splashProcedure(hwnd, value, wParam, lParam uintptr) uintptr {
 		// Clicked, it still does not take the keyboard (FR-074).
 		return maNoActivate
 	case wmLButtonDown, wmRButtonDown:
+		splash.closeAll()
+		return 0
+	case wmSplashDismiss:
+		splash.log.Step("the manager was opened, so the splash was taken down")
 		splash.closeAll()
 		return 0
 	case wmSplashChanged:

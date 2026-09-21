@@ -21,7 +21,7 @@ func TestAStrangerIsAskedToCloseWhenTheSettingSaysSo(t *testing.T) {
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
-	report, marked, err := service.RestoreDefault(context.Background(), true)
+	report, marked, err := service.RestoreDefault(context.Background())
 	if err != nil || !marked {
 		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
@@ -68,37 +68,6 @@ func TestApplyNeverClosesAnythingWhateverTheSettingSays(t *testing.T) {
 	}
 }
 
-// A start by hand reaches the same restore by a different route; it closes
-// nothing either (FR-064).
-//
-// The agent restores the default profile whenever it starts with no copy of it
-// already running, which is the sign-in it is named for but is also a launch
-// from the shortcut after a quit. The second is a user sitting at a desktop
-// they are working in, so it minimises exactly as Apply does. The flag the
-// sign-in entry carries is what tells the two apart.
-func TestAStartByHandClosesNothingEither(t *testing.T) {
-	t.Parallel()
-	stranger := aWindow(2, nordvpn, at(1))
-	desktop := &fakeDesktop{
-		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, pigeonpost, at(0)), stranger},
-	}
-	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, nordvpn),
-		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
-		&fakeStrangers{closing: true})
-
-	_, marked, err := service.RestoreDefault(context.Background(), false)
-	if err != nil || !marked {
-		t.Fatalf("restoring by hand: %v, marked %v", err, marked)
-	}
-	if asked := desktop.closedCount(stranger.ID); asked != 0 {
-		t.Fatalf("a start by hand asked a window to close %d time(s)", asked)
-	}
-	if put := putAwayCalls(desktop, stranger.ID); len(put) != 1 {
-		t.Fatalf("a start by hand put the stranger away %d time(s)", len(put))
-	}
-}
-
 // A window that is asked to close and is still there has refused: an
 // application may prompt about unsaved work or ignore the request outright.
 // Leaving it would undo the point of the setting, so it is put away instead and
@@ -115,7 +84,7 @@ func TestAStrangerThatRefusesToCloseIsPutAway(t *testing.T) {
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
-	report, marked, err := service.RestoreDefault(context.Background(), true)
+	report, marked, err := service.RestoreDefault(context.Background())
 	if err != nil || !marked {
 		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
@@ -141,7 +110,7 @@ func TestAStrangerThatCannotBeAskedToCloseIsReported(t *testing.T) {
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true})
 
-	report, marked, err := service.RestoreDefault(context.Background(), true)
+	report, marked, err := service.RestoreDefault(context.Background())
 	if err != nil || !marked {
 		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
@@ -164,7 +133,7 @@ func TestASettingThatCannotBeReadMinimises(t *testing.T) {
 		&fakeLauncher{}, newFakeStore(deskProfile(t).WithDefault(true)), newFakeClock(), &fakeLog{},
 		&fakeStrangers{closing: true, readErr: errors.New("the settings file is unreadable")})
 
-	report, marked, err := service.RestoreDefault(context.Background(), true)
+	report, marked, err := service.RestoreDefault(context.Background())
 	if err != nil || !marked {
 		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}

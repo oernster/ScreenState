@@ -22,11 +22,11 @@
 const guideSections = [
     {
         heading: 'The bar along the top',
-        intro: 'The mark and the name sit at the left, with the applications of the selected profile beside them. The other two are held at the far end. Hover any of them to see its name.',
+        intro: 'The mark and the name sit at the left. The three buttons are held at the far end, with a rule between the settings and the other two. Hover any of them to see its name.',
         entries: [
             {
-                art: 'profile.png', name: 'The applications in this profile',
-                text: 'opens what the selected profile arranges: every application it holds, where its windows go and a way to take one out. It is the only place they are shown, so the window itself stays clear. It is ringed in red until you press a profile on the left, since there is nothing for it to show until then.',
+                art: 'settings.png', name: 'Settings',
+                text: 'opens the settings: starting when you sign in, what a restore does with the windows a profile does not name, how long a restore waits for windows that have not appeared and the update check. Each takes effect as soon as it is changed.',
             },
             {
                 art: 'dark-mode.png', name: 'Light or dark',
@@ -40,7 +40,7 @@ const guideSections = [
     },
     {
         heading: 'The profiles',
-        intro: 'A profile is a list of applications and where their windows belong. The list is down the left and the settings are on the right. What the selected profile arranges opens from the button beside the mark.',
+        intro: 'A profile is a list of applications and where their windows belong. The profiles are down the left. Press one and what it arranges fills the middle: every application it holds and where its windows go, each path shown in full.',
         entries: [
             {
                 art: 'profile.png', name: 'A profile',
@@ -57,8 +57,8 @@ const guideSections = [
         ],
     },
     {
-        heading: 'The buttons along the bottom',
-        intro: 'The donation button is at the left and stays there. The rest belong to whatever the window is showing, so they change as you move about. On the profile list they are these.',
+        heading: 'The buttons down the right',
+        intro: 'They belong to whatever the window is showing, so they change as you move about. The donation button at the foot stays there. On the profile list they are these.',
         entries: [
             {
                 art: 'donate.png', name: 'Donate',
@@ -66,9 +66,9 @@ const guideSections = [
             },
         ],
         rules: [
+            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now. A bar shows how many of its applications are in place while you wait; the report goes up over the list when it finishes. Anything the profile does not name is minimised out of the way afterwards. Apply never closes anything. It is the only way to arrange the desktop other than signing in: starting %s by hand opens this window and moves nothing.'},
             {title: 'Capture the desktop', text: 'reads every window you have open and offers them for review. Nothing is written until you name it and confirm.'},
             {title: 'Rename and Delete', text: 'act on the selected profile. A delete names it and asks first.'},
-            {title: 'Apply', text: 'puts the windows of the selected profile back where it says they go, now. A bar shows how many of its applications are in place while you wait; the report goes up over the list when it finishes. Anything the profile does not name is minimised out of the way afterwards. Apply never closes anything.'},
             {title: 'Close', text: 'puts the window away. %s keeps running in the notification area.'},
             {title: 'Quit', text: 'ends it altogether, after which nothing is arranged at your next sign-in until you start it again.'},
         ],

@@ -56,10 +56,19 @@ function setFooter(buttons) {
 // setButtons fills a row with the buttons a panel offers. It is separate from
 // setFooter because a dialog has a row of its own along its foot and the two
 // must be built the same way: two builders would be two chances for a button to
-// look like a different kind of button in one window.
+// look like a different kind of button in one window. A spec saying separator
+// is the gap between two groups rather than a button; each window's own sheet
+// decides how wide the gap is.
 function setButtons(row, buttons) {
     row.innerHTML = ''
     buttons.forEach((spec) => {
+        if (spec.separator) {
+            const gap = document.createElement('div')
+            gap.className = 'btnsep'
+            gap.setAttribute('aria-hidden', 'true')
+            row.appendChild(gap)
+            return
+        }
         const el = document.createElement('button')
         el.className = 'btn' + (spec.kind ? ' ' + spec.kind : '')
         el.textContent = spec.label

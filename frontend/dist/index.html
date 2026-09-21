@@ -16,13 +16,21 @@
 <div class="shell">
     <div class="head">
         <img class="mark" id="mark" src="icon.png" alt=""/>
-        <button class="themebtn" id="entries" title="The applications in this profile" disabled>
-            <img id="entries-icon" src="profile.png" alt="" aria-hidden="true"/>
-        </button>
         <div class="who">
             <div class="title" id="brand"></div>
             <div class="sub" id="tagline"></div>
         </div>
+        <!--
+          Settings is a dialog of its own rather than a column of the main
+          screen: a setting is changed now and then, while the profiles and
+          what they arrange are what the window is for. The rule beside it
+          keeps the one control that changes what the agent does apart from the
+          two that change only how this window looks and what it can tell you.
+        -->
+        <button class="themebtn" id="settings" title="Settings">
+            <img id="settings-icon" src="settings.png" alt="" aria-hidden="true"/>
+        </button>
+        <div class="headsep" aria-hidden="true"></div>
         <button class="themebtn" id="theme" title="Switch between light and dark">
             <img id="theme-icon" src="dark-mode.png" alt="" aria-hidden="true"/>
         </button>
@@ -40,6 +48,11 @@
         </div>
     </div>
 
+    <!--
+      Three parts across the window: the profiles, what the selected one
+      arranges and the buttons of whatever panel is showing, down the right.
+    -->
+    <div class="main">
     <div class="body">
         <section class="view" id="view-profiles">
             <div class="split">
@@ -52,12 +65,10 @@
                 </div>
                 <div class="column wide">
                     <div class="columnhead">
-                        <h2>Settings</h2>
+                        <h2 id="entries-title">Applications</h2>
+                        <span class="count" id="entries-count"></span>
                     </div>
-                    <div class="settings">
-                        <div class="options" id="settings-options"></div>
-                        <p class="lead small" id="settings-note"></p>
-                    </div>
+                    <div class="rows" id="entries-rows"></div>
                 </div>
             </div>
         </section>
@@ -95,6 +106,20 @@
     </div>
 
     <!--
+      The donation button belongs to the window rather than to any one panel, so
+      it sits beside the panel's buttons rather than among them: setFooter
+      empties the row it owns every time a panel changes; anything living there
+      would go with it.
+    -->
+    <div class="rail">
+        <div class="footer" id="footer"></div>
+        <button class="themebtn donatebtn" id="donate" title="Buy the author a drink (opens your browser)">
+            <img id="donate-icon" src="donate.png" alt="Donate"/>
+        </button>
+    </div>
+    </div>
+
+    <!--
       Everything Help offers is a dialog over the window rather than a panel that
       replaces it: these are asides about the product, so the work stays on
       screen behind them and closing one puts the reader back exactly where they
@@ -129,10 +154,20 @@
                     <pre class="licencetext" id="licence-text"></pre>
                 </section>
 
-                <section class="sheet" id="sheet-entries">
-                    <h1 id="entries-title">The applications in this profile</h1>
-                    <p class="lead" id="entries-summary"></p>
-                    <div class="rows tall" id="entries-rows"></div>
+                <section class="sheet" id="sheet-settings">
+                    <h1>Settings</h1>
+                    <p class="lead">Each takes effect as soon as it is changed.</p>
+                    <div class="options" id="settings-options"></div>
+                    <div class="ceiling">
+                        <label class="label" for="ceiling-minutes">Stop waiting for windows after</label>
+                        <div class="ceilingrow">
+                            <input class="field minutes" id="ceiling-minutes" type="number"
+                                   step="1" inputmode="numeric"/>
+                            <span>minutes</span>
+                        </div>
+                        <span class="hint" id="ceiling-hint"></span>
+                    </div>
+                    <p class="lead small" id="settings-note"></p>
                 </section>
 
                 <section class="sheet" id="sheet-report">
@@ -151,17 +186,6 @@
         </div>
     </div>
 
-    <!--
-      The donation button belongs to the window rather than to any one panel, so
-      it sits beside the footer rather than in it: setFooter empties the row it
-      owns every time a panel changes; anything living there would go with it.
-    -->
-    <div class="footerbar">
-        <button class="themebtn donatebtn" id="donate" title="Buy the author a drink (opens your browser)">
-            <img id="donate-icon" src="donate.png" alt="Donate"/>
-        </button>
-        <div class="footer" id="footer"></div>
-    </div>
 </div>
 
 <script src="shell.js"></script>

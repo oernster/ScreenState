@@ -18,7 +18,7 @@ func TestTheDefaultProfileIsTheOneRestoredAtSignIn(t *testing.T) {
 	service := restoreUnder(desktop, newFakeProcesses(), &fakeLauncher{},
 		store, newFakeClock(), log)
 
-	if _, marked, err := service.RestoreDefault(context.Background(), true); err != nil || marked {
+	if _, marked, err := service.RestoreDefault(context.Background()); err != nil || marked {
 		t.Fatalf("marked=%v err=%v with no default set", marked, err)
 	}
 	if !log.saying("no profile is marked as the default") {
@@ -29,7 +29,7 @@ func TestTheDefaultProfileIsTheOneRestoredAtSignIn(t *testing.T) {
 	if err := store.Save(context.Background(), profile.WithDefault(true)); err != nil {
 		t.Fatalf("saving: %v", err)
 	}
-	report, marked, err := service.RestoreDefault(context.Background(), true)
+	report, marked, err := service.RestoreDefault(context.Background())
 	if err != nil || !marked {
 		t.Fatalf("marked=%v err=%v", marked, err)
 	}

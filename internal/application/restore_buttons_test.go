@@ -23,7 +23,7 @@ func TestASignInRestoreBuildsEveryButtonAfresh(t *testing.T) {
 	service := restoreUnder(desktop, newFakeProcesses(pigeonpost),
 		&fakeLauncher{}, newFakeStore(profile), newFakeClock(), log)
 
-	if _, marked, err := service.RestoreDefault(context.Background(), true); err != nil || !marked {
+	if _, marked, err := service.RestoreDefault(context.Background()); err != nil || !marked {
 		t.Fatalf("restoring at sign-in: %v, marked %v", err, marked)
 	}
 	built := desktop.rebuiltButtons()
@@ -103,7 +103,7 @@ func TestOneRefusedButtonDoesNotStopTheRest(t *testing.T) {
 	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody),
 		&fakeLauncher{}, newFakeStore(profile.WithDefault(true)), newFakeClock(), log)
 
-	if _, _, err := service.RestoreDefault(context.Background(), true); err != nil {
+	if _, _, err := service.RestoreDefault(context.Background()); err != nil {
 		t.Fatalf("restoring at sign-in: %v", err)
 	}
 	if built := desktop.rebuiltButtons(); len(built) != 1 || built[0] != WindowID(2) {
@@ -139,7 +139,7 @@ func TestAStoppedRestoreRebuildsNoMoreButtons(t *testing.T) {
 	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody),
 		&fakeLauncher{}, newFakeStore(profile.WithDefault(true)), newFakeClock(), log)
 
-	_, _, _ = service.RestoreDefault(ctx, true)
+	_, _, _ = service.RestoreDefault(ctx)
 	if built := desktop.rebuiltButtons(); len(built) != 1 {
 		t.Fatalf("rebuilt %v after the restore was stopped, wanted the first alone", built)
 	}
@@ -162,7 +162,7 @@ func TestAButtonThatCannotBeRebuiltIsNotedAndNothingMore(t *testing.T) {
 	service := restoreUnder(desktop, newFakeProcesses(pigeonpost),
 		&fakeLauncher{}, newFakeStore(profile), newFakeClock(), log)
 
-	report, _, err := service.RestoreDefault(context.Background(), true)
+	report, _, err := service.RestoreDefault(context.Background())
 	if err != nil {
 		t.Fatalf("restoring at sign-in: %v", err)
 	}

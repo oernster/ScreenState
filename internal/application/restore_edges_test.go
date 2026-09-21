@@ -82,7 +82,7 @@ func TestAWindowThatKeepsMovingIsReportedAndLeft(t *testing.T) {
 		return WakeTouched, nil
 	}}
 	service := NewRestoreService(desktop, newFakeProcesses(pigeonpost), &fakeLauncher{},
-		newFakeStore(), clock, log, Policy{Ceiling: time.Minute}, screenst,
+		newFakeStore(), clock, log, Policy{Ceiling: time.Minute}, &fakeCeilings{}, screenst,
 		&fakeStrangers{}, &fakeSplash{}, events)
 
 	if _, err := service.Restore(context.Background(), oneEntry(pigeonpost, onPrimary)); err != nil {

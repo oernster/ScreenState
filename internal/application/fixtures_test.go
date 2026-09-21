@@ -107,7 +107,7 @@ func restoreShowing(
 	strangers *fakeStrangers,
 ) *RestoreService {
 	return NewRestoreService(desktop, processes, launcher, store, clock, log,
-		Policy{Ceiling: time.Minute}, screenst, strangers, splash, &fakeEvents{clock: clock})
+		Policy{Ceiling: time.Minute}, &fakeCeilings{}, screenst, strangers, splash, &fakeEvents{clock: clock})
 }
 
 // reportOf returns the entry report for one application, failing the test where

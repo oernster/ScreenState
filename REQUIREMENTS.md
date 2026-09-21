@@ -424,18 +424,17 @@ behaviour before.
 
 **FR-068 Reading what a profile arranges**
 Priority: Should
-Requirement: The manager shall show what a profile arranges only when the user
-asks for it, in a dialog holding each application, what it arranges and a
-control to take it out of the profile. The control that opens the dialog shall
-be inert while no profile is selected.
-Rationale: reported 2026-09-21. The applications filled a column beside the
-profile list and shared it with the settings, which left every part of the
-window cramped: a path was cut off after a few words, each setting added took a
-row off the list above it and the window could not be read at a glance. What a
-profile holds is looked at now and then rather than watched, so it is asked for
-rather than always on screen. The main screen keeps the profile list, the
-settings and the buttons along the foot; the dialog has room for a path to wrap
-and be read whole.
+Requirement: The manager's main screen shall show, beside the profile list,
+each application the selected profile holds, what it arranges and a control to
+take it out of the profile, with every path shown whole. Where no profile is
+selected it shall say that there is nothing to show until one is.
+Rationale: reported 2026-09-21, then revised by the owner the same day. The
+applications first filled a column beside the list shared with the settings,
+which left every part of the window cramped: a path was cut off after a few
+words and each setting added took a row off the list above it. They moved to a
+dialog. The settings then moved to a dialog of their own (FR-053), so the main
+screen became three parts: the profiles; what the selected one arranges, with
+room for a path to wrap and be read whole; the buttons down the right.
 
 **FR-069 Every window a profile records**
 Priority: Must
@@ -572,8 +571,9 @@ Priority: Must
 Requirement: When the setup program starts the ScreenState agent, the agent
 shall open its manager and shall not restore any profile. It shall record in the
 log that it arranged nothing and why.
-Rationale: reported 2026-09-21. The agent restores the default profile on every
-start; setup starts it, so installing rearranged the desktop: each install
+Rationale: reported 2026-09-21, when the agent restored the default profile on
+every start (FR-038 has since confined that to sign-in); setup starts it, so
+installing rearranged the desktop: each install
 opened another Windows Terminal window, since the profile records two of them
 and only one was open. Installing a program is not a request to arrange the
 desktop; the profile is arranged at the next sign-in, which is when the user
@@ -616,7 +616,9 @@ more, with N the outstanding count. Every splash shall then close at the user's
 next key press or mouse click anywhere on the desktop. A click on any splash,
 while the restore runs or after, shall close them all at once. The splash shall never take the keyboard from the window
 that holds it; it is not a window any capture records, FR-064 closes or FR-075
-rebuilds. When setup starts the agent (FR-076) no splash is shown.
+rebuilds. When setup starts the agent (FR-076) no splash is shown. When the
+manager is brought up (from the tray, by a second launch (FR-054) or by an
+update offer) every splash shall close at once; the restore carries on.
 Rationale: requested by the owner 2026-09-21. A sign-in restore takes tens of
 seconds while windows open, move and flicker (FR-075), which reads as a desktop
 misbehaving unless something says the arranging is deliberate and when it is
@@ -627,7 +629,10 @@ events and never waits. The splash receives that input without holding the
 keyboard. A user away from the machine at sign-in comes back to "Your desktop
 is ready" rather than to a message that has already gone. A click closes the splash
 early because it sits above everything for as long as a restore runs, which the
-ceiling allows to be fifteen minutes. The shortfall is stated rather than hidden
+ceiling allows to be fifteen minutes by default. Bringing the manager up closes
+it for the same reason, ruled by the owner 2026-09-21: a splash sitting topmost
+over the window the user has just asked for stands between them and it. The
+shortfall is stated rather than hidden
 because "ready" over a desktop missing an application is a claim the product
 knows to be false; the detail stays in the report. Drawn with the artwork EIR-003
 names, reduced from the master and never enlarged.
@@ -854,7 +859,18 @@ about creation the system cannot answer.
 **FR-038 Default profile applies at sign-in**
 Priority: Must
 Requirement: When the user signs in, the ScreenState agent shall restore the
-profile marked as default.
+profile marked as default. When the agent is started any other way, it shall
+open its manager, shall restore no profile and shall record in the log that it
+arranged nothing and why.
+Rationale: ruled by the owner 2026-09-21. The agent used to restore the default
+profile on every start. Started by hand, it therefore rearranged the desktop the
+user was working in and put a splash up over the manager they had asked for,
+which then sat there until their next key press or click. A start by hand is a
+request for the manager; Apply is there for arranging.
+Acceptance: Given a default profile and the agent not running, when the user
+starts it from its shortcut, then the manager opens, no window is opened, moved
+or closed, no splash is shown and the log says it was started by hand so nothing
+was arranged.
 
 **FR-039 No default profile**
 Priority: Must
@@ -1012,10 +1028,15 @@ than reused, so nothing that cited it can quietly come to mean something else.
 
 **NFR-PERF-003 Ceiling**
 Priority: Must
-Requirement: The ScreenState agent shall treat 15 minutes after sign-in as the
-ceiling, configurable by the user between 1 and 60 minutes.
+Requirement: The ScreenState agent shall treat 15 minutes from the start of a
+restore as the ceiling, configurable by the user in the manager's settings in
+whole minutes between 1 and 60. A value outside those bounds shall be held to
+the nearer bound. A changed ceiling shall govern the next restore to begin.
 Method: the value is read from configuration and asserted in a test over a fake
 clock.
+Revised 2026-09-21 by the owner: counted from the start of the restore rather
+than from sign-in, because the same ceiling bounds Apply, which has no sign-in
+to count from.
 Rationale: the ceiling is a policy choice about how long to keep waiting for a
 window that may never appear. It is deliberately not derived from how long this
 machine takes to start; the attempts to measure that are a caution rather than a
@@ -1143,8 +1164,8 @@ each profile, a capture, the manager, the report and an exit.
 **EIR-002 Manager window**
 Priority: Must
 Requirement: The ScreenState manager shall present the profile list, the default
-marking and the settings in one window, with the entries of the selected profile
-a button away in a dialog of that window (FR-068).
+marking and the entries of the selected profile in one window (FR-068), with the
+settings a button away in a dialog of that window.
 
 **EIR-003 Artwork**
 Priority: Must

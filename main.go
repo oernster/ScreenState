@@ -50,13 +50,17 @@ const exitFailure = 1
 const (
 	windowTitle = product.Name
 	// The manager holds a profile list beside the entries of the selected
-	// profile, so it wants width more than height. It is resizable, unlike the
-	// setup window, because how many entries a profile holds is the user's
-	// business rather than this program's.
+	// profile, with the buttons in a rail down the right, so it wants width more
+	// than height. It is resizable, unlike the setup window, because how many
+	// entries a profile holds is the user's business rather than this program's.
+	// The smallest height is the one at which the rail still shows every button
+	// without scrolling: a 700 pixel page, measured in a browser on 2026-09-21,
+	// plus 40 for the title bar, in case the size given here counts the frame.
+	// That has not been measured on a build.
 	windowWidth     = 1100
 	windowHeight    = 760
-	minWindowWidth  = 820
-	minWindowHeight = 560
+	minWindowWidth  = 900
+	minWindowHeight = 740
 )
 
 // dark and light are the surface colours of the palette, sampled from the
@@ -159,6 +163,7 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 	preferences := settings.New(filepath.Dir(directory))
 
 	drawn := readLook(steps)
+	shown := newSplash(steps, drawn, setup.SystemPrefersDark)
 	ticking := clock.New()
 	restores := application.NewRestoreService(
 		win32.NewDesktop(ticking),
@@ -168,9 +173,10 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 		ticking,
 		steps,
 		application.DefaultPolicy(),
+		preferences,
 		self(),
 		preferences,
-		newSplash(steps, drawn, setup.SystemPrefersDark),
+		shown,
 		win32.NewEvents(),
 	)
 	captures := application.NewCaptureService(
@@ -185,12 +191,19 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 
-	app := NewApp(manager, tray, restores, captures, updates, steps, version, hidden)
-	if quiet {
+	app := NewApp(manager, tray, restores, captures, updates, steps, shown, version, hidden)
+	switch {
+	case quiet:
 		// FR-076: setup started this, so the desktop is left exactly as it is.
 		steps.Step("setup started this copy, so nothing was arranged")
-	} else {
-		go signIn(ctx, manager, restores, steps, hidden)
+	case !hidden:
+		// FR-038: only a sign-in arranges the desktop by itself. A start by hand
+		// is somebody asking for the manager; rearranging the windows they are
+		// working in, with a splash over the window they asked for, is not what
+		// they asked for. Apply is there when they want it.
+		steps.Step("started by hand, so nothing was arranged")
+	default:
+		go signIn(ctx, manager, restores, steps)
 	}
 	go runTray(ctx, tray, steps, app, drawn.attention(setup.SystemPrefersDark))
 
@@ -240,7 +253,6 @@ func signIn(
 	manager *application.ManagerService,
 	restores *application.RestoreService,
 	steps *runlog.Steps,
-	signedIn bool,
 ) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -253,7 +265,7 @@ func signIn(
 	if err := manager.SettleDefault(ctx); err != nil {
 		steps.Step(fmt.Sprintf("the default marking was left as it was: %v", err))
 	}
-	report, marked, err := restores.RestoreDefault(ctx, signedIn)
+	report, marked, err := restores.RestoreDefault(ctx)
 	if err != nil {
 		steps.Step(fmt.Sprintf("the sign-in restore stopped: %v", err))
 		return

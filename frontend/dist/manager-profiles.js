@@ -16,18 +16,22 @@ async function openProfiles() {
         selected = profiles.length ? profiles[0].name : ''
     }
     drawProfiles()
-    settleEntriesButton()
-    drawSettings()
     show('profiles', profileFooter())
+    await drawEntries()
 }
 
+// profileFooter is what the list offers, down the right. Apply leads because it
+// is what the window is for; the three that change the profiles follow; Close
+// and Quit sit apart at the foot, being about the window rather than the
+// profile.
 function profileFooter() {
     const none = selected === ''
     return [
+        {label: 'Apply', kind: 'primary', disabled: none, onClick: () => applySelected()},
         {label: 'Capture the desktop', onClick: () => openCapture()},
         {label: 'Rename', disabled: none, onClick: () => renameSelected()},
         {label: 'Delete', disabled: none, onClick: () => confirmDelete(selected)},
-        {label: 'Apply', kind: 'primary', disabled: none, onClick: () => applySelected()},
+        {separator: true},
         {label: 'Close', onClick: () => backend().Hide()},
         {label: 'Quit', kind: 'danger', onClick: () => backend().Quit()},
     ]
@@ -52,8 +56,8 @@ function drawProfiles() {
         row.onclick = () => {
             selected = profile.name
             drawProfiles()
-            settleEntriesButton()
             setFooter(profileFooter())
+            void drawEntries()
         }
         const art = document.createElement('img')
         art.className = 'art'
@@ -127,19 +131,11 @@ async function toggleDefault(profile) {
 
 /* ----------------------------------------------------------------- entries */
 
-// settleEntriesButton makes the button in the bar match what there is to open:
-// a profile selected on the left is what gives it something to show, so until
-// one is it wears the permanent red ring and does nothing when pressed
-// (FR-068).
-function settleEntriesButton() {
-    $('entries').disabled = selected === ''
-}
-
-// entryRows fills the dialog with one row per entry.
+// entryRows fills the column with one row per entry.
 //
-// A name wraps rather than being cut off after a few words: the dialog is the
+// A name wraps rather than being cut off after a few words: this column is the
 // one place a profile's applications are shown, so it is the place that has to
-// show a whole path.
+// show a whole path (FR-068).
 function entryRows(container, entries) {
     container.innerHTML = ''
     if (!entries.length) {
@@ -171,29 +167,34 @@ function entryRows(container, entries) {
     })
 }
 
-// openEntries shows the selected profile's applications in a dialog, which is
-// the only place they are shown (FR-068).
+// drawEntries shows the selected profile's applications in the wide column
+// beside the list (FR-068). They had a dialog of their own while the settings
+// shared this screen and crowded them; the settings have a dialog now, so what
+// a profile arranges is on screen whenever the profile is.
 //
-// They used to fill a column beside the profile list, where they crowded out
-// the settings and left a path cut off after a few words. What a profile holds
-// is read now and then rather than watched, so it is asked for rather than
-// always on screen. It is reached from the bar rather than from the footer,
-// because it belongs to the window rather than to the panel that happens to be
-// up.
-async function openEntries() {
-    if (!selected) return
+// A reading that arrives after the user has moved to another profile is
+// dropped rather than drawn over the one they are looking at.
+async function drawEntries() {
+    const rows = $('entries-rows')
+    const asked = selected
+    $('entries-title').textContent = asked || 'Applications'
+    if (!asked) {
+        $('entries-count').textContent = ''
+        rows.innerHTML = ''
+        rows.appendChild(emptyLine('Press a profile to see what it arranges.'))
+        return
+    }
     let entries
     try {
-        entries = await backend().Entries(selected)
+        entries = await backend().Entries(asked)
     } catch (e) {
         showError(String(e))
         return
     }
-    $('entries-title').textContent = selected
-    $('entries-summary').textContent = entries.length === 1
+    if (asked !== selected) return
+    $('entries-count').textContent = entries.length === 1
         ? '1 application' : entries.length + ' applications'
-    entryRows($('entries-rows'), entries)
-    dialog('entries', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
+    entryRows(rows, entries)
 }
 
 // describe says in words what one entry asks for.
@@ -205,12 +206,9 @@ function describe(entry) {
     return entry.kind + ', ' + running + ', ' + where
 }
 
-// removeEntry takes one application out of the profile, from either place the
-// rows are shown. Where the dialog is the one they were removed from, it is
-// drawn again over the list it has just changed, rather than being left showing
-// a row that is no longer there.
+// removeEntry takes one application out of the profile, then draws the list and
+// the column again, since the count beside the profile has changed as well.
 async function removeEntry(application) {
-    const fromTheDialog = dialogIsOpen() && $('sheet-entries').classList.contains('active')
     try {
         await backend().RemoveEntry(selected, application)
     } catch (e) {
@@ -218,7 +216,6 @@ async function removeEntry(application) {
         return
     }
     await openProfiles()
-    if (fromTheDialog) await openEntries()
 }
 
 /* ------------------------------------------------------------------ rename */

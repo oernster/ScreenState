@@ -1,11 +1,20 @@
 /*
- * The settings panel: starting when you sign in, what a restore does with the
- * windows a profile does not name and asking whether a newer version exists.
+ * The settings dialog: starting when you sign in, what a restore does with the
+ * windows a profile does not name, how long a restore waits for windows that
+ * have not appeared and asking whether a newer version exists.
  */
 
-// drawSettings puts the sign-in setting in the same window as everything else
-// (EIR-002, FR-053). It applies immediately: there is no go-ahead button on
-// this panel for it to wait on.
+// openSettings puts the settings up over the window (EIR-002, FR-053). Each
+// applies immediately: there is no go-ahead button in the dialog for it to wait
+// on, so Close is the only action it carries.
+function openSettings() {
+    drawSettings()
+    dialog('settings', [{label: 'Close', kind: 'primary', onClick: closeDialog}])
+}
+
+$('settings').onclick = openSettings
+
+// drawSettings fills the dialog from the last reading the program gave.
 function drawSettings() {
     const note = $('settings-note')
     const trouble = [
@@ -14,6 +23,9 @@ function drawSettings() {
         state.closeUnnamedError
             ? 'The setting for windows a profile does not name could not be read: '
                 + state.closeUnnamedError
+            : '',
+        state.ceilingError
+            ? 'How long a restore waits could not be read: ' + state.ceilingError
             : '',
     ].filter((line) => line !== '')
     note.textContent = trouble.join('  ')
@@ -53,6 +65,44 @@ function drawSettings() {
             onChange: (on) => void setUpdateCheck(on),
         },
     ])
+    drawCeiling()
+}
+
+// drawCeiling sets the field for how long a restore waits (NFR-PERF-003). The
+// bounds arrive from the program rather than being written here, so the field
+// cannot offer a value the program would change.
+function drawCeiling() {
+    const field = $('ceiling-minutes')
+    field.min = String(state.ceilingMinimum)
+    field.max = String(state.ceilingMaximum)
+    field.value = state.ceilingError ? '' : String(state.ceilingMinutes)
+    field.disabled = !!state.ceilingError
+    $('ceiling-hint').textContent = 'A restore places each window as it appears. One that'
+        + ' never appears is waited for until whichever comes first: your first key press'
+        + ' or click; this long after the restore began. Anything from '
+        + state.ceilingMinimum + ' to ' + state.ceilingMaximum + ' minutes.'
+}
+
+// A change is kept when the field is left or Enter is pressed, not at every
+// key: a half-typed "2" on the way to "25" is not a setting.
+$('ceiling-minutes').onchange = () => void setCeiling($('ceiling-minutes').value)
+
+// setCeiling records the minutes typed. What comes back is what was kept, which
+// differs only where the bounds held it in, so the field shows the truth rather
+// than what was typed.
+async function setCeiling(typed) {
+    const chosen = Math.round(Number(typed))
+    if (typed === '' || !Number.isFinite(chosen)) {
+        drawCeiling()
+        return
+    }
+    try {
+        state.ceilingMinutes = await backend().SetCeilingMinutes(chosen)
+    } catch (e) {
+        showError(String(e))
+        return
+    }
+    drawCeiling()
 }
 
 async function setCloseUnnamed(closing) {

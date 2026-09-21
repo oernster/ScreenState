@@ -53,13 +53,6 @@ function openDonatePage() {
 
 $('donate').onclick = openDonatePage
 
-// The profile button opens the selected profile's applications in a dialog,
-// where a path has room to be read in full (FR-068). It is inert until a
-// profile is selected, which the theme paints as the permanent red ring rather
-// than as a green one under the pointer: a button that can do nothing says so
-// instead of doing nothing when it is pressed.
-$('entries').onclick = () => void openEntries()
-
 /* ------------------------------------------------------------------- start */
 
 // A failure while a panel is being drawn happens after the call it was waiting
