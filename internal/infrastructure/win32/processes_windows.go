@@ -94,27 +94,51 @@ func NewLauncher(log application.Log) *Launcher { return &Launcher{log: log} }
 // That was measured against NordVPN on 2026-09-20 and is the only mechanism
 // that worked; acting on the hidden window directly produced an empty frame.
 //
-// A packaged application goes to the activation manager first (FR-067) and to
-// the shell only where that fails, so the worst case is the route used before.
-// Everything else goes to the shell rather than a direct process start, since
-// it applies the working directory and the elevation rules the user's own
-// double-click would.
+// An application is started from its path through the shell, which applies the
+// working directory and the elevation rules the user's own double-click would.
+// A packaged application whose path an update has moved keeps a model id beside
+// it and is started through the activation manager instead (FR-067, FR-071);
+// the log says which of the two started it, since only the log can say
+// afterwards why a taskbar button looks as it does. A profile written before
+// FR-071 names such an application by its model id alone and goes straight to
+// the activation manager.
 func (launcher *Launcher) Launch(ctx context.Context, application domain.ApplicationIdentity) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if application.Kind == domain.KindAppUserModelID {
-		process, err := activatePackaged(application.Value)
-		if err == nil {
-			launcher.log.Step(fmt.Sprintf(
-				"%s was started by the activation manager, as process %d", application, process))
-			return nil
-		}
-		launcher.log.Step(fmt.Sprintf(
-			"the activation manager did not start %s (%v), so the shell was asked instead",
-			application, err))
+		return launcher.activate(application, application.Value)
 	}
-	return shellOpen(application)
+	err := shellOpen(application)
+	if err == nil {
+		return nil
+	}
+	fallback, packaged := application.PackagedFallback()
+	if !packaged {
+		return err
+	}
+	launcher.log.Step(fmt.Sprintf("%s did not start from its path (%v), so its model id was used",
+		application, err))
+	return launcher.activate(application, fallback.Value)
+}
+
+// activate starts a packaged application through the activation manager; where
+// that fails it goes through the shell, so the worst case is the older route.
+func (launcher *Launcher) activate(application domain.ApplicationIdentity, modelID string) error {
+	process, err := activatePackaged(modelID)
+	if err == nil {
+		launcher.log.Step(fmt.Sprintf(
+			"%s was started by the activation manager, as process %d", application, process))
+		return nil
+	}
+	launcher.log.Step(fmt.Sprintf(
+		"the activation manager did not start %s (%v), so the shell was asked instead",
+		application, err))
+	identity, err := domain.NewApplicationIdentity(domain.KindAppUserModelID, modelID)
+	if err != nil {
+		return fmt.Errorf("starting %s: %w", application, err)
+	}
+	return shellOpen(identity)
 }
 
 // shellOpen starts an application through ShellExecute, which is how every

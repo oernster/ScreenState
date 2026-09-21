@@ -34,12 +34,7 @@ func (pending *pendingEntry) placements() []domain.Placement { return pending.en
 
 // wantsPlacement reports whether the entry says where its windows belong. An
 // entry with none says only that the application should be running (FR-005).
-//
-// A packaged application's entry never does, even where a profile recorded
-// before FR-070 holds placements for it: it is launched and left where it opens.
-func (pending *pendingEntry) wantsPlacement() bool {
-	return len(pending.entry.Placements) > 0 && pending.entry.Application.Placeable()
-}
+func (pending *pendingEntry) wantsPlacement() bool { return len(pending.entry.Placements) > 0 }
 
 // placedWindow is a window already placed, waiting for the check FR-033 makes
 // once it has had time to settle.

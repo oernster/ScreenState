@@ -69,13 +69,15 @@ func updaterFor(imagePath string) (string, bool) {
 	return fmt.Sprintf("%s %s %s", updater, processStartFlag, filepath.Base(imagePath)), true
 }
 
-// identityFor decides how an application is named, by the three rules measured
-// on 2026-09-19 and recorded in appendix E.
+// identityFor decides how an application is named, by the rules in appendix E.
 //
-// A model id wins where there is one: a Store-packaged application installs
-// into a directory carrying its version, so its path moves with every update
-// while the model id does not. An application under a versioned directory is
-// named by the updater beside it. Everything else is its own path.
+// An application is its own path, which is what starts it the way the user's
+// own double-click does; both packaged applications on the reference machine
+// were measured starting from their paths on 2026-09-21. A Store-packaged
+// application installs into a directory carrying its version, so its path moves
+// with every update: its model id, which carries no version, is kept beside the
+// path and starts it again once that has happened (FR-071). An application
+// under a versioned directory is named by the updater beside it.
 //
 // updaterExists is handed in rather than called directly, so the rule can be
 // exercised without an installed copy of Discord.
@@ -85,7 +87,8 @@ func identityFor(
 	updaterExists func(path string) bool,
 ) (domain.ApplicationIdentity, error) {
 	if trimmed := strings.TrimSpace(modelID); trimmed != "" {
-		return domain.NewApplicationIdentity(domain.KindAppUserModelID, trimmed)
+		identity, err := domain.NewApplicationIdentity(domain.KindPath, imagePath)
+		return identity.WithModelID(trimmed), err
 	}
 	if command, versioned := updaterFor(imagePath); versioned {
 		if updater, _, found := strings.Cut(command, " "+processStartFlag+" "); found &&
@@ -117,7 +120,13 @@ func matches(identity domain.ApplicationIdentity, imagePath string) bool {
 	case domain.KindUpdaterCommand:
 		return matchesUpdater(identity.Value, imagePath)
 	case domain.KindPath:
-		return strings.EqualFold(filepath.Clean(identity.Value), filepath.Clean(imagePath))
+		if strings.EqualFold(filepath.Clean(identity.Value), filepath.Clean(imagePath)) {
+			return true
+		}
+		// A packaged application's path carries its version, so an update moves
+		// the running program to a new directory under the same package family
+		// (FR-071).
+		return identity.ModelID != "" && matchesPackage(identity.ModelID, imagePath)
 	}
 	return false
 }

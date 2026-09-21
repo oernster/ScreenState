@@ -51,7 +51,11 @@ func storeUnder(t *testing.T) (*Store, *recordingLog) {
 // kinds and the three show states, so a round trip exercises all of them.
 func deskProfile(t *testing.T) domain.Profile {
 	t.Helper()
-	claude, _ := domain.NewApplicationIdentity(domain.KindAppUserModelID, "Claude_pzs8sxrjxfjjc!Claude")
+	claude, _ := domain.NewApplicationIdentity(domain.KindPath,
+		`C:\Program Files\WindowsApps\Claude_2.2553.1.0_x64__pzs8sxrjxfjjc\app\claude.exe`)
+	// FR-071: the model id kept beside the path has to survive the round trip,
+	// since it is what still starts the application once an update moves it.
+	claude = claude.WithModelID("Claude_pzs8sxrjxfjjc!Claude")
 	discord, _ := domain.NewApplicationIdentity(domain.KindUpdaterCommand,
 		`C:\Discord\Update.exe --processStart Discord.exe`)
 	nordvpn, _ := domain.NewApplicationIdentity(domain.KindPath, `C:\Programs\NordVPN\NordVPN.exe`)
@@ -101,6 +105,12 @@ func TestAProfileComesBackExactlyAsItWentIn(t *testing.T) {
 		got := read.Entries[at]
 		if !got.Application.Equal(entry.Application) || got.Running != entry.Running {
 			t.Fatalf("entry %d read back as %+v", at, got)
+		}
+		// Comparison ignores the model id kept beside a path, so it is checked
+		// on its own: without it a packaged application stops starting the day
+		// an update moves its path (FR-071).
+		if got.Application.ModelID != entry.Application.ModelID {
+			t.Fatalf("entry %d read back with the model id %q", at, got.Application.ModelID)
 		}
 		if len(got.Placements) != len(entry.Placements) {
 			t.Fatalf("entry %d has %d placements", at, len(got.Placements))

@@ -80,6 +80,29 @@ func ParseIdentityKind(text string) (IdentityKind, error) {
 type ApplicationIdentity struct {
 	Kind  IdentityKind
 	Value string
+	// ModelID is the application user model id of a Store-packaged application
+	// held beside its path (FR-071). The path is what starts it, which is what
+	// the user's own double-click does; the model id is what still starts it
+	// once an update has moved that path. It is empty for everything else and
+	// names no application on its own, so it takes no part in comparison.
+	ModelID string
+}
+
+// WithModelID returns a copy of the identity carrying a packaged application's
+// model id beside its path (FR-071).
+func (identity ApplicationIdentity) WithModelID(modelID string) ApplicationIdentity {
+	identity.ModelID = strings.TrimSpace(modelID)
+	return identity
+}
+
+// PackagedFallback returns the identity that still starts this application once
+// an update has moved its path, plus whether there is one.
+func (identity ApplicationIdentity) PackagedFallback() (ApplicationIdentity, bool) {
+	if identity.ModelID == "" {
+		return ApplicationIdentity{}, false
+	}
+	fallback, err := NewApplicationIdentity(KindAppUserModelID, identity.ModelID)
+	return fallback, err == nil
 }
 
 // NewApplicationIdentity returns a validated application identity.
@@ -130,15 +153,6 @@ func (identity ApplicationIdentity) SameProgram(other ApplicationIdentity) bool 
 	}
 	mine := fileName(identity.Value)
 	return mine != "" && strings.EqualFold(mine, fileName(other.Value))
-}
-
-// Placeable reports whether this product moves the application's windows. A
-// Store-packaged application, named by its model id, is launched and left
-// where it opens (FR-070): the owner's decision on 2026-09-21, after its taskbar
-// buttons were measured drawn grey on every display but the one its window was
-// placed on.
-func (identity ApplicationIdentity) Placeable() bool {
-	return identity.Kind != KindAppUserModelID
 }
 
 // fileName is the last segment of a path. Both separators are cut on, because

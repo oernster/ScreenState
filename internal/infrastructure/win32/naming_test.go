@@ -52,20 +52,21 @@ func TestAnUnusableInterfaceNameIsRefused(t *testing.T) {
 	}
 }
 
-// Appendix E, the three identity rules, each against the application it was
-// measured on.
+// Appendix E, the identity rules, each against the application it was measured
+// on. A packaged application is its path, with its model id kept beside it.
 func TestAnApplicationIsNamedByWhatSurvivesItsUpdates(t *testing.T) {
 	t.Parallel()
 	for name, testCase := range map[string]struct {
-		image  string
-		model  string
-		exists func(string) bool
-		kind   domain.IdentityKind
-		value  string
+		image   string
+		model   string
+		exists  func(string) bool
+		kind    domain.IdentityKind
+		value   string
+		modelID string
 	}{
-		"a Store package is named by its model id": {
+		"a Store package is named by its path, keeping its model id": {
 			image: claudeImage, model: claudeModelID, exists: never,
-			kind: domain.KindAppUserModelID, value: claudeModelID,
+			kind: domain.KindPath, value: claudeImage, modelID: claudeModelID,
 		},
 		"a versioned directory is named by its updater": {
 			image: discordImage, model: "", exists: always,
@@ -79,9 +80,9 @@ func TestAnApplicationIsNamedByWhatSurvivesItsUpdates(t *testing.T) {
 			image: discordImage, model: "", exists: never,
 			kind: domain.KindPath, value: discordImage,
 		},
-		"a model id wins over a versioned directory": {
+		"a package under a versioned directory keeps its model id too": {
 			image: discordImage, model: claudeModelID, exists: always,
-			kind: domain.KindAppUserModelID, value: claudeModelID,
+			kind: domain.KindPath, value: discordImage, modelID: claudeModelID,
 		},
 	} {
 		identity, err := identityFor(testCase.image, testCase.model, testCase.exists)
@@ -91,6 +92,30 @@ func TestAnApplicationIsNamedByWhatSurvivesItsUpdates(t *testing.T) {
 		if identity.Kind != testCase.kind || identity.Value != testCase.value {
 			t.Fatalf("%s: read as %s", name, identity)
 		}
+		if identity.ModelID != testCase.modelID {
+			t.Fatalf("%s: kept the model id %q", name, identity.ModelID)
+		}
+	}
+}
+
+// FR-071: the model id kept beside a packaged application's path is what starts
+// it once an update has moved that path.
+func TestAPackagedApplicationKeepsAWayBackAfterAnUpdate(t *testing.T) {
+	t.Parallel()
+	identity, err := identityFor(claudeImage, claudeModelID, never)
+	if err != nil {
+		t.Fatalf("naming it: %v", err)
+	}
+	fallback, found := identity.PackagedFallback()
+	if !found {
+		t.Fatal("there is no way to start it once its path has moved")
+	}
+	if fallback.Kind != domain.KindAppUserModelID || fallback.Value != claudeModelID {
+		t.Fatalf("the fallback reads as %s", fallback)
+	}
+	program, _, err := launchFor(fallback)
+	if err != nil || program != appsFolder+claudeModelID {
+		t.Fatalf("the fallback does not start it: %q, %v", program, err)
 	}
 }
 
@@ -99,6 +124,9 @@ func TestAnApplicationIsNamedByWhatSurvivesItsUpdates(t *testing.T) {
 func TestARunningProgramIsRecognised(t *testing.T) {
 	t.Parallel()
 	claude, _ := domain.NewApplicationIdentity(domain.KindAppUserModelID, claudeModelID)
+	packaged, _ := domain.NewApplicationIdentity(domain.KindPath, claudeImage)
+	packaged = packaged.WithModelID(claudeModelID)
+	updated := `C:\Program Files\WindowsApps\Claude_2.9999.0.0_x64__pzs8sxrjxfjjc\app\claude.exe`
 	discord, _ := domain.NewApplicationIdentity(domain.KindUpdaterCommand, discordUpdate)
 	stellody, _ := domain.NewApplicationIdentity(domain.KindPath, stellodyImage)
 
@@ -113,6 +141,9 @@ func TestARunningProgramIsRecognised(t *testing.T) {
 		"the updated application under its updater":                  {discord, discordImage, true},
 		"a newer version of it":                                      {discord, `C:\Users\Oliver\AppData\Local\Discord\app-1.0.9300\Discord.exe`, true},
 		"the same program name somewhere else entirely":              {discord, `C:\Elsewhere\Discord.exe`, false},
+		"the packaged application at the path recorded":              {packaged, claudeImage, true},
+		"the packaged application after an update moved it":          {packaged, updated, true},
+		"a different package at a path never recorded":               {packaged, `C:\Program Files\WindowsApps\Spotify_1.2_x64__zpdnekdrzrea0\Spotify.exe`, false},
 		"the plain path, spelled differently":                        {stellody, `C:\Programs\Stellody\.\Stellody.exe`, true},
 		"a different program":                                        {stellody, `C:\Programs\Stellody\Updater.exe`, false},
 	} {

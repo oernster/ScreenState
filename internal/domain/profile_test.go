@@ -312,15 +312,24 @@ func TestAProfileFindsTheEntryForAnApplication(t *testing.T) {
 	}
 }
 
-// FR-070: a packaged application is launched and left where it opens; every
-// other kind of application has its windows placed.
-func TestOnlyAPackagedApplicationIsLeftWhereItOpens(t *testing.T) {
+// FR-071: a packaged application keeps its model id beside its path, which is
+// what still names it once an update has moved the path. Nothing else carries
+// one; the model id takes no part in comparison.
+func TestAPackagedApplicationKeepsItsModelIDBesideItsPath(t *testing.T) {
 	t.Parallel()
-	for kind, placeable := range map[IdentityKind]bool{
-		KindPath: true, KindUpdaterCommand: true, KindAppUserModelID: false,
-	} {
-		if got := (ApplicationIdentity{Kind: kind, Value: "x"}).Placeable(); got != placeable {
-			t.Errorf("%s: placeable %v, want %v", kind, got, placeable)
-		}
+	path, err := NewApplicationIdentity(KindPath, `C:\WindowsApps\Claude_2.0_x64__abc\app\claude.exe`)
+	if err != nil {
+		t.Fatalf("naming it: %v", err)
+	}
+	if _, packaged := path.PackagedFallback(); packaged {
+		t.Fatal("an ordinary path answered a packaged fallback")
+	}
+	kept := path.WithModelID("  Claude_abc!Claude  ")
+	fallback, packaged := kept.PackagedFallback()
+	if !packaged || fallback.Kind != KindAppUserModelID || fallback.Value != "Claude_abc!Claude" {
+		t.Fatalf("the fallback reads as %s, packaged %v", fallback, packaged)
+	}
+	if !kept.Equal(path) {
+		t.Error("the kept model id changed which application the identity names")
 	}
 }

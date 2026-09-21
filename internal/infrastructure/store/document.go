@@ -42,6 +42,9 @@ type entryDocument struct {
 type identityDocument struct {
 	Kind  string `json:"kind"`
 	Value string `json:"value"`
+	// ModelID is written only for a packaged application, whose path carries a
+	// version (FR-071). A file written before it is read back without one.
+	ModelID string `json:"modelId,omitempty"`
 }
 
 // placementDocument is where one window belongs.
@@ -81,8 +84,9 @@ func toDocument(profile domain.Profile) document {
 		}
 		written.Entries = append(written.Entries, entryDocument{
 			Application: identityDocument{
-				Kind:  entry.Application.Kind.String(),
-				Value: entry.Application.Value,
+				Kind:    entry.Application.Kind.String(),
+				Value:   entry.Application.Value,
+				ModelID: entry.Application.ModelID,
 			},
 			Running:    entry.Running,
 			Placements: placements,
@@ -120,6 +124,7 @@ func (stored entryDocument) toEntry() (domain.Entry, error) {
 	if err != nil {
 		return domain.Entry{}, err
 	}
+	application = application.WithModelID(stored.Application.ModelID)
 	entry := domain.Entry{Application: application, Running: stored.Running}
 	for _, stored := range stored.Placements {
 		placement, err := stored.toPlacement()

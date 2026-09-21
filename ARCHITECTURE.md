@@ -149,13 +149,18 @@ Measured on 2026-09-19 and recorded in appendix E of `REQUIREMENTS.md`. The rule
 `internal/infrastructure/win32/naming.go`, which carries no Win32 call at all and is therefore settled
 by tests on any machine.
 
-**An application** is named by whichever of three things survives its updates:
+**An application** is named by its path, which is what starts it the way the user's own double-click
+does, with two rules around that (FR-071, measured 2026-09-21):
 
 | Installed as | Named by | Worked example |
 |---|---|---|
-| A Store package | its application user model id, which carries no version | Claude |
+| A Store package | its path, keeping its model id beside it: the path carries the version, the model id does not | Claude |
 | A versioned directory beside an updater | the updater command, which does not move | Discord |
 | Anything else | its own path | Stellody |
+
+The kept model id does two jobs once an update has moved the path: the package family inside it
+matches the application's new directory, so a running copy is still recognised; the activation
+manager still starts it. Neither needs the profile recaptured.
 
 A window class is not an identity. NordVPN's main window class carried a GUID that changed on every
 reboot; the process image path did not.
@@ -200,15 +205,12 @@ Windows itself decides where to maximise it.
    allowing one copy would otherwise hold the restore until the ceiling. An application this restore
    has just started is never run again inside that delay: on 2026-09-21 every launched application
    was started twice in the same second, which is a second copy FR-025 forbids.
-4. A packaged application, named by its model id, is launched and never placed (FR-070): capture
-   records it with no placement and a restore ignores any placement an older profile holds for it.
-   `ApplicationIdentity.Placeable` is the one home for that rule, so the two cannot disagree.
-5. Once placed, a window is read again after the settle-check delay and put back **once** if the
+4. Once placed, a window is read again after the settle-check delay and put back **once** if the
    application has moved it (FR-033). After that one further attempt the agent gives up and says so,
    rather than fighting an application for its own window (FR-034).
-6. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+5. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
    against the displays as they then stand and the change is recorded (FR-057).
-7. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
+6. A restore requested while one is running **replaces** it (FR-061). The running restore stops before
    its next action, every window already placed is left exactly where it is; both reports say what
    happened. Nothing is put back.
 
@@ -511,8 +513,9 @@ properly. Four answers were measured on the reference machine and none cured it:
 to repaint, telling the shell its icons may have changed, a restore mid-session long after the shell
 was up and starting them through the activation manager. On the boot after the last, Claude's button
 carried its icon on the primary display's taskbar and on no other; Terminal's was grey on all of them.
-The owner's answer is FR-070: those two are launched and left where they open. Whether that cures the
-grey buttons is unproven until a boot says so.
+The owner's answer is FR-071: both were measured starting from their own paths on 2026-09-21, so they
+are named and started that way rather than by model id, which is what a double-click does. Whether
+that cures the grey buttons is unproven until a boot says so.
 
 **Unverified against a real desktop.** Moving a window and starting an application are implemented and
 unproven: no test calls either, because both would disturb the desktop of whoever ran the suite. They

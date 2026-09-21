@@ -62,29 +62,6 @@ func TestACaptureReadsOneEntryPerApplication(t *testing.T) {
 	}
 }
 
-// FR-070: a packaged application's visible window is recorded as the
-// application running, with no placement, since its windows are never moved.
-func TestAPackagedApplicationIsRecordedWithNoPlacement(t *testing.T) {
-	t.Parallel()
-	desktop := &fakeDesktop{
-		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, packaged, at(0)), aWindow(2, packaged, at(1))},
-	}
-	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
-
-	review, err := service.Review(context.Background(), "")
-	if err != nil {
-		t.Fatalf("the capture failed: %v", err)
-	}
-	if len(review.Entries) != 1 {
-		t.Fatalf("captured %d entries: %+v", len(review.Entries), review.Entries)
-	}
-	entry := review.Entries[0]
-	if !entry.Application.Equal(packaged) || !entry.Running || len(entry.Placements) != 0 {
-		t.Fatalf("not recorded as running with no placement: %+v", entry)
-	}
-}
-
 // FR-014: a window whose state could not be read is omitted and named.
 func TestAnUnreadableWindowIsNamedRatherThanDropped(t *testing.T) {
 	t.Parallel()

@@ -130,7 +130,7 @@ on an assumption without naming it.
 | ID | Assumption | Owner | Confirm by |
 |---|---|---|---|
 | A-1 | CONFIRMED 2026-09-19. The monitor id serves, for example `DISPLAY#HSJ1340#5&14514d51&0&UID4356`. Every one was unchanged after a reboot and still sat on the same device name. The UID is what distinguishes displays of the same model: the left and the right screen both report model `HSJ1340` and differ only by `UID4356` against `UID4354`. See appendix E. | Oliver | closed 2026-09-19 |
-| A-2 | CONFIRMED 2026-09-19, as three rules rather than one value. A Store-packaged application is identified by its application user model id, which carries no version. An application installed under a versioned directory is identified by the updater command that does not move. Every other application is identified by its path. See appendix E. | Oliver | closed 2026-09-19 |
+| A-2 | CONFIRMED 2026-09-19, as rules rather than one value, then REVISED 2026-09-21. An application is identified by its path, which is what starts it as the user's own double-click does; both packaged applications were measured starting from their paths. A Store-packaged application keeps its model id beside that path, since the path carries a version and moves with every update. An application installed under a versioned directory is identified by the updater command that does not move. See appendix E and FR-071. | Oliver | closed 2026-09-21 |
 | A-3 | FALSE AS STATED, measured 2026-09-20. It holds for NordVPN and GameGlass, whose processes were alive 43 minutes after their windows were closed. It does not hold for Postal Gambit, which is an ordinary windowed application: closing its window ends it. The agent therefore cannot treat closing as harmless without knowing which kind it is dealing with. FR-064 answers that by not deciding: closing is a setting the user turns on, off until they do. | Oliver | closed 2026-09-20 |
 | A-4 | CONFIRMED 2026-09-20, in one form only. An application that starts with no visible window can be asked to show one by running it again; it cannot be made to show one by acting on the window from outside. Measured against NordVPN: showing the hidden window directly produced an empty frame the application was not drawing, while a second launch made the running instance show and draw that same window, after which the second process exited by itself. | Oliver | closed 2026-09-20 |
 | A-5 | CONFIRMED 2026-09-19. A window was moved to each of four displays in turn and maximised there, from a process holding no administrator rights, including from a 96 dpi display to a 240 dpi one. Every move landed where it was told. The sequence that works: restore the window, set its rectangle to the target display's work area, then maximise. See appendix E. | Oliver | closed 2026-09-19 |
@@ -447,24 +447,27 @@ another window each time it is run and that application not running, when a
 restore runs, then it is started, run once more after its first window appears
 and both windows are placed.
 
-**FR-070 A packaged application is launched and left where it opens**
+**FR-071 How an application is named**
 Priority: Must
-Requirement: The ScreenState agent shall not move the windows of an application
-named by its model id. A capture shall record such an application as running
-with no placement; a restore shall launch it where it is not running and shall
-count it satisfied once it is running, whatever placements a profile recorded
-for it before this requirement.
-Rationale: the owner's decision, 2026-09-21. The taskbar buttons of the two
-packaged applications on the reference machine, Claude and Windows Terminal,
-were drawn grey after a sign-in until the taskbar was clicked; four answers were
-measured and none cured it. On the last boot Claude's button carried its icon on
-the taskbar of the display its window had been placed on and on no other. What
-is inside an application is never restored by this product, so for these two
-nothing is lost by launching them and leaving them where they open. Whether that
-also cures the grey buttons is not yet known.
-Acceptance: Given a profile holding Claude with a placement and Claude not
-running, when a restore runs, then Claude is launched once, none of its windows
-is moved and its entry is satisfied.
+Requirement: The ScreenState agent shall name an application by its executable
+path, except where the application is installed under a versioned directory
+beside an updater that does not move, which shall name it instead. Where the
+application is Store-packaged, the agent shall keep its application user model
+id beside the path and shall use that model id, rather than the path, both to
+recognise the running application and to start it, once an update has moved the
+path.
+Rationale: measured 2026-09-21. Both packaged applications on the reference
+machine, Claude and Windows Terminal, start from their own paths, which is what
+the user's own double-click does. A packaged application installs under a
+directory carrying its version, so the path moves with every update; the model
+id carries no version and still names it afterwards, which is why it is kept
+rather than discarded. The package family inside the model id also matches the
+new directory, so a running application is recognised across an update without
+the profile being recaptured.
+Acceptance: Given Claude installed at a path carrying its version, when a
+capture records it, then the entry holds that path and its model id; when an
+update moves the path, then the running application is still recognised and a
+restore still starts it.
 
 **FR-029 Never terminate**
 Priority: Must
@@ -1049,7 +1052,7 @@ that settles it. The first five form the spike.
 | ID | Question | Owner | Confirm by |
 |---|---|---|---|
 | OQ-1 | CLOSED. The monitor id, which survived a reboot unchanged and distinguishes same-model displays by their UID. Neither the device name nor the number Windows Settings shows can identify a display: Settings 4 is device DISPLAY3. See appendix E. | Oliver | closed 2026-09-20 |
-| OQ-2 | CLOSED. Three rules: application user model id for a Store-packaged application, the updater command for one installed under a versioned directory, the path for everything else. A window class cannot be used, because it carries a GUID that changes every session. See appendix E. | Oliver | closed 2026-09-20 |
+| OQ-2 | CLOSED, then revised 2026-09-21. The path names an application, with a Store-packaged application keeping its model id beside the path for the day an update moves it; an application under a versioned directory is named by the updater command. A window class cannot be used, because it carries a GUID that changes every session. See appendix E and FR-071. | Oliver | closed 2026-09-21 |
 | OQ-3 | CLOSED. Yes, from a process without administrator rights, across a 96 dpi to 240 dpi boundary. Restore, set the rectangle to the target work area, then maximise. See appendix E. | Oliver | closed 2026-09-20 |
 | OQ-4 | CLOSED. Not uniformly. NordVPN and GameGlass survive their windows closing; Postal Gambit does not. See A-3. See appendix E. | Oliver | closed 2026-09-20 |
 | OQ-5 | CLOSED, dissolved rather than answered. It existed to supply two things: the quiet period, which FR-020 no longer has, plus the ceiling, which is a policy choice about how long to keep trying rather than a fact about this machine. Settling is now defined entirely by whether the profile's own entries are satisfied, so no timing needs measuring. | Oliver | closed 2026-09-20 |
@@ -1125,9 +1128,19 @@ derived from the desktop layout, never by a number Windows reports.
 
 | Application | Installed as | Identity that survives its updates |
 |---|---|---|
-| Claude | `WindowsApps\Claude_2.2553.1.0_x64__pzs8sxrjxfjjc\app\claude.exe` | `Claude_pzs8sxrjxfjjc!Claude`, an application user model id carrying no version |
+| Claude | `WindowsApps\Claude_2.2553.1.0_x64__pzs8sxrjxfjjc\app\claude.exe` | the path, with `Claude_pzs8sxrjxfjjc!Claude` kept beside it: the path carries the version, the model id does not |
 | Discord | `Discord\app-1.0.9258\Discord.exe` | `Discord\Update.exe --processStart Discord.exe`, which does not move |
 | Stellody | `Programs\Stellody\Stellody.exe` | the path, which carries no version |
+
+### Starting a packaged application from its path, 2026-09-21
+
+Both packaged applications on the reference machine start from a real path.
+Windows Terminal has a version-free one of its own,
+`AppData\Local\Microsoft\WindowsApps\wt.exe`. Claude has no such alias: only
+`claude-ssh-askpass.exe` and `claude-ssh-proxy.exe`, which are helpers. Its only
+path is the versioned one under `Program Files\WindowsApps`, which starts it
+correctly and moves with every update. That is what FR-071 keeps the model id
+for.
 
 A window class is not an identity. NordVPN's main window class was
 `HwndWrapper[NordVPNApp;Hosted Main;3bcafb52-...]` before a reboot and

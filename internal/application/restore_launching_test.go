@@ -256,38 +256,3 @@ func TestAnApplicationThatRefusesToBeAskedIsReported(t *testing.T) {
 		t.Fatalf("the refusal was not reported: %+v", entry)
 	}
 }
-
-// FR-070: a packaged application is launched and left where it opens, even
-// where a profile recorded before that rule holds placements for it. It is
-// satisfied once it is running and none of its windows is moved.
-func TestAPackagedApplicationIsLaunchedAndNeverPlaced(t *testing.T) {
-	t.Parallel()
-	desktop := &fakeDesktop{displays: []Display{primaryDisplay}}
-	processes := newFakeProcesses()
-	launcher := &fakeLauncher{}
-	launcher.onLaunch = func(domain.ApplicationIdentity) {
-		processes.start(packaged)
-		desktop.addWindow(aWindow(1, packaged, at(0)))
-	}
-	second := aPlacement(primaryID, domain.Rect{X: 100, Y: 100, Width: 400, Height: 300})
-	profile, _ := domain.NewProfile("Desk", domain.Entry{
-		Application: packaged, Running: true,
-		Placements: []domain.Placement{onPrimary, second},
-	})
-	service := restoreUnder(desktop, processes, launcher,
-		newFakeStore(), newFakeClock(), &fakeLog{})
-
-	report, err := service.Restore(context.Background(), profile)
-	if err != nil {
-		t.Fatalf("the restore failed: %v", err)
-	}
-	if launcher.launchCount(packaged) != 1 {
-		t.Fatalf("it was run %d times rather than once", launcher.launchCount(packaged))
-	}
-	if !reportOf(t, report, packaged).Satisfied {
-		t.Fatalf("it was not satisfied by running: %+v", reportOf(t, report, packaged))
-	}
-	if placed := desktop.placements(); len(placed) != 0 {
-		t.Fatalf("its windows were moved: %+v", placed)
-	}
-}
