@@ -27,8 +27,8 @@ import (
 // press or mouse click anywhere, which raw input delivers to a window that does
 // not hold the keyboard.
 
-// splashClass names the splash windows' class. It is never shown to anybody.
-const splashClass = product.Name + "Splash"
+// splashClass names the splash windows' class, from its one home.
+const splashClass = product.SplashClass
 
 // wmSplashChanged asks every splash window to draw what the splash now says.
 // WM_APP plus three, clear of the tray's own two.

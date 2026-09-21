@@ -301,8 +301,12 @@ func onWindowEvent(_, _, window, object, child, _, _ uintptr) uintptr {
 // input, it never takes it.
 func onInput(code, message, detail uintptr) uintptr {
 	if int32(code) >= 0 {
-		switch message {
-		case wmKeyDown, wmSysKeyDown, wmLButtonDown, wmRButtonDown, wmMButtonDown, wmXButtonDown:
+		key := message == wmKeyDown || message == wmSysKeyDown
+		button := message == wmLButtonDown || message == wmRButtonDown ||
+			message == wmMButtonDown || message == wmXButtonDown
+		// The window under the pointer is read only for a press, never for the
+		// movement that makes up almost everything this hook hears.
+		if (key || button) && takesOver(key, button, pressedOn(button, detail)) {
 			eachWatch(func(watch *desktopWatch) {
 				watch.touchOnce.Do(func() { close(watch.touched) })
 			})

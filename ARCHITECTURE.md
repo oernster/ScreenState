@@ -487,6 +487,11 @@ them all; once the restore has ended, so does the user's next key press or mouse
 which raw input with the sink flag delivers to a window that does not hold the keyboard while the
 press still reaches its owner.
 
+A click on a splash is not the user taking over (FR-079), so it closes the splash and the restore
+carries on as FR-078 says. The restore's own mouse hook hears every click; `takesOver` in
+`win32/takeover.go` leaves out a press whose top-level window under the pointer has the splash's
+class, which both packages read from `product.SplashClass`. A key press always counts.
+
 Its colours come from the embedded `assets/theme.css`, the palette's one home, rather than being
 written again in Go; its logo is reduced from the embedded master artwork to each display's size by
 an area average, never enlarged. `readLook` in `splash.go` reads the palette and the artwork once at
@@ -704,10 +709,10 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 
 Found by reading the source against every requirement during the documentation pass for the first
 release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Five more were on this list and are now built: cancelling a restore (FR-049), matching a
+desktop. Six more were on this list and are now built: cancelling a restore (FR-049), matching a
 packaged application's window after an update (FR-071), marking the tray icon after an incomplete
-restore (FR-045), capturing an application with only a hidden window (FR-005) and counting the
-rebuilt buttons (FR-075). Each item left is
+restore (FR-045), capturing an application with only a hidden window (FR-005), counting the
+rebuilt buttons (FR-075) and a click on the splash (FR-078). Each item left is
 a defect or a requirement to amend; which is the owner's decision, so the specification still states
 what was asked for.
 
@@ -721,9 +726,6 @@ what was asked for.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.
 - **Module size (NFR-MAINT-003).** The structural test measures Go files only; `manager.css` is over
   400 lines.
-- **A click on the splash (FR-078, FR-079).** The click is heard by the same mouse hook as any other,
-  so it counts as the user taking over: the entries still awaited are given up and the flash wait
-  is skipped, although FR-078 says the restore carries on.
 - **Placing a maximised window (FR-074).** The placing code says `SetWindowPlacement` was measured
   not to activate, while the rebuild's comment records it activating PigeonPost, Stellody and
   Claude. A shell trace of a maximising placement would settle which is right.
