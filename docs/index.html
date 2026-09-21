@@ -15,14 +15,13 @@
     <meta property="og:url" content="https://oernster.github.io/ScreenState/">
     <link rel="stylesheet" href="styles.css">
     <script>
-        // Before first paint, so the page never flashes the wrong ground. A
-        // choice made with the toggle wins over the system's; storage can be
-        // refused, in which case the system decides.
+        // Before first paint, so the page never flashes the wrong ground. Dark
+        // is the default; a choice made with the toggle wins. Storage can be
+        // refused, in which case the page stays dark.
         (() => {
             let chosen = null;
             try { chosen = localStorage.getItem('screenstate-theme'); } catch (_) {}
-            const dark = chosen ? chosen === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
-            document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+            document.documentElement.dataset.theme = chosen === 'light' ? 'light' : 'dark';
         })();
     </script>
     <script type="application/ld+json">

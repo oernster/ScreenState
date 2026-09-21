@@ -1,32 +1,10 @@
 /* ScreenState site. The palette is the product's own, copied from
    assets/theme.css: sampled from the artwork, every pair measured to clear 4.5
-   to 1 on its own ground. Light and dark as the manager has them; the system
-   chooses until the toggle does. The ring model is the product's too: no ring at
-   rest, a green one on hover and focus. */
+   to 1 on its own ground. Light and dark as the manager has them; dark is the
+   default and the toggle can choose light. The ring model is the product's too:
+   no ring at rest, a green one on hover and focus. */
 
 :root {
-    color-scheme: light;
-    --surface: #f4f6f9;
-    --panel: #ffffff;
-    --raised: #e7ebf1;
-    --border: #d2d8e1;
-    --text: #171a1f;
-    --muted: #5d6470;
-    --accent: #0059a8;
-    --secondary: #4338ca;
-    --secondary-soft: #e2e2fb;
-    --ring: #047857;
-    --glow: rgba(0, 89, 168, 0.10);
-    --on-accent: #ffffff;
-
-    --radius: 14px;
-    --gutter: 16px;
-    --max: 1040px;
-    --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-    --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
-}
-
-:root[data-theme="dark"] {
     color-scheme: dark;
     --surface: #0b0e14;
     --panel: #141820;
@@ -40,6 +18,28 @@
     --ring: #34d399;
     --glow: rgba(61, 155, 255, 0.12);
     --on-accent: #0b0e14;
+
+    --radius: 14px;
+    --gutter: 16px;
+    --max: 1040px;
+    --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+:root[data-theme="light"] {
+    color-scheme: light;
+    --surface: #f4f6f9;
+    --panel: #ffffff;
+    --raised: #e7ebf1;
+    --border: #d2d8e1;
+    --text: #171a1f;
+    --muted: #5d6470;
+    --accent: #0059a8;
+    --secondary: #4338ca;
+    --secondary-soft: #e2e2fb;
+    --ring: #047857;
+    --glow: rgba(0, 89, 168, 0.10);
+    --on-accent: #ffffff;
 }
 
 * { box-sizing: border-box; }
