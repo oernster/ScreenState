@@ -19,6 +19,11 @@
  * `%s` stands in and the panel fills it from the state.
  */
 
+// freeWords is what FR-060 requires the manager to state. It is said in the
+// donation button's tooltip and again in this guide's entry for it, from here,
+// so the two cannot come to promise different things.
+const freeWords = '%s is free and stays free: no paid tier, no licence key, no feature held back.'
+
 const guideSections = [
     {
         heading: 'The bar along the top',
@@ -62,7 +67,7 @@ const guideSections = [
         entries: [
             {
                 art: 'donate.png', name: 'Donate',
-                text: '%s is free and stays free: no paid tier, no licence key, no feature held back. If it saves you time and you would like to put something in, this opens %u in your browser.',
+                text: freeWords + ' If it saves you time and you would like to put something in, this opens %u in your browser.',
             },
         ],
         rules: [

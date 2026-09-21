@@ -45,8 +45,10 @@ function prefersDark() {
 // openDonatePage opens the donation page in the browser (FR-060). It takes the
 // user straight there rather than through a panel of its own: a button that
 // says what it is does not need a screen asking whether it was meant. What
-// FR-060 requires the manager to STATE, that nothing is held back, is said in
-// the guide's entry for this button, where it is read rather than stepped past.
+// FR-060 requires the manager to STATE, that nothing is held back, opens the
+// button's own tooltip; init fills it in from freeWords. It is not a line
+// under the button because the rail has no height to spare: at the smallest
+// window a line there pushed Quit out of sight.
 function openDonatePage() {
     window.runtime.BrowserOpenURL(state.donateUrl)
 }
@@ -82,6 +84,7 @@ async function init() {
     document.title = state.appName
     $('brand').textContent = state.appName
     $('tagline').textContent = state.tagline + ' (v' + state.version + ')'
+    $('donate').title = named(freeWords) + ' ' + $('donate').title
     applyTheme(state.prefersDark ? 'dark' : 'light')
 
     // The tray says which panel to open on, so the entry a user chose is the
