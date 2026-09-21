@@ -87,13 +87,28 @@ func restoreUnder(
 	log *fakeLog,
 	strangers ...*fakeStrangers,
 ) *RestoreService {
-	policy := Policy{Ceiling: time.Minute, SettleCheck: 10 * time.Second, Poll: time.Second}
 	choice := &fakeStrangers{}
 	if len(strangers) > 0 {
 		choice = strangers[0]
 	}
+	return restoreShowing(&fakeSplash{}, desktop, processes, launcher, store, clock, log, choice)
+}
+
+// restoreShowing is restoreUnder with the splash stated, for the tests that
+// read what the splash was told (FR-078).
+func restoreShowing(
+	splash *fakeSplash,
+	desktop *fakeDesktop,
+	processes *fakeProcesses,
+	launcher *fakeLauncher,
+	store *fakeStore,
+	clock *fakeClock,
+	log *fakeLog,
+	strangers *fakeStrangers,
+) *RestoreService {
+	policy := Policy{Ceiling: time.Minute, SettleCheck: 10 * time.Second, Poll: time.Second}
 	return NewRestoreService(
-		desktop, processes, launcher, store, clock, log, policy, screenst, choice)
+		desktop, processes, launcher, store, clock, log, policy, screenst, strangers, splash)
 }
 
 // reportOf returns the entry report for one application, failing the test where

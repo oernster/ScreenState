@@ -32,6 +32,9 @@ type RestoreService struct {
 	// self is this product's own identity, never put away by a restore: the
 	// window the user pressed Apply in is not one of the strangers.
 	self domain.ApplicationIdentity
+	// splash tells the user the desktop is being arranged and when it is done
+	// (FR-078).
+	splash Splash
 
 	mutex  sync.Mutex
 	active *activeRestore
@@ -81,6 +84,7 @@ func NewRestoreService(
 	policy Policy,
 	self domain.ApplicationIdentity,
 	strangers StrangerPreferences,
+	splash Splash,
 ) *RestoreService {
 	service := &RestoreService{
 		desktop:   desktop,
@@ -92,6 +96,7 @@ func NewRestoreService(
 		policy:    policy,
 		self:      self,
 		strangers: strangers,
+		splash:    splash,
 	}
 	service.progress.Store(&RestoreProgress{})
 	return service
@@ -167,10 +172,12 @@ func (service *RestoreService) restore(
 	service.active = active
 	service.mutex.Unlock()
 
+	service.announcePreparing()
 	err := service.guardedRun(runCtx, profile, report, why)
 
 	cancel()
 	report.Finish(service.clock.Now())
+	service.announceReady(report)
 	// Cleared before the done channel is closed, because a restore replacing
 	// this one waits on that channel and then states its own reading: clearing
 	// afterwards would wipe the newer one.

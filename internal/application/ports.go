@@ -112,6 +112,25 @@ type StrangerPreferences interface {
 	SetCloseStrangers(closing bool) error
 }
 
+// Splash tells the user a restore is arranging the desktop and when it is done
+// (FR-078). It answers nothing: a splash that cannot be shown must not stop a
+// restore, which matters more than the telling of it.
+type Splash interface {
+	// Preparing puts the splash up. Where one is already showing it changes
+	// back to the waiting words.
+	Preparing(message SplashMessage)
+	// Ready changes the splash to say the restore has ended. The splash then
+	// closes at the user's next key press or mouse click.
+	Ready(message SplashMessage)
+}
+
+// SplashMessage is what a splash says: a headline, with a line beneath it
+// where there is anything to add.
+type SplashMessage struct {
+	Headline string
+	Detail   string
+}
+
 // Processes answers whether an application is running, which a window cannot:
 // an application holding every window hidden still counts as running and is
 // recorded as such (FR-005), while launching one that is already running is

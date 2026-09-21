@@ -385,6 +385,27 @@ copied into both page directories by `build.ps1`, because each window embeds its
 is the only way to share them. A structural test fails when a copy has drifted, which is the only
 thing standing between a copy edited in place and two windows that quietly stop matching.
 
+## The splash
+
+**A restore says it is arranging the desktop and when it is done** (FR-078). The restore service
+tells a `Splash` port as a restore begins and again as it ends; the words, including the shortfall
+("1 application did not start"), are settled in `restore_splash.go` and tested there. A restore a
+newer request stood down says nothing more, so "ready" never flashes up mid-restore; it says so
+before closing the channel the newer restore waits on, so the two cannot arrive out of order.
+
+`internal/ui` draws it natively, one window per display on a thread of its own, like the tray: a
+Wails application has one window and the manager is it. Each splash is a topmost tool window that
+never activates, so it cannot take the keyboard (FR-074) and is not a candidate window any capture,
+FR-064 or FR-075 acts on. It closes on events and never on a timer: a click on any splash closes
+them all; once the restore has ended, so does the user's next key press or mouse click anywhere,
+which raw input with the sink flag delivers to a window that does not hold the keyboard while the
+press still reaches its owner.
+
+Its colours are read at start from the embedded `assets/theme.css`, the palette's one home, rather
+than written again in Go; its logo is reduced from the embedded master artwork to each display's
+size by an area average, never enlarged. A palette that cannot be read shows no splash and says so
+in the log; artwork that cannot be read shows the words alone.
+
 ## The update check
 
 The one outbound connection this product makes, which is what C-4 names: an anonymous request to a
