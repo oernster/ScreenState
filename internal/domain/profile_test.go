@@ -314,7 +314,7 @@ func TestAProfileFindsTheEntryForAnApplication(t *testing.T) {
 
 // FR-071: a packaged application keeps its model id beside its path, which is
 // what still names it once an update has moved the path. Nothing else carries
-// one; the model id takes no part in comparison.
+// one; the model id takes no part in Equal.
 func TestAPackagedApplicationKeepsItsModelIDBesideItsPath(t *testing.T) {
 	t.Parallel()
 	path, err := NewApplicationIdentity(KindPath, `C:\WindowsApps\Claude_2.0_x64__abc\app\claude.exe`)

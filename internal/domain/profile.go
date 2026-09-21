@@ -106,10 +106,12 @@ func (profile Profile) WithDefault(isDefault bool) Profile {
 	return profile
 }
 
-// Find returns the entry naming an application, plus whether there was one.
+// Find returns the entry naming an application, plus whether there was one. A
+// packaged application is found by its model id once an update has moved its
+// path (FR-071).
 func (profile Profile) Find(application ApplicationIdentity) (Entry, bool) {
 	for _, entry := range profile.Entries {
-		if entry.Application.Equal(application) {
+		if entry.Application.Recognises(application) {
 			return entry, true
 		}
 	}

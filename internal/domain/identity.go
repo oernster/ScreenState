@@ -84,7 +84,8 @@ type ApplicationIdentity struct {
 	// held beside its path (FR-071). The path is what starts it, which is what
 	// the user's own double-click does; the model id is what still starts it
 	// once an update has moved that path. It is empty for everything else and
-	// names no application on its own, so it takes no part in comparison.
+	// names no application on its own, so it takes no part in Equal; Recognises
+	// uses it to match a running window once the path has moved.
 	ModelID string
 }
 
@@ -128,6 +129,32 @@ func (identity ApplicationIdentity) Validate() error {
 func (identity ApplicationIdentity) Equal(other ApplicationIdentity) bool {
 	return identity.Kind == other.Kind &&
 		strings.EqualFold(identity.Value, other.Value)
+}
+
+// Recognises reports whether a running window's identity is the application this
+// one names, which is wider than Equal in one way only (FR-071): a Store-packaged
+// application is recognised by its model id once an update has moved its path.
+// A window reports its new path with the unchanged model id beside it, so it is
+// matched to an entry holding the old path. It is matched just the same to an
+// entry saved before the path was kept, which names the application by its model
+// id alone.
+//
+// Equal stays exact: it is what says whether two stored entries are the same one.
+func (identity ApplicationIdentity) Recognises(other ApplicationIdentity) bool {
+	if identity.Equal(other) {
+		return true
+	}
+	mine := identity.packageModelID()
+	return mine != "" && strings.EqualFold(mine, other.packageModelID())
+}
+
+// packageModelID is the model id naming a packaged application, whether it is
+// the identity itself or kept beside a path; empty for anything else.
+func (identity ApplicationIdentity) packageModelID() string {
+	if identity.Kind == KindAppUserModelID {
+		return identity.Value
+	}
+	return identity.ModelID
 }
 
 // SameProgram reports whether another identity names this same program, in the

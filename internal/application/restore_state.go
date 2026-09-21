@@ -248,14 +248,16 @@ func differences(before []string, after []string) []string {
 }
 
 // windowsOf returns the readable windows of one application in the order the
-// agent first saw them, which is the order FR-037 matches placements in.
+// agent first saw them, which is the order FR-037 matches placements in. A
+// packaged application's window is its own once an update has moved the path
+// (FR-071).
 func windowsOf(windows []Window, application domain.ApplicationIdentity) []Window {
 	var owned []Window
 	for _, window := range windows {
 		if window.Unreadable != "" {
 			continue
 		}
-		if window.Application.Equal(application) {
+		if application.Recognises(window.Application) {
 			owned = append(owned, window)
 		}
 	}
