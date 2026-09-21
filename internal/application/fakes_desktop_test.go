@@ -47,6 +47,12 @@ type fakeDesktop struct {
 	// order; rebuildErr is the refusal a test wants instead.
 	rebuilt    []WindowID
 	rebuildErr error
+	// rebuildRefuses holds the refusal for one window alone, leaving the rest
+	// to be rebuilt.
+	rebuildRefuses map[WindowID]error
+	// onRebuild runs after each button is rebuilt, which is how a test stops
+	// the restore part way through the rebuilding.
+	onRebuild func()
 	// afterPlace runs once a window has been placed, which is how a test makes
 	// an application move its own window afterwards.
 	afterPlace func(desktop *fakeDesktop, id WindowID)
@@ -182,10 +188,16 @@ func (desktop *fakeDesktop) nudgeCount() int {
 
 // RebuildTaskbarButton records that a window's taskbar button was built afresh.
 func (desktop *fakeDesktop) RebuildTaskbarButton(_ context.Context, id WindowID) error {
+	if desktop.onRebuild != nil {
+		defer desktop.onRebuild()
+	}
 	desktop.mutex.Lock()
 	defer desktop.mutex.Unlock()
 	if desktop.rebuildErr != nil {
 		return desktop.rebuildErr
+	}
+	if refused := desktop.rebuildRefuses[id]; refused != nil {
+		return refused
 	}
 	desktop.rebuilt = append(desktop.rebuilt, id)
 	return nil

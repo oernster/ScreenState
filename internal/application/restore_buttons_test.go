@@ -83,6 +83,71 @@ func TestAnApplyBuildsTheButtonOfAnApplicationItStarted(t *testing.T) {
 	}
 }
 
+// FR-075: one button that cannot be rebuilt costs that button alone. The rest
+// are still built afresh and the log still says how many were.
+func TestOneRefusedButtonDoesNotStopTheRest(t *testing.T) {
+	t.Parallel()
+	desktop := &fakeDesktop{
+		displays:       []Display{primaryDisplay},
+		windows:        []Window{aWindow(1, pigeonpost, at(0)), aWindow(2, stellody, at(1))},
+		rebuildRefuses: map[WindowID]error{1: errors.New("the window is not answering")},
+	}
+	log := &fakeLog{}
+	profile, err := domain.NewProfile("Desk",
+		domain.Entry{Application: pigeonpost, Running: true, Placements: []domain.Placement{onPrimary}},
+		domain.Entry{Application: stellody, Running: true, Placements: []domain.Placement{onPrimary}},
+	)
+	if err != nil {
+		t.Fatalf("the profile is not valid: %v", err)
+	}
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody),
+		&fakeLauncher{}, newFakeStore(profile.WithDefault(true)), newFakeClock(), log)
+
+	if _, _, err := service.RestoreDefault(context.Background(), true); err != nil {
+		t.Fatalf("restoring at sign-in: %v", err)
+	}
+	if built := desktop.rebuiltButtons(); len(built) != 1 || built[0] != WindowID(2) {
+		t.Fatalf("rebuilt %v, wanted the second window's button despite the first refusing", built)
+	}
+	if !log.saying("was not rebuilt") {
+		t.Error("the log does not say which button was not rebuilt")
+	}
+	if !log.saying("1 taskbar button(s) were built afresh, 1 could not be") {
+		t.Error("the log does not count the buttons rebuilt")
+	}
+}
+
+// A restore stopped while its buttons are being rebuilt rebuilds no more of
+// them: carrying on past a refusal must not mean carrying on past a stop.
+func TestAStoppedRestoreRebuildsNoMoreButtons(t *testing.T) {
+	t.Parallel()
+	ctx, stop := context.WithCancel(context.Background())
+	defer stop()
+	desktop := &fakeDesktop{
+		displays:  []Display{primaryDisplay},
+		windows:   []Window{aWindow(1, pigeonpost, at(0)), aWindow(2, stellody, at(1))},
+		onRebuild: stop,
+	}
+	profile, err := domain.NewProfile("Desk",
+		domain.Entry{Application: pigeonpost, Running: true, Placements: []domain.Placement{onPrimary}},
+		domain.Entry{Application: stellody, Running: true, Placements: []domain.Placement{onPrimary}},
+	)
+	if err != nil {
+		t.Fatalf("the profile is not valid: %v", err)
+	}
+	log := &fakeLog{}
+	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody),
+		&fakeLauncher{}, newFakeStore(profile.WithDefault(true)), newFakeClock(), log)
+
+	_, _, _ = service.RestoreDefault(ctx, true)
+	if built := desktop.rebuiltButtons(); len(built) != 1 {
+		t.Fatalf("rebuilt %v after the restore was stopped, wanted the first alone", built)
+	}
+	if log.saying("built afresh") {
+		t.Error("a stopped restore still counted its buttons as though it had finished")
+	}
+}
+
 // A button that cannot be rebuilt changes nothing about the desktop, so it is
 // noted in the log and nowhere else: the user has their windows back.
 func TestAButtonThatCannotBeRebuiltIsNotedAndNothingMore(t *testing.T) {

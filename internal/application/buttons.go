@@ -45,15 +45,24 @@ func (service *RestoreService) rebuildTheButtons(
 	if err := service.letTheFlashingEnd(ctx, state, marked); err != nil {
 		return err
 	}
-	rebuilt := 0
+	// One button that cannot be rebuilt costs that button alone: the rest are
+	// still built afresh and the count is still logged. Only a stopped restore
+	// ends the loop early, since then nothing more is to be done at all.
+	rebuilt, refused := 0, 0
 	for _, placed := range marked {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if err := service.desktop.RebuildTaskbarButton(ctx, placed.id); err != nil {
-			service.log.Step(fmt.Sprintf("a taskbar button was not rebuilt: %v", err))
-			return nil
+			service.log.Step(fmt.Sprintf("the taskbar button of %s was not rebuilt: %v",
+				placed.application, err))
+			refused++
+			continue
 		}
 		rebuilt++
 	}
-	service.log.Step(fmt.Sprintf("%d taskbar button(s) were built afresh", rebuilt))
+	service.log.Step(fmt.Sprintf("%d taskbar button(s) were built afresh, %d could not be",
+		rebuilt, refused))
 	return nil
 }
 

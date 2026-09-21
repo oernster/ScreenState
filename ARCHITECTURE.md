@@ -314,7 +314,9 @@ Windows itself decides where to maximise it.
    starts, so a desktop assembled at sign-in comes back marked although the recorded desktop was
    not. Rebuilding the button is the only measured way to clear that mark; it costs a flicker. Any
    other restore does it only for the applications it started itself, since nothing
-   else can have gained a mark once placing stopped activating (FR-074).
+   else can have gained a mark once placing stopped activating (FR-074). A button that cannot be
+   rebuilt costs that button alone: the rest are still rebuilt and the log counts both, while a
+   restore stopped part way rebuilds no more.
    Before rebuilding, the restore waits until none of those windows has flashed for one full flash
    series (FR-080). An application started without the front asks for it anyway; Windows refuses
    and flashes its button, in a series that outlasted the rebuild by up to 7 seconds in a shell trace
@@ -702,9 +704,10 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 
 Found by reading the source against every requirement during the documentation pass for the first
 release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Four more were on this list and are now built: cancelling a restore (FR-049), matching a
+desktop. Five more were on this list and are now built: cancelling a restore (FR-049), matching a
 packaged application's window after an update (FR-071), marking the tray icon after an incomplete
-restore (FR-045) and capturing an application with only a hidden window (FR-005). Each item left is
+restore (FR-045), capturing an application with only a hidden window (FR-005) and counting the
+rebuilt buttons (FR-075). Each item left is
 a defect or a requirement to amend; which is the owner's decision, so the specification still states
 what was asked for.
 
@@ -718,8 +721,6 @@ what was asked for.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.
 - **Module size (NFR-MAINT-003).** The structural test measures Go files only; `manager.css` is over
   400 lines.
-- **Counting rebuilt buttons (FR-075).** The first button that cannot be rebuilt ends the loop, so
-  the rest are skipped and the count is not logged.
 - **A click on the splash (FR-078, FR-079).** The click is heard by the same mouse hook as any other,
   so it counts as the user taking over: the entries still awaited are given up and the flash wait
   is skipped, although FR-078 says the restore carries on.
