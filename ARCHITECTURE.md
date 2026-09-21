@@ -371,7 +371,7 @@ setting's other arm would have done; the report says which windows those were.
 | What | Where |
 |---|---|
 | Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
-| Step log | `%LOCALAPPDATA%\ScreenState\Log.txt` |
+| Step log | `%LOCALAPPDATA%\ScreenState\Log.txt`; each run cuts it down to the 10 most recent restores as it starts (NFR-OBS-001), counting the step `application.RestoreBegins` opens |
 | Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup as `uninstall.exe` |
 | Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting, the skipped version and what a restore does with the windows a profile does not name |
 | Webview cache | `%LOCALAPPDATA%\ScreenState\webview`, pinned there so an uninstall knows to look |
@@ -631,7 +631,7 @@ it: the Windows half needs a real desktop; gating it would mean either a number 
 or tests that assert what happened to be on screen.
 
 Measured statement coverage on 2026-09-21: domain 100%, application 97.2%, clock 100%, store 93.8%,
-instance 90.9%, settings 89.1%, runlog 66.7%, win32 41.7%, setup 33.6%, ui 26.8%. The
+instance 90.9%, settings 89.1%, runlog 76.7%, win32 41.7%, setup 33.6%, ui 26.8%. The
 shortfalls outside the floor are IO and platform failures that would need the disk or the window
 manager to fail mid-call, plus the Win32 calls themselves; they are not padded with tests that
 assert nothing.
@@ -709,18 +709,17 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 
 Found by reading the source against every requirement during the documentation pass for the first
 release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Six more were on this list and are now built: cancelling a restore (FR-049), matching a
+desktop. Seven more were on this list and are now built: cancelling a restore (FR-049), matching a
 packaged application's window after an update (FR-071), marking the tray icon after an incomplete
 restore (FR-045), capturing an application with only a hidden window (FR-005), counting the
-rebuilt buttons (FR-075) and a click on the splash (FR-078). Each item left is
+rebuilt buttons (FR-075), a click on the splash (FR-078) and log retention (NFR-OBS-001). Each item
+left is
 a defect or a requirement to amend; which is the owner's decision, so the specification still states
 what was asked for.
 
 - **Setting the ceiling (NFR-PERF-003).** The policy holds the bounds and a method that clamps a
   value to them; nothing offers the setting: every restore waits the default 15 minutes, counted
   from the start of the restore rather than from sign-in.
-- **Log retention (NFR-OBS-001).** The log starts afresh once it passes 1 MB rather than keeping
-  the last 10 restores.
 - **What is stored (NFR-PRIV-001).** The notes of the restore the agent runs as it starts, written to
   the log, carry the titles of the windows put away.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.

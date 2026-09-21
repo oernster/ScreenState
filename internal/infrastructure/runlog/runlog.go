@@ -10,8 +10,10 @@
 package runlog
 
 import (
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -24,9 +26,10 @@ import (
 const (
 	// FileName names the log.
 	FileName = "Log.txt"
-	// MaxBytes is the size past which a run starts the log afresh, so the file
-	// cannot grow without end on a machine that signs in every day.
-	MaxBytes = 1 << 20
+	// Retained is how many of the most recent restores the log keeps
+	// (NFR-OBS-001). Each run cuts the log down to them as it starts, so the
+	// file cannot grow without end on a machine that signs in every day.
+	Retained = 10
 
 	startedLayout = "2006-01-02 15:04:05"
 	stepLayout    = "15:04:05"
@@ -44,11 +47,8 @@ func Open(path string, version string, started time.Time) (*os.File, error) {
 	if err := os.MkdirAll(filepath.Dir(path), folderPerm); err != nil {
 		return nil, fmt.Errorf("making the folder for %s: %w", path, err)
 	}
-	flags := os.O_CREATE | os.O_WRONLY | os.O_APPEND
-	if info, err := os.Stat(path); err == nil && info.Size() > MaxBytes {
-		flags |= os.O_TRUNC
-	}
-	log, err := os.OpenFile(path, flags, filePerm)
+	trimErr := keepRecent(path)
+	log, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, filePerm)
 	if err != nil {
 		return nil, fmt.Errorf("opening %s: %w", path, err)
 	}
@@ -57,7 +57,40 @@ func Open(path string, version string, started time.Time) (*os.File, error) {
 		_ = log.Close()
 		return nil, fmt.Errorf("writing to %s: %w", path, err)
 	}
+	if trimErr != nil {
+		// The run goes on with the log as it was: a record kept too long costs
+		// disk space, while no record at all costs the next diagnosis.
+		_, _ = fmt.Fprintf(log, "%s%s the earlier runs could not be cut down: %v\n",
+			stepIndent, started.Format(stepLayout), trimErr)
+	}
 	return log, nil
+}
+
+// keepRecent cuts the log at path down to its most recent restores, writing the
+// shorter log beside it first and moving it over the old, so an interruption
+// leaves one whole log or the other. A log that is not there yet or holds no
+// more than that is left alone.
+func keepRecent(path string) error {
+	raw, err := os.ReadFile(path)
+	if errors.Is(err, fs.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("reading it: %w", err)
+	}
+	cut := retained(string(raw), Retained)
+	if len(cut) == len(raw) {
+		return nil
+	}
+	shorter := path + ".new"
+	if err := os.WriteFile(shorter, []byte(cut), filePerm); err != nil {
+		return fmt.Errorf("writing the shorter log: %w", err)
+	}
+	if err := os.Rename(shorter, path); err != nil {
+		_ = os.Remove(shorter)
+		return fmt.Errorf("replacing it with the shorter log: %w", err)
+	}
+	return nil
 }
 
 // Keep sends what a run reports as it fails to the log, which stays open for

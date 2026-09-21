@@ -2,6 +2,7 @@ package runlog
 
 import (
 	"bytes"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -46,7 +47,7 @@ func TestARunSaysWhichBuildItIs(t *testing.T) {
 
 // A machine that signs in every day must not grow a log without end; a run must
 // not lose the log of the run before it either.
-func TestTheLogIsKeptUntilItIsTooBig(t *testing.T) {
+func TestASecondRunKeepsTheFirstRunsLog(t *testing.T) {
 	t.Parallel()
 	path := filepath.Join(t.TempDir(), FileName)
 
@@ -70,22 +71,83 @@ func TestTheLogIsKeptUntilItIsTooBig(t *testing.T) {
 	if !strings.Contains(string(raw), "the first run") {
 		t.Fatal("the second run lost the log of the first")
 	}
+}
 
-	// Past the limit the log starts afresh, so the file cannot grow for ever.
-	if err := os.WriteFile(path, bytes.Repeat([]byte("x"), MaxBytes+1), 0o644); err != nil {
-		t.Fatalf("filling it: %v", err)
+// NFR-OBS-001: a run keeps the most recent restores, each with the header of
+// the run it belongs to. Nothing older survives. Twelve restores across six runs
+// leave the last ten.
+func TestTheLogKeepsTheMostRecentRestores(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), FileName)
+	for run := 0; run < 6; run++ {
+		log, err := Open(path, "1.0.0", at(run, 0, 0))
+		if err != nil {
+			t.Fatalf("opening run %d: %v", run, err)
+		}
+		steps := NewSteps(log, func() time.Time { return at(run, 0, 1) })
+		for restore := 0; restore < 2; restore++ {
+			steps.Step(fmt.Sprintf("%s%q, 1 entries", application.RestoreBegins, fmt.Sprintf("P%d-%d", run, restore)))
+			steps.Step(fmt.Sprintf("placed the window of P%d-%d", run, restore))
+		}
+		if err := log.Close(); err != nil {
+			t.Fatalf("closing run %d: %v", run, err)
+		}
 	}
-	third, err := Open(path, "1.0.0", at(11, 0, 0))
+	last, err := Open(path, "1.0.0", at(7, 0, 0))
 	if err != nil {
-		t.Fatalf("opening a full log: %v", err)
+		t.Fatalf("opening the last run: %v", err)
 	}
-	if err := third.Close(); err != nil {
+	if err := last.Close(); err != nil {
 		t.Fatalf("closing: %v", err)
 	}
-	raw, _ = os.ReadFile(path)
-	if len(raw) > MaxBytes {
-		t.Fatalf("the log was not started afresh: %d bytes", len(raw))
+	text := readLog(t, path)
+	if got := strings.Count(text, application.RestoreBegins); got != Retained {
+		t.Fatalf("kept %d restores, wanted %d:\n%s", got, Retained, text)
 	}
+	for _, gone := range []string{"P0-0", "P0-1", "started 2026-09-20 00:00"} {
+		if strings.Contains(text, gone) {
+			t.Errorf("%q is older than the restores kept and is still there", gone)
+		}
+	}
+	for _, kept := range []string{"P1-0", "placed the window of P5-1", "started 2026-09-20 01:00"} {
+		if !strings.Contains(text, kept) {
+			t.Errorf("%q belongs to a restore kept and was lost", kept)
+		}
+	}
+}
+
+// Fewer restores than are kept leave the log whole, however big it has grown:
+// retention is counted in restores, never in bytes, so a long restore is not
+// thrown away for its length.
+func TestALogWithFewRestoresIsKeptWhole(t *testing.T) {
+	t.Parallel()
+	path := filepath.Join(t.TempDir(), FileName)
+	long := "ScreenState 1.0.0 started 2026-09-20 08:00:00\n  08:00:01 " +
+		application.RestoreBegins + "\"Desk\", 1 entries\n" +
+		strings.Repeat("  08:00:02 a long line of steps\n", 40000)
+	if err := os.WriteFile(path, []byte(long), 0o644); err != nil {
+		t.Fatalf("writing the log: %v", err)
+	}
+	log, err := Open(path, "1.0.0", at(9, 0, 0))
+	if err != nil {
+		t.Fatalf("opening: %v", err)
+	}
+	if err := log.Close(); err != nil {
+		t.Fatalf("closing: %v", err)
+	}
+	if text := readLog(t, path); !strings.HasPrefix(text, long) {
+		t.Fatal("a log holding one restore was cut")
+	}
+}
+
+// readLog answers the log's text, failing the test where it cannot be read.
+func readLog(t *testing.T, path string) string {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("reading the log: %v", err)
+	}
+	return string(raw)
 }
 
 // Each step is stamped, so a report minutes after sign-in can be read against

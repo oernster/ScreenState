@@ -112,7 +112,7 @@ tests share.
 |---|---|
 | `store` | a real temporary directory: round trips, the default marking, a profile that is not there, a broken file that costs only itself, a profile in a newer format left alone, a store that cannot be read or has gone away, an interrupted write that must leave the old file whole |
 | `settings` | the same, for `settings.json`: its absent-means-on reading and a damaged file reported as a fault rather than read as the defaults |
-| `runlog` | a real log file, its header and its steps |
+| `runlog` | a real log file, its header and its steps; a run keeping the 10 most recent restores with the header of each one's run; a long log of fewer restores kept whole |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
 | `win32` | the naming rules, the stacking-order rule and the rule that a program under the Windows directory is part of Windows and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application, the applications running with no window shown and a press on the taskbar traced to its top-level window) and the flash series worked out from the machine's settings |

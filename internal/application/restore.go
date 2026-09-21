@@ -11,6 +11,11 @@ import (
 	"github.com/oernster/ScreenState/internal/domain"
 )
 
+// RestoreBegins opens the step every restore writes as it begins. The run log
+// counts restores by it to keep the most recent ones (NFR-OBS-001), so it has
+// this one home.
+const RestoreBegins = "restoring "
+
 // RestoreService puts the desktop into the end state a profile describes.
 //
 // It holds no window handles between restores and no state about the desktop:
@@ -207,56 +212,6 @@ func (service *RestoreService) restore(
 	return report, err
 }
 
-// standDown stops the restore in progress, if there is one, then waits for it
-// to stop. It reports whether there was one.
-func (service *RestoreService) standDown() bool {
-	service.stopKeepingWatch()
-	service.mutex.Lock()
-	active := service.active
-	if active == nil {
-		service.mutex.Unlock()
-		return false
-	}
-	active.report.WasReplaced = true
-	active.report.Note("a newer restore was requested, so this one stopped; " +
-		"every window already placed was left where it was")
-	service.mutex.Unlock()
-
-	active.cancel()
-	<-active.done
-	return true
-}
-
-// Cancel stops the restore in progress before its next action and waits for it
-// to stop (FR-049). Every window already placed stays where it is and the report
-// says the restore was cancelled. It reports whether there was a restore to
-// stop.
-func (service *RestoreService) Cancel() bool {
-	service.stopKeepingWatch()
-	service.mutex.Lock()
-	active := service.active
-	service.mutex.Unlock()
-	if active == nil {
-		return false
-	}
-	active.cancel()
-	<-active.done
-	service.log.Step("the restore was cancelled by the user")
-	return true
-}
-
-// retire records a finished restore as the most recent one and clears it from
-// the active slot, leaving a later restore alone if one has already replaced it
-// there.
-func (service *RestoreService) retire(active *activeRestore) {
-	service.mutex.Lock()
-	defer service.mutex.Unlock()
-	service.last = active.report
-	if service.active == active {
-		service.active = nil
-	}
-}
-
 // guardedRun runs a restore and turns a panic within it into a recorded
 // failure. FR-052: an unexpected failure must reach the log and the report and
 // must leave the agent able to restore again, since an agent that vanishes
@@ -291,7 +246,7 @@ func (service *RestoreService) run(
 	why trigger,
 ) error {
 	report := state.report
-	service.log.Step(fmt.Sprintf("restoring %q, %d entries, ceiling %s",
+	service.log.Step(fmt.Sprintf(RestoreBegins+"%q, %d entries, ceiling %s",
 		profile.Name, len(profile.Entries), service.policy.Ceiling))
 
 	total := len(profile.Entries)
