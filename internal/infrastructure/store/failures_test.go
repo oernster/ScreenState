@@ -34,8 +34,8 @@ func TestACancelledContextStopsEveryCall(t *testing.T) {
 	if _, _, err := store.Default(ctx); !errors.Is(err, context.Canceled) {
 		t.Fatalf("Default answered %v", err)
 	}
-	if _, err := store.Excluded(ctx); !errors.Is(err, context.Canceled) {
-		t.Fatalf("Excluded answered %v", err)
+	if _, err := store.Unreadable(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("Unreadable answered %v", err)
 	}
 	if entries, _ := os.ReadDir(store.Directory()); len(entries) != 0 {
 		t.Fatalf("a cancelled call wrote %d file(s)", len(entries))
@@ -160,7 +160,7 @@ func TestADirectoryInTheStoreIsNotAProfile(t *testing.T) {
 	if len(names) != 1 || names[0] != "Desk" {
 		t.Fatalf("the listing holds %v", names)
 	}
-	excluded, err := store.Excluded(ctx)
+	excluded, err := store.Unreadable(ctx)
 	if err != nil || len(excluded) != 0 {
 		t.Fatalf("left out %+v (%v)", excluded, err)
 	}

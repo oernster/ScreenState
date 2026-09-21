@@ -218,3 +218,25 @@ p.lead.small { font-size: 15px; margin: 10px 0 0; }
     padding: 14px 4px;
 }
 
+/* The profile files that could not be read, under the list (NFR-REL-002). The
+   heading wears the danger colour because something is wrong; the lines stay
+   muted because the list above them is fine. It scrolls within its own height
+   so a store full of broken files cannot push the list out of the window. */
+.unreadable {
+    flex: 0 1 auto;
+    max-height: 40%;
+    overflow-y: auto;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+    color: var(--muted);
+    user-select: text;
+}
+
+.unreadable[hidden] { display: none; }
+
+.unreadablehead { color: var(--danger); font-weight: 700; margin-bottom: 3px; }
+
+.unreadableline { overflow-wrap: anywhere; margin-bottom: 3px; }
+

@@ -185,6 +185,18 @@ type ProfileStore interface {
 	// second result is false when no profile is marked, which is an answer
 	// rather than a fault (FR-039).
 	Default(ctx context.Context) (domain.Profile, bool, error)
+	// Unreadable lists the files in the store that are not being offered as
+	// profiles, each with the reason: a file that cannot be read, is not a
+	// profile or was written in a format this build does not know. Each is left
+	// exactly as it is (NFR-REL-002, DATA-003).
+	Unreadable(ctx context.Context) ([]UnreadableProfile, error)
+}
+
+// UnreadableProfile is a file in the store that is not being offered as a
+// profile, with the reason.
+type UnreadableProfile struct {
+	File   string
+	Reason string
 }
 
 // Clock is the only source of time in this layer. The domain reads none at all

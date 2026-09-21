@@ -413,7 +413,9 @@ a delete rather than one act; a copy can be interrupted half way.
 
 Every profile carries the format version it was written in (DATA-002). A file from a version this build
 does not understand is left exactly as it is, kept out of the listing, with the reason stated in the
-log on every run (DATA-003).
+log on every run (DATA-003) and under the manager's profile list (NFR-REL-002). So is a file that
+cannot be read or is not a profile at all. The store answers them through `ProfileStore.Unreadable`
+and `ManagerService.Unreadable` passes them to the page; nothing ever writes to such a file.
 
 ## The manager window
 
@@ -746,15 +748,15 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 
 Found by reading the source against every requirement during the documentation pass for the first
 release; each item left below was checked against the code again since. None was reproduced on a
-desktop. Ten more were on this list and are now built: cancelling a restore (FR-049), matching a
+desktop. Eleven more were on this list and are now built: cancelling a restore (FR-049), matching a
 packaged application's window after an update (FR-071), marking the tray icon after an incomplete
 restore (FR-045), capturing an application with only a hidden window (FR-005), counting the
 rebuilt buttons (FR-075), a click on the splash (FR-078), log retention (NFR-OBS-001), setting
-the ceiling (NFR-PERF-003), holding the page files to the module size (NFR-MAINT-003) and keeping
-window titles out of the log (NFR-PRIV-001). Each item left is a defect or a requirement to amend; which is the
+the ceiling (NFR-PERF-003), holding the page files to the module size (NFR-MAINT-003), keeping
+window titles out of the log (NFR-PRIV-001) and naming an unreadable profile in the manager
+(NFR-REL-002, DATA-003). Each item left is a defect or a requirement to amend; which is the
 owner's decision, so the specification still states what was asked for.
 
-- **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.
 - **Placing a maximised window (FR-074).** The placing code says `SetWindowPlacement` was measured
   not to activate, while the rebuild's comment records it activating PigeonPost, Stellody and
   Claude. A shell trace of a maximising placement would settle which is right.

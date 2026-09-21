@@ -131,7 +131,7 @@ func TestAProfileFromANewerFormatIsLeftAlone(t *testing.T) {
 	if string(after) != string(future) {
 		t.Fatalf("the file was changed to %q", after)
 	}
-	excluded, err := store.Excluded(ctx)
+	excluded, err := store.Unreadable(ctx)
 	if err != nil {
 		t.Fatalf("listing what was left out: %v", err)
 	}
@@ -178,7 +178,7 @@ func TestABrokenFileCostsOnlyItself(t *testing.T) {
 	if len(names) != 1 || names[0] != "Desk" {
 		t.Fatalf("the listing holds %v", names)
 	}
-	excluded, err := store.Excluded(ctx)
+	excluded, err := store.Unreadable(ctx)
 	if err != nil || len(excluded) != 7 {
 		t.Fatalf("left out %d files (%v)", len(excluded), err)
 	}

@@ -137,6 +137,18 @@ func (service *ManagerService) Profiles(ctx context.Context) ([]ProfileSummary, 
 	return summaries, nil
 }
 
+// Unreadable lists the profile files the manager cannot offer, each with the
+// reason, so the user reads it where they look for their profiles rather than
+// in a log they never open (NFR-REL-002, DATA-003). Each file is left exactly
+// as it is.
+func (service *ManagerService) Unreadable(ctx context.Context) ([]UnreadableProfile, error) {
+	unreadable, err := service.store.Unreadable(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("checking the profiles for unreadable files: %w", err)
+	}
+	return unreadable, nil
+}
+
 // Entries returns the entries of one profile as the manager shows them
 // (EIR-002).
 func (service *ManagerService) Entries(ctx context.Context, name string) ([]EntryView, error) {

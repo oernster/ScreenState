@@ -32,14 +32,6 @@ type Store struct {
 	log       application.Log
 }
 
-// Exclusion is a file in the store that is not being offered as a profile, with
-// the reason. DATA-003 requires that a file in an unknown format is left alone,
-// kept out of the list and the reason stated; this is how the manager states it.
-type Exclusion struct {
-	File   string
-	Reason string
-}
-
 // New returns a store over a directory, creating it where it is not there yet.
 func New(directory string, log application.Log) (*Store, error) {
 	if err := os.MkdirAll(directory, 0o755); err != nil {
@@ -71,16 +63,17 @@ func (store *Store) Names(ctx context.Context) ([]string, error) {
 	return names, nil
 }
 
-// Excluded returns the files in the store that are not being offered, each with
-// the reason (DATA-003).
-func (store *Store) Excluded(ctx context.Context) ([]Exclusion, error) {
+// Unreadable returns the files in the store that are not being offered, each
+// with the reason (NFR-REL-002, DATA-003). The manager states them and the log
+// names them once a run; the files themselves are never touched.
+func (store *Store) Unreadable(ctx context.Context) ([]application.UnreadableProfile, error) {
 	_, excluded, err := store.readAll(ctx)
 	return excluded, err
 }
 
 // readAll reads every file in the store, returning the profiles it could read
 // and the files it could not with the reason for each.
-func (store *Store) readAll(ctx context.Context) ([]domain.Profile, []Exclusion, error) {
+func (store *Store) readAll(ctx context.Context) ([]domain.Profile, []application.UnreadableProfile, error) {
 	// Checked before the directory is read as well as within it. Checking only
 	// inside the loop let a cancelled call succeed over an empty store, which
 	// is the one store where the loop never runs.
@@ -92,7 +85,7 @@ func (store *Store) readAll(ctx context.Context) ([]domain.Profile, []Exclusion,
 		return nil, nil, fmt.Errorf("reading the profile store: %w", err)
 	}
 	var profiles []domain.Profile
-	var excluded []Exclusion
+	var excluded []application.UnreadableProfile
 	for _, entry := range entries {
 		if err := ctx.Err(); err != nil {
 			return nil, nil, err
@@ -106,7 +99,7 @@ func (store *Store) readAll(ctx context.Context) ([]domain.Profile, []Exclusion,
 			// that says the same thing three times teaches a reader to skim
 			// the log. The caller states it once; DATA-003 asks that it be
 			// stated, not that it be repeated.
-			excluded = append(excluded, Exclusion{File: entry.Name(), Reason: err.Error()})
+			excluded = append(excluded, application.UnreadableProfile{File: entry.Name(), Reason: err.Error()})
 			continue
 		}
 		profiles = append(profiles, profile)

@@ -18,6 +18,10 @@ type fakeStore struct {
 	saveErr    error
 	deleteErr  error
 	defaultErr error
+	// unreadable are the files the store would leave out; unreadableErr is the
+	// refusal a test wants instead (NFR-REL-002).
+	unreadable    []UnreadableProfile
+	unreadableErr error
 }
 
 func newFakeStore(profiles ...domain.Profile) *fakeStore {
@@ -100,4 +104,13 @@ func (store *fakeStore) Default(context.Context) (domain.Profile, bool, error) {
 		}
 	}
 	return domain.Profile{}, false, nil
+}
+
+func (store *fakeStore) Unreadable(context.Context) ([]UnreadableProfile, error) {
+	store.mutex.Lock()
+	defer store.mutex.Unlock()
+	if store.unreadableErr != nil {
+		return nil, store.unreadableErr
+	}
+	return append([]UnreadableProfile(nil), store.unreadable...), nil
 }

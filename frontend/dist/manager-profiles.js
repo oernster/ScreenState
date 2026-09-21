@@ -17,7 +17,49 @@ async function openProfiles() {
     }
     drawProfiles()
     show('profiles', profileFooter())
-    await drawEntries()
+    await Promise.all([drawEntries(), drawUnreadable()])
+}
+
+// drawUnreadable names, under the list, every profile file that could not be
+// read and why (NFR-REL-002, DATA-003). A profile that has quietly stopped
+// appearing is the thing a user notices weeks later. The log said so; nobody
+// reads a log to find a missing profile.
+//
+// It is a note rather than an error panel: the rest of the profiles are fine
+// and the list stays usable. A store that cannot be checked at all says that
+// instead, since saying nothing would read as nothing being wrong.
+async function drawUnreadable() {
+    const box = $('profile-unreadable')
+    let lines
+    try {
+        // The store's reason already says what is wrong with the file, so it
+        // follows the name as it is rather than behind words saying it again.
+        lines = (await backend().UnreadableProfiles()).map((file) =>
+            file.file + ': ' + file.reason + '.')
+    } catch (e) {
+        lines = ['The profiles could not be checked for files that cannot be read: '
+            + String(e) + '.']
+    }
+    box.innerHTML = ''
+    box.hidden = lines.length === 0
+    if (!lines.length) return
+    const head = document.createElement('div')
+    head.className = 'unreadablehead'
+    head.textContent = lines.length === 1
+        ? 'One profile file is not listed'
+        : lines.length + ' profile files are not listed'
+    box.appendChild(head)
+    lines.forEach((words) => {
+        const line = document.createElement('div')
+        line.className = 'unreadableline'
+        line.textContent = words
+        box.appendChild(line)
+    })
+    const after = document.createElement('div')
+    after.className = 'unreadableline'
+    after.textContent = 'Each is left exactly as it is. One written by a newer version'
+        + ' is read again once that version is installed.'
+    box.appendChild(after)
 }
 
 // profileFooter is what the list offers, down the right. Apply leads because it

@@ -147,14 +147,16 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 	if err != nil {
 		return err
 	}
-	excluded, err := profiles.Excluded(context.Background())
+	// DATA-003: say which files are being left alone and why, every run,
+	// because a profile that has quietly stopped appearing is the kind of thing
+	// a user notices weeks later. The manager says it too (NFR-REL-002), so a
+	// store that cannot be read at all is said here and the run goes on to open
+	// the window where the user can read it, rather than ending before it.
+	excluded, err := profiles.Unreadable(context.Background())
 	if err != nil {
-		return err
+		steps.Step(fmt.Sprintf("the profile store could not be checked for unreadable files: %v", err))
 	}
 	for _, exclusion := range excluded {
-		// DATA-003: say which files are being left alone and why, every run,
-		// because a profile that has quietly stopped appearing is the kind of
-		// thing a user notices weeks later.
 		steps.Step(fmt.Sprintf("%s is not being offered: %s", exclusion.File, exclusion.Reason))
 	}
 

@@ -1085,7 +1085,13 @@ format, then the ScreenState agent shall present the failure naming the file,
 shall leave the file unchanged and shall continue with the profiles it could
 read.
 Rationale: absence is an answer; corruption is a fault; neither is a reason to
-end the run.
+end the run. The failure is presented under the manager's profile list, since a
+profile that has quietly stopped appearing is looked for there rather than in
+the log; the log names it once a run as well. A store whose folder cannot be read
+at all is said in the same place rather than ending the run before the window.
+Acceptance: Given a profile file written in a newer format beside a readable
+profile, when the manager opens, then the readable profile is listed and under
+the list the other is named with the reason, while the file is unchanged.
 
 **NFR-SEC-001 No elevation**
 Priority: Must

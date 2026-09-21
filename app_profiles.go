@@ -27,6 +27,27 @@ func (a *App) Profiles() ([]ProfileDTO, error) {
 	return out, nil
 }
 
+// UnreadableDTO is a profile file the manager cannot offer, with the reason
+// (NFR-REL-002).
+type UnreadableDTO struct {
+	File   string `json:"file"`
+	Reason string `json:"reason"`
+}
+
+// UnreadableProfiles lists the profile files that cannot be offered, so the
+// page can name them under the list rather than leave a profile to vanish.
+func (a *App) UnreadableProfiles() ([]UnreadableDTO, error) {
+	unreadable, err := a.manager.Unreadable(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	out := make([]UnreadableDTO, 0, len(unreadable))
+	for _, file := range unreadable {
+		out = append(out, UnreadableDTO{File: file.File, Reason: file.Reason})
+	}
+	return out, nil
+}
+
 // Entries returns the entries of one profile (EIR-002).
 func (a *App) Entries(name string) ([]EntryDTO, error) {
 	views, err := a.manager.Entries(context.Background(), name)
