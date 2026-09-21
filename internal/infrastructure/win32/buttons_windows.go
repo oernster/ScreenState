@@ -4,10 +4,27 @@ package win32
 
 import (
 	"context"
-	"fmt"
-	"unsafe"
 
 	"github.com/oernster/ScreenState/internal/application"
+)
+
+// Rebuilding a taskbar button without disturbing the window.
+const (
+	// swShowNA shows a window in its current state without activating it.
+	// Hiding a window leaves its state alone, so a maximised window comes back
+	// maximised. Neither SW_SHOWNOACTIVATE, which shows a window at its normal
+	// rectangle, nor SetWindowPlacement, which activates a maximised window,
+	// will do: both were measured going wrong on 2026-09-21.
+	swShowNA = 8
+	// gwHwndPrev names the window directly above another in the stacking order.
+	gwHwndPrev = 3
+	// hwndTop puts a window at the top of the stacking order, used when nothing
+	// was above it.
+	hwndTop = 0
+	// swpNoSize and swpNoMove leave a window's size and place alone while it is
+	// restacked.
+	swpNoSize = 0x0001
+	swpNoMove = 0x0002
 )
 
 // RebuildTaskbarButton has the shell drop a window's taskbar button and build
@@ -20,18 +37,15 @@ import (
 // Hiding the window and showing it again is the only answer measured to clear
 // it: everything else was tried and did nothing, including a posted click on
 // the taskbars, telling the shell its icons may have changed and ending the
-// attention state, which is a different thing altogether.
+// attention state.
 //
-// The window's placement is read before it is hidden and written back
-// afterwards, unchanged. That is what brings it back exactly as it was: showing
-// a window with SW_SHOWNOACTIVATE displays it at its most recent size and
-// position, which is NOT its show state, so a maximised window came back at its
-// normal rectangle. Measured on 2026-09-21, when Claude came back filling the
-// left of its screen rather than the whole of it.
-//
-// SetWindowPlacement also leaves the active window alone, so the window the user
-// is working in keeps the keyboard. The window flickers while the button is
-// rebuilt, which is the price of the repair.
+// The window comes back exactly as it was, in three respects, each learned by
+// getting it wrong. Its state: it is shown with SW_SHOWNA. Its activation:
+// SW_SHOWNA does not activate, where showing a maximised window through
+// SetWindowPlacement did, which a shell watcher recorded for PigeonPost,
+// Stellody and Claude. Its place in the stacking order: a window shown again
+// goes on top, so it is put back beneath the window that was directly above
+// it, which is why Terminal came back on top of everything.
 func (desktop *Desktop) RebuildTaskbarButton(
 	ctx context.Context,
 	id application.WindowID,
@@ -43,19 +57,17 @@ func (desktop *Desktop) RebuildTaskbarButton(
 	if alive, _, _ := pIsWindow.Call(handle); alive == 0 {
 		return application.ErrWindowGone
 	}
-	held := windowPlacement{}
-	held.length = uint32(unsafe.Sizeof(held))
-	if read, _, err := pGetWindowPlacement.Call(handle, uintptr(unsafe.Pointer(&held))); read == 0 {
-		// Without the placement the window cannot be put back as it was; a
-		// button is not worth a window left in the wrong state.
-		return fmt.Errorf("reading where the window sits: %w", err)
+	above, _, _ := pGetWindow.Call(handle, gwHwndPrev)
+	if above == 0 {
+		above = hwndTop
 	}
 	// ShowWindow answers the window's previous visibility rather than whether
 	// it worked, so there is nothing here to read as success.
 	_, _, _ = pShowWindow.Call(handle, swHide)
-	if restored, _, err := pSetWindowPlacement.Call(handle,
-		uintptr(unsafe.Pointer(&held))); restored == 0 {
-		return fmt.Errorf("showing the window again: %w", err)
-	}
+	_, _, _ = pShowWindow.Call(handle, swShowNA)
+	// A restack that fails leaves the window on top, which is untidy rather
+	// than wrong, so there is nothing here worth failing the repair over.
+	_, _, _ = pSetWindowPos.Call(handle, above, 0, 0, 0, 0,
+		swpNoMove|swpNoSize|swpNoActivate)
 	return nil
 }
