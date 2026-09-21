@@ -19,7 +19,7 @@ func TestOnlyTheTickedApplicationsAreSaved(t *testing.T) {
 		t.Fatalf("opening the store: %v", err)
 	}
 	self := domain.ApplicationIdentity{Value: `C:\Programs\ScreenState\ScreenState.exe`}
-	captures := application.NewCaptureService(nil, nil, profiles, log, self)
+	captures := application.NewCaptureService(nil, profiles, log, self)
 	app := NewApp(nil, nil, nil, captures, nil, log, silentSplash{}, "0.0.0-test", false)
 
 	pigeonpost := domain.ApplicationIdentity{Value: `C:\Programs\PigeonPost\PigeonPost.exe`}

@@ -10,7 +10,7 @@ async function openCapture() {
     busy('Reading the desktop', 'Every window you have open is being looked at.')
     let review
     try {
-        review = await backend().Capture('')
+        review = await backend().Capture()
     } catch (e) {
         showError(String(e))
         return

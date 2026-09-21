@@ -198,8 +198,8 @@ func (service *TrayService) Apply(ctx context.Context, name string) (*Report, er
 
 // Capture reads the desktop for review (FR-010). Nothing is written until the
 // user confirms it, so this has no effect of its own.
-func (service *TrayService) Capture(ctx context.Context, basedOn string) (Review, error) {
-	return service.captures.Review(ctx, basedOn)
+func (service *TrayService) Capture(ctx context.Context) (Review, error) {
+	return service.captures.Review(ctx)
 }
 
 // Report returns the report of the most recent restore, plus whether there has

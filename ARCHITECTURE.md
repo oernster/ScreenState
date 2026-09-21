@@ -173,9 +173,10 @@ The consequences run right through the layer:
 
 - An entry with placements is satisfied when every placement has been applied.
 - An entry with no placements says the application should run without saying where. It is satisfied by
-  the application running; nothing of its is moved (FR-005). A capture reads only the windows the
-  candidate rule passes, which are visible ones, so such an entry comes only from a recapture
-  keeping an application of the profile it is based on (FR-012).
+  the application running; nothing of its is moved (FR-005). No capture writes one: a capture reads
+  only the visible windows the candidate rule passes; a window that is not shown makes no entry
+  (FR-012). A profile file can still hold one, so a restore still honours
+  it.
 - An entry recorded as not running is left entirely alone. A restore ends nothing.
 - The ceiling bounds how long the agent keeps waiting for windows that may never appear (FR-023). It is
   a policy choice about when to stop waiting, deliberately not a prediction of how long the machine
@@ -670,7 +671,7 @@ function counts once a test reaches any statement in it. Infrastructure sits del
 it: the Windows half needs a real desktop; gating it would mean either a number that means nothing
 or tests that assert what happened to be on screen.
 
-Measured statement coverage on 2026-09-21: domain 100%, application 97.5%, clock 100%, store 93.8%,
+Measured statement coverage on 2026-09-21: domain 100%, application 97.7%, clock 100%, store 93.8%,
 settings 91.2%, instance 90.9%, runlog 76.7%, win32 40.4%, setup 33.6%, ui 25.9%, the root package
 (the composition root and the manager's facade) 11.6%. The
 shortfalls outside the floor are IO and platform failures that would need the disk or the window

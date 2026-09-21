@@ -182,7 +182,7 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 		win32.NewEvents(),
 	)
 	captures := application.NewCaptureService(
-		win32.NewDesktop(ticking), win32.NewProcesses(), profiles, steps, self())
+		win32.NewDesktop(ticking), profiles, steps, self())
 	manager := application.NewManagerService(profiles, startup.New(), steps)
 	tray := application.NewTrayService(profiles, restores, captures, steps)
 

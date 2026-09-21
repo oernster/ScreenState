@@ -2,7 +2,6 @@ package application
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -17,7 +16,7 @@ import (
 // writes nothing at all (FR-016). A capture has no effect of its own.
 type Review struct {
 	// Entries are the candidates, one per application, in the order their
-	// oldest window was created; applications with no window follow, by name.
+	// oldest window was created.
 	Entries []domain.Entry
 	// Unreadable names every window omitted because its state could not be
 	// read, so the user is told rather than left to notice (FR-014).
@@ -26,10 +25,9 @@ type Review struct {
 
 // CaptureService reads the desktop as it stands and turns it into a profile.
 type CaptureService struct {
-	desktop   Desktop
-	processes Processes
-	store     ProfileStore
-	log       Log
+	desktop Desktop
+	store   ProfileStore
+	log     Log
 	// self is this product's own identity, excluded from every capture so a
 	// profile never tries to arrange the agent that is arranging it (FR-013).
 	self domain.ApplicationIdentity
@@ -38,25 +36,22 @@ type CaptureService struct {
 // NewCaptureService returns a capture service over the given collaborators.
 func NewCaptureService(
 	desktop Desktop,
-	processes Processes,
 	store ProfileStore,
 	log Log,
 	self domain.ApplicationIdentity,
 ) *CaptureService {
 	return &CaptureService{
-		desktop:   desktop,
-		processes: processes,
-		store:     store,
-		log:       log,
-		self:      self,
+		desktop: desktop,
+		store:   store,
+		log:     log,
+		self:    self,
 	}
 }
 
 // Review reads the desktop and returns the entries for the user to confirm
-// (FR-010). basedOn names a profile being recaptured, whose applications are
-// candidates even where they have no window now (FR-012); it may be empty for a
-// capture that is not based on one.
-func (service *CaptureService) Review(ctx context.Context, basedOn string) (Review, error) {
+// (FR-010). Only what is on screen is read (FR-005), so capturing a desktop
+// afresh and capturing it again over an existing profile are the same thing.
+func (service *CaptureService) Review(ctx context.Context) (Review, error) {
 	windows, err := service.desktop.Windows(ctx)
 	if err != nil {
 		return Review{}, fmt.Errorf("reading the windows: %w", err)
@@ -71,9 +66,6 @@ func (service *CaptureService) Review(ctx context.Context, basedOn string) (Revi
 	}
 
 	review := service.fromWindows(windows, set)
-	if err := service.addProfileOnly(ctx, basedOn, &review); err != nil {
-		return Review{}, err
-	}
 	service.log.Step(fmt.Sprintf("capture read %d entries and %d unreadable windows",
 		len(review.Entries), len(review.Unreadable)))
 	return review, nil
@@ -98,6 +90,11 @@ func (service *CaptureService) fromWindows(windows []Window, set displaySet) Rev
 		if window.Application.Validate() != nil || service.self.SameProgram(window.Application) {
 			continue
 		}
+		// Only what is on screen is captured (FR-005): a window that is not
+		// shown has nothing to arrange, so it makes no entry at all.
+		if !window.Visible {
+			continue
+		}
 		key := strings.ToLower(window.Application.String())
 		position, known := at[key]
 		if !known {
@@ -107,12 +104,6 @@ func (service *CaptureService) fromWindows(windows []Window, set displaySet) Rev
 			})
 			position = len(review.Entries) - 1
 			at[key] = position
-		}
-		// A hidden window is left without a placement. The entry then says the
-		// application should run without saying where, which is how the owner's
-		// tray applications are usually left (FR-005).
-		if !window.Visible {
-			continue
 		}
 		review.Entries[position] = review.Entries[position].
 			WithPlacement(placementFor(window, set))
@@ -145,47 +136,6 @@ func placementFor(window Window, set displaySet) domain.Placement {
 	// the profile brings it back somewhere reachable (FR-032).
 	placement.Display = set.primary().Identity
 	return placement
-}
-
-// addProfileOnly adds the applications of the profile being recaptured that
-// have no window now, so that recapturing a profile does not quietly drop the
-// tray applications it was keeping (FR-012).
-func (service *CaptureService) addProfileOnly(ctx context.Context, basedOn string, review *Review) error {
-	if strings.TrimSpace(basedOn) == "" {
-		return nil
-	}
-	profile, err := service.store.Load(ctx, basedOn)
-	if err != nil {
-		if errors.Is(err, ErrNoSuchProfile) {
-			return nil
-		}
-		return fmt.Errorf("reading profile %q: %w", basedOn, err)
-	}
-
-	seen := make(map[string]struct{}, len(review.Entries))
-	for _, entry := range review.Entries {
-		seen[strings.ToLower(entry.Application.String())] = struct{}{}
-	}
-	var added []domain.Entry
-	for _, entry := range profile.Entries {
-		key := strings.ToLower(entry.Application.String())
-		if _, already := seen[key]; already {
-			continue
-		}
-		if service.self.SameProgram(entry.Application) {
-			continue
-		}
-		running, err := service.processes.Running(ctx, entry.Application)
-		if err != nil {
-			return fmt.Errorf("reading whether %s is running: %w", entry.Application, err)
-		}
-		added = append(added, domain.Entry{Application: entry.Application, Running: running})
-	}
-	sort.SliceStable(added, func(one, two int) bool {
-		return added[one].Application.String() < added[two].Application.String()
-	})
-	review.Entries = append(review.Entries, added...)
-	return nil
 }
 
 // Save writes the confirmed review as a profile (FR-011). A name already in use

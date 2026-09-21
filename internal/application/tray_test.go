@@ -16,7 +16,7 @@ func trayOver(store *fakeStore, desktop *fakeDesktop, processes *fakeProcesses) 
 	clock := newFakeClock()
 	launcher := &fakeLauncher{}
 	restores := restoreUnder(desktop, processes, launcher, store, clock, log)
-	captures := NewCaptureService(desktop, processes, store, log, screenst)
+	captures := NewCaptureService(desktop, store, log, screenst)
 	return NewTrayService(store, restores, captures, log), restores
 }
 
@@ -239,7 +239,7 @@ func TestCapturingFromTheTrayWritesNothing(t *testing.T) {
 	}
 	tray, _ := trayOver(store, desktop, newFakeProcesses(pigeonpost))
 
-	review, err := tray.Capture(context.Background(), "")
+	review, err := tray.Capture(context.Background())
 	if err != nil {
 		t.Fatalf("capturing: %v", err)
 	}

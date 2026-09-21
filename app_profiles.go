@@ -124,8 +124,8 @@ func (a *App) CancelRestore() bool {
 
 // Capture reads the desktop and returns the candidates for review (FR-010).
 // Nothing is written: the review is held here until it is confirmed or dropped.
-func (a *App) Capture(basedOn string) (ReviewDTO, error) {
-	review, err := a.captures.Review(context.Background(), basedOn)
+func (a *App) Capture() (ReviewDTO, error) {
+	review, err := a.captures.Review(context.Background())
 	if err != nil {
 		return ReviewDTO{}, err
 	}

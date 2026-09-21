@@ -75,61 +75,17 @@ func TestAnApplicationThatStopsAnsweringWhileWaitedForIsNamed(t *testing.T) {
 // A capture says which reading of the desktop failed, exactly as a restore does.
 func TestACaptureSaysWhichReadingFailed(t *testing.T) {
 	t.Parallel()
-	byWindows := captureUnder(&fakeDesktop{windowsErr: errRefused}, newFakeProcesses(), newFakeStore())
-	if _, err := byWindows.Review(context.Background(), ""); !containsText(err.Error(), "reading the windows") {
+	byWindows := captureUnder(&fakeDesktop{windowsErr: errRefused}, newFakeStore())
+	if _, err := byWindows.Review(context.Background()); !containsText(err.Error(), "reading the windows") {
 		t.Fatalf("reported as %v", err)
 	}
-	byDisplays := captureUnder(&fakeDesktop{displaysErr: errRefused}, newFakeProcesses(), newFakeStore())
-	if _, err := byDisplays.Review(context.Background(), ""); !containsText(err.Error(), "reading the displays") {
+	byDisplays := captureUnder(&fakeDesktop{displaysErr: errRefused}, newFakeStore())
+	if _, err := byDisplays.Review(context.Background()); !containsText(err.Error(), "reading the displays") {
 		t.Fatalf("reported as %v", err)
 	}
-	none := captureUnder(&fakeDesktop{}, newFakeProcesses(), newFakeStore())
-	if _, err := none.Review(context.Background(), ""); !errors.Is(err, ErrNoDisplays) {
+	none := captureUnder(&fakeDesktop{}, newFakeStore())
+	if _, err := none.Review(context.Background()); !errors.Is(err, ErrNoDisplays) {
 		t.Fatalf("expected ErrNoDisplays, got %v", err)
-	}
-}
-
-// A capture based on a profile that cannot be read stops rather than quietly
-// capturing less than it was asked for.
-func TestACaptureStopsWhenTheProfileCannotBeRead(t *testing.T) {
-	t.Parallel()
-	store := newFakeStore()
-	store.loadErr = errRefused
-	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), store)
-	if _, err := service.Review(context.Background(), "Desk"); !containsText(err.Error(), "reading profile") {
-		t.Fatalf("reported as %v", err)
-	}
-
-	unreadable := newFakeProcesses()
-	unreadable.err = errRefused
-	profile, _ := domain.NewProfile("Desk", domain.Entry{Application: nordvpn, Running: true})
-	held := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		unreadable, newFakeStore(profile))
-	if _, err := held.Review(context.Background(), "Desk"); !containsText(err.Error(), "is running") {
-		t.Fatalf("reported as %v", err)
-	}
-}
-
-// An application open now and named by the profile appears once, not twice.
-func TestAnApplicationInBothTheDesktopAndTheProfileAppearsOnce(t *testing.T) {
-	t.Parallel()
-	profile, _ := domain.NewProfile("Desk", domain.Entry{Application: pigeonpost, Running: true})
-	desktop := &fakeDesktop{
-		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, pigeonpost, at(0))},
-	}
-	service := captureUnder(desktop, newFakeProcesses(pigeonpost), newFakeStore(profile))
-
-	review, err := service.Review(context.Background(), "Desk")
-	if err != nil {
-		t.Fatalf("the capture failed: %v", err)
-	}
-	if len(review.Entries) != 1 {
-		t.Fatalf("captured %d entries: %+v", len(review.Entries), review.Entries)
-	}
-	if len(review.Entries[0].Placements) != 1 {
-		t.Fatal("the entry read from the desktop was replaced by the profile's")
 	}
 }
 
@@ -140,16 +96,14 @@ func TestAStoreThatWillNotAnswerIsReported(t *testing.T) {
 
 	cannotList := newFakeStore()
 	cannotList.namesErr = errRefused
-	listing := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), cannotList)
+	listing := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}}, cannotList)
 	if _, err := listing.Save(context.Background(), "Desk", entries, false); !containsText(err.Error(), "listing the profiles") {
 		t.Fatalf("reported as %v", err)
 	}
 
 	cannotSave := newFakeStore()
 	cannotSave.saveErr = errRefused
-	saving := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), cannotSave)
+	saving := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}}, cannotSave)
 	if _, err := saving.Save(context.Background(), "Desk", entries, false); !containsText(err.Error(), "writing profile") {
 		t.Fatalf("reported as %v", err)
 	}

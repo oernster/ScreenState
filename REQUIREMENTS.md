@@ -184,10 +184,11 @@ it lands when it is restored down.
 
 **FR-005 End state with no window**
 Priority: Must
-Requirement: A capture shall record only the applications with a window shown.
-Where a recapture keeps an application of the profile it is based on that has no
-window shown now (FR-012), the ScreenState agent shall record it as running with
-no placement and a restore shall move nothing of its.
+Requirement: A capture shall record only the applications with a window shown,
+whether or not a profile of the same name already exists. An entry recording an
+application as running with no placement, which a profile file can still hold,
+shall be satisfied by the application running; a restore shall move nothing of
+its.
 Rationale: ScreenState arranges what is on the screen, not which applications
 are running (ruled by the owner 2026-09-21). An application with no window shown
 has nothing on screen to arrange. A capture offering every application running
@@ -229,8 +230,7 @@ write no profile.
 **FR-012 Candidate applications**
 Priority: Must
 Requirement: The ScreenState agent shall treat as a candidate every application
-owned by the signed-in user that either has a top-level window or is recorded in
-an existing entry of the profile being captured.
+owned by the signed-in user that has a top-level window shown on screen.
 Rationale: without a rule, a capture either lists hundreds of background
 processes or silently omits an application the user wants.
 

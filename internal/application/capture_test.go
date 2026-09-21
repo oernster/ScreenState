@@ -8,13 +8,13 @@ import (
 	"github.com/oernster/ScreenState/internal/domain"
 )
 
-func captureUnder(desktop *fakeDesktop, processes *fakeProcesses, store *fakeStore) *CaptureService {
-	return NewCaptureService(desktop, processes, store, &fakeLog{}, screenst)
+func captureUnder(desktop *fakeDesktop, store *fakeStore) *CaptureService {
+	return NewCaptureService(desktop, store, &fakeLog{}, screenst)
 }
 
 // FR-003, FR-004, FR-005 and FR-013 together: one entry per application, a
-// placement per visible window naming the display holding it, no placement for
-// a hidden window and nothing at all for ScreenState itself.
+// placement per visible window naming the display holding it, nothing for a
+// window that is not shown and nothing at all for ScreenState itself.
 func TestACaptureReadsOneEntryPerApplication(t *testing.T) {
 	t.Parallel()
 	hidden := aWindow(3, nordvpn, at(2))
@@ -32,16 +32,16 @@ func TestACaptureReadsOneEntryPerApplication(t *testing.T) {
 			aWindow(1, pigeonpost, at(0)),
 		},
 	}
-	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
+	service := captureUnder(desktop, newFakeStore())
 
-	review, err := service.Review(context.Background(), "")
+	review, err := service.Review(context.Background())
 	if err != nil {
 		t.Fatalf("the capture failed: %v", err)
 	}
-	if len(review.Entries) != 3 {
+	if len(review.Entries) != 2 {
 		t.Fatalf("captured %d entries: %+v", len(review.Entries), review.Entries)
 	}
-	// Oldest window first, so Claude leads and NordVPN follows Stellody.
+	// Oldest window first, so PigeonPost leads Stellody.
 	if !review.Entries[0].Application.Equal(pigeonpost) || !review.Entries[1].Application.Equal(stellody) {
 		t.Fatalf("entries out of order: %+v", review.Entries)
 	}
@@ -51,11 +51,10 @@ func TestACaptureReadsOneEntryPerApplication(t *testing.T) {
 	if state := review.Entries[1].Placements[0].State; state != domain.ShowMaximised {
 		t.Fatalf("Stellody was recorded showing %s", state)
 	}
-	nord := review.Entries[2]
-	if !nord.Application.Equal(nordvpn) || len(nord.Placements) != 0 || !nord.Running {
-		t.Fatalf("the hidden window was not recorded as running with no placement: %+v", nord)
-	}
 	for _, entry := range review.Entries {
+		if entry.Application.Equal(nordvpn) {
+			t.Fatal("the capture recorded NordVPN, whose only window is not shown")
+		}
 		if entry.Application.Equal(screenst) {
 			t.Fatal("the capture recorded ScreenState itself")
 		}
@@ -72,9 +71,9 @@ func TestAnUnreadableWindowIsNamedRatherThanDropped(t *testing.T) {
 		displays: []Display{primaryDisplay},
 		windows:  []Window{unreadable, nameless, unknown, aWindow(1, pigeonpost, at(0))},
 	}
-	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
+	service := captureUnder(desktop, newFakeStore())
 
-	review, err := service.Review(context.Background(), "")
+	review, err := service.Review(context.Background())
 	if err != nil {
 		t.Fatalf("the capture failed: %v", err)
 	}
@@ -91,62 +90,6 @@ func TestAnUnreadableWindowIsNamedRatherThanDropped(t *testing.T) {
 	}
 }
 
-// FR-012: recapturing a profile keeps the applications it named, even those
-// with no window now, so the tray applications are not quietly dropped.
-func TestRecapturingKeepsTheProfilesOwnApplications(t *testing.T) {
-	t.Parallel()
-	profile, _ := domain.NewProfile("Desk",
-		domain.Entry{Application: nordvpn, Running: true},
-		domain.Entry{Application: stellody, Running: true},
-		domain.Entry{Application: screenst, Running: true},
-	)
-	desktop := &fakeDesktop{
-		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, pigeonpost, at(0))},
-	}
-	service := captureUnder(desktop, newFakeProcesses(nordvpn), newFakeStore(profile))
-
-	review, err := service.Review(context.Background(), "Desk")
-	if err != nil {
-		t.Fatalf("the capture failed: %v", err)
-	}
-	if len(review.Entries) != 3 {
-		t.Fatalf("captured %d entries: %+v", len(review.Entries), review.Entries)
-	}
-	byName := make(map[string]domain.Entry)
-	for _, entry := range review.Entries {
-		byName[entry.Application.String()] = entry
-	}
-	if !byName[nordvpn.String()].Running {
-		t.Fatal("NordVPN is running and was not recorded as running")
-	}
-	if byName[stellody.String()].Running {
-		t.Fatal("Stellody is not running and was recorded as running")
-	}
-	if _, present := byName[screenst.String()]; present {
-		t.Fatal("ScreenState came back through the profile it was excluded from")
-	}
-}
-
-// A capture based on a profile that is no longer stored is a capture of the
-// desktop, not a failure.
-func TestRecapturingAProfileThatHasGoneCapturesTheDesktop(t *testing.T) {
-	t.Parallel()
-	desktop := &fakeDesktop{
-		displays: []Display{primaryDisplay},
-		windows:  []Window{aWindow(1, pigeonpost, at(0))},
-	}
-	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
-
-	review, err := service.Review(context.Background(), "Gone")
-	if err != nil {
-		t.Fatalf("the capture failed: %v", err)
-	}
-	if len(review.Entries) != 1 {
-		t.Fatalf("captured %d entries", len(review.Entries))
-	}
-}
-
 // FR-032 at capture time: a window sitting on no connected display is recorded
 // against the primary one, so restoring the profile brings it back reachable.
 func TestAWindowOnNoDisplayIsRecordedAgainstThePrimaryOne(t *testing.T) {
@@ -154,9 +97,9 @@ func TestAWindowOnNoDisplayIsRecordedAgainstThePrimaryOne(t *testing.T) {
 	stray := aWindow(1, pigeonpost, at(0))
 	stray.Rect = domain.Rect{X: 30000, Y: 30000, Width: 400, Height: 300}
 	desktop := &fakeDesktop{displays: []Display{leftDisplay}, windows: []Window{stray}}
-	service := captureUnder(desktop, newFakeProcesses(), newFakeStore())
+	service := captureUnder(desktop, newFakeStore())
 
-	review, err := service.Review(context.Background(), "")
+	review, err := service.Review(context.Background())
 	if err != nil {
 		t.Fatalf("the capture failed: %v", err)
 	}
@@ -173,7 +116,7 @@ func TestSavingUnderANameInUseIsRefused(t *testing.T) {
 	existing, _ := domain.NewProfile("Desk", domain.Entry{Application: nordvpn})
 	store := newFakeStore(existing)
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), store)
+		store)
 
 	entries := []domain.Entry{{Application: pigeonpost, Running: true}}
 	if _, err := service.Save(context.Background(), "desk", entries, false); !errors.Is(err, ErrProfileNameInUse) {
@@ -201,7 +144,7 @@ func TestSavingWritesTheConfirmedEntries(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore()
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), store)
+		store)
 
 	entries := []domain.Entry{
 		{Application: pigeonpost, Running: true},
@@ -230,7 +173,7 @@ func TestTheFirstProfileBecomesTheDefault(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore()
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), store)
+		store)
 	entries := []domain.Entry{{Application: pigeonpost, Running: true}}
 
 	first, err := service.Save(context.Background(), "Desk", entries, false)
@@ -265,7 +208,7 @@ func TestAProfileIsStillWrittenWhenTheMarkingCannotBeRead(t *testing.T) {
 	store := newFakeStore()
 	store.defaultErr = errors.New("the store would not answer")
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), store)
+		store)
 
 	profile, err := service.Save(context.Background(), "Desk",
 		[]domain.Entry{{Application: pigeonpost, Running: true}}, false)
@@ -286,7 +229,7 @@ func TestAnInvalidReviewIsNotWritten(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore()
 	service := captureUnder(&fakeDesktop{displays: []Display{primaryDisplay}},
-		newFakeProcesses(), store)
+		store)
 
 	twice := []domain.Entry{{Application: pigeonpost, Running: true}, {Application: pigeonpost}}
 	if _, err := service.Save(context.Background(), "Desk", twice, false); !errors.Is(err, domain.ErrDuplicateEntry) {
