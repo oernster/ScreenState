@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Manager</title>
     <link rel="stylesheet" href="theme.css"/>
+    <!--
+      The manager's own sheet is one stylesheet cut into four in source order,
+      so the cascade is what it was as a single file. Keep the tags in this
+      order and put a new rule in the file whose concern it is.
+    -->
     <link rel="stylesheet" href="manager.css"/>
+    <link rel="stylesheet" href="manager-controls.css"/>
+    <link rel="stylesheet" href="manager-dialog.css"/>
+    <link rel="stylesheet" href="manager-sheets.css"/>
 </head>
 <!--
   Nothing on this page writes the product's name or its tagline down. A page has

@@ -155,7 +155,7 @@ just below it, an undocumented exported type, a program ended above
 infrastructure, an application started in front, a decision that is not
 portable, a timing value with two homes, the product's name written twice, a
 page naming the product, a wire that disagrees with itself, a call to a method
-nothing binds, a manager script nothing loads and a shared asset that has
+nothing binds, a manager script or stylesheet nothing loads and a shared asset that has
 drifted from its master in `assets/`.
 
 Each assertion is proved by planting a violation and reading the failure, not

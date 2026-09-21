@@ -45,7 +45,7 @@ to fail is not yet a guard.
 | Every application started through the shell is shown without activating (FR-077) | `TestNothingIsStartedInFront` | `rulings_test.go` |
 | The shared palette and page furniture match their masters in `assets/` | `TestTheSharedAssetsHaveNotDrifted` | `shared_assets_test.go` |
 | The manager's page names nothing: no product name, no tagline | `TestTheManagerPageNamesNothing` | `shared_assets_test.go` |
-| Every script in the manager's page is loaded by its `index.html` | `TestEveryManagerScriptIsLoadedByThePage` | `shared_assets_test.go` |
+| Every script and stylesheet in the manager's page is loaded by its `index.html` | `TestEveryManagerScriptIsLoadedByThePage` | `shared_assets_test.go` |
 | The manager's page reads only fields the program sends and calls only what it binds | `TestTheManagerWireIsStatedTwiceAndAgrees` | `shared_assets_test.go` |
 | The setup page names nothing (not proved by a plant) | `TestTheSetupPageNamesNothing` | `setup_page_test.go` |
 | The setup page reads only fields the program sends (not proved by a plant) | `TestTheWireIsStatedTwiceAndAgrees` | `setup_page_test.go` |
@@ -437,6 +437,15 @@ scripts sharing one scope, so `index.html` loads the shared furniture and the gu
 `manager.js` ahead of the other manager scripts; a structural test holds the tags and the files to
 each other, though not their order.
 
+**The stylesheet is one sheet cut into four in source order.** `manager.css` holds the frame and
+the lists, `manager-controls.css` the fields, the marks and the rail, `manager-dialog.css` the
+dialog and the Help menu, `manager-sheets.css` About, the licence, the guide and the progress bar.
+The cuts fall on the section banners and nowhere else, so the four joined in the order `index.html`
+loads them were byte for byte the single file they came from: the cascade could not change. They
+were not cut by which panel owns a rule, since shared rules belong to no panel and a different load
+order is a different cascade that nothing here would test. The same structural test holds every
+stylesheet to a tag.
+
 **The window asks how far a restore has got; nothing pushes it.** The Applying panel carries the same
 bar the setup program shows, filled from the entries the restore has satisfied out of the entries the
 profile holds (FR-065). The restore keeps that reading in an atomic beside the report rather than in
@@ -740,8 +749,10 @@ owner's decision, so the specification still states what was asked for.
 - **What is stored (NFR-PRIV-001).** The notes of the restore the agent runs as it starts, written to
   the log, carry the titles of the windows put away.
 - **An unreadable profile (NFR-REL-002, DATA-003)** is named in the log, not in the manager.
-- **Module size (NFR-MAINT-003).** The structural test measures Go files only; `manager.css` is over
-  400 lines.
+- **Module size (NFR-MAINT-003).** The structural test measures Go files only. Every page file is
+  under 400 lines today; the manager's stylesheet was cut into four to get there. Nothing fails the
+  suite when one grows past it, nor for the danger band below it, where `manager-help.js` sits at
+  394 lines.
 - **Placing a maximised window (FR-074).** The placing code says `SetWindowPlacement` was measured
   not to activate, while the rebuild's comment records it activating PigeonPost, Stellody and
   Claude. A shell trace of a maximising placement would settle which is right.

@@ -1,0 +1,133 @@
+/* -------------------------------------------------------------- about */
+
+.aboutmark {
+    width: 126px;
+    height: 126px;
+    margin-bottom: 12px;
+}
+
+.aboutname { margin: 8px 0 2px; }
+
+.abouttagline {
+    margin: 0 0 16px;
+    color: var(--muted);
+}
+
+/* The facts sit as a labelled block, left aligned inside a centred dialog: a
+   column of labels is read down, which centring would take away. */
+.aboutlines {
+    display: inline-block;
+    text-align: left;
+    line-height: 1.8;
+}
+
+.aboutlabel {
+    display: inline-block;
+    width: 88px;
+    color: var(--muted);
+}
+
+.aboutcopyright {
+    margin-top: 6px;
+    color: var(--muted);
+}
+
+.aboutrule {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 18px 0;
+}
+
+.aboutcreditstitle {
+    margin: 0 0 10px;
+    font-size: 17px;
+    font-weight: 700;
+}
+
+/* One line per project, its name at the left and the licence it is offered
+   under at the right, so the two read as a pair rather than as a sentence. */
+.aboutcredits {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+    font-size: 15px;
+}
+
+.aboutcredits li {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.creditlicence { color: var(--muted); }
+
+.aboutthanks {
+    margin: 16px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+/* The licence itself, shown rather than pointed at. It keeps the shape it was
+   written in, so the numbered sections and their indents survive. */
+.licencetext {
+    margin: 0;
+    padding: 14px;
+    white-space: pre-wrap;
+    font-family: ui-monospace, "Consolas", monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--muted);
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+/* A guide row names a control and shows the picture the window actually draws
+   for it, at the size the window draws it. A picture at another size is a
+   different picture as far as recognising it goes. */
+.row .guideart {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    object-fit: contain;
+}
+
+/* A heading inside the guide, which is a document rather than a list. */
+.guidehead {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 16px 0 4px;
+}
+
+.guidehead:first-child { margin-top: 0; }
+
+/* -------------------------------------------------------------- progress */
+
+/* The bar on the Applying panel, the same one the setup program shows, so a
+   wait looks the same wherever the product makes the user wait. */
+.track {
+    height: 9px;
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+    margin: 16px auto 9px;
+    /* The busy panel centres its children, which leaves a block sized to its
+       contents: a track holding nothing is then two pixels of border. It is
+       told to take the width it is offered, up to a line length a person can
+       take in at a glance. */
+    width: min(520px, 100%);
+}
+
+.fill {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+}
+
+.status { color: var(--muted); font-size: 16px; }

@@ -84,27 +84,49 @@ func TestTheManagerPageNamesNothing(t *testing.T) {
 	}
 }
 
-// scriptSrc is what a page names when it loads a script.
-var scriptSrc = regexp.MustCompile(`<script src="([^"]+)"`)
+// scriptSrc is what a page names when it loads a script; stylesheetHref is what
+// it names when it loads a stylesheet.
+var (
+	scriptSrc      = regexp.MustCompile(`<script src="([^"]+)"`)
+	stylesheetHref = regexp.MustCompile(`<link rel="stylesheet" href="([^"]+)"`)
+)
+
+// loadedBy answers the files a page's tags name, by the given pattern.
+func loadedBy(page string, tag *regexp.Regexp) map[string]bool {
+	loaded := map[string]bool{}
+	for _, match := range tag.FindAllStringSubmatch(page, -1) {
+		loaded[match[1]] = true
+	}
+	return loaded
+}
 
 // TestEveryManagerScriptIsLoadedByThePage holds the halves of a page that is
 // spread over several files to each other.
 //
-// Nothing compiles a page here, so a script no tag names is dead weight that
-// nothing reports, while a tag naming a file that is not there is a window that
-// comes up half wired. The manager was one file until it was split into five,
-// which is what makes this worth guarding: the sixth is the one that gets
-// written and never loaded.
+// Nothing compiles a page here, so a script or stylesheet no tag names is dead
+// weight that nothing reports, while a tag naming a file that is not there is a
+// window that comes up half wired or half styled. The manager's script was one
+// file until it was split into five and its stylesheet one until it was cut
+// into four, which is what makes this worth guarding: the next one is the one
+// that gets written and never loaded.
 func TestEveryManagerScriptIsLoadedByThePage(t *testing.T) {
 	root := repoRoot(t)
 	dir := filepath.Join(root, "frontend", "dist")
-	loaded := map[string]bool{}
-	for _, match := range scriptSrc.FindAllStringSubmatch(
-		readSource(t, filepath.Join(dir, "index.html")), -1) {
-		loaded[match[1]] = true
+	page := readSource(t, filepath.Join(dir, "index.html"))
+	for _, kind := range []struct {
+		extension string
+		tag       *regexp.Regexp
+	}{{".js", scriptSrc}, {".css", stylesheetHref}} {
+		everyFileIsLoaded(t, dir, kind.extension, loadedBy(page, kind.tag))
 	}
+}
+
+// everyFileIsLoaded fails any file of the kind the page does not load. It also
+// fails any tag naming a file that is not there.
+func everyFileIsLoaded(t *testing.T, dir, extension string, loaded map[string]bool) {
+	t.Helper()
 	if len(loaded) == 0 {
-		t.Fatal("index.html loads no script at all, so this check would pass over anything")
+		t.Fatalf("index.html loads no %s file at all, so this check would pass over anything", extension)
 	}
 	for name := range loaded {
 		if _, err := os.Stat(filepath.Join(dir, name)); err != nil {
@@ -117,7 +139,7 @@ func TestEveryManagerScriptIsLoadedByThePage(t *testing.T) {
 	}
 	for _, entry := range entries {
 		name := entry.Name()
-		if entry.IsDir() || !strings.HasSuffix(name, ".js") {
+		if entry.IsDir() || !strings.HasSuffix(name, extension) {
 			continue
 		}
 		if !loaded[name] {

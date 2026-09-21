@@ -1,0 +1,118 @@
+/* ----------------------------------------------------------- settings */
+
+/* The settings are a dialog of their own. The one that is not a tick box, how
+   long a restore waits, is laid out as the tick boxes are: the words, the
+   control, then the hint beneath, level with the words above it. */
+/* The border is the tick box row's own, unpainted, so the words line up with
+   theirs to the pixel. */
+.ceiling {
+    margin-top: 11px;
+    padding: 5px 7px 5px 41px;
+    border: 2px solid transparent;
+}
+
+.ceilingrow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 6px 0 4px;
+}
+
+.ceiling .hint {
+    display: block;
+    font-size: 15px;
+    color: var(--muted);
+}
+
+.field.minutes { flex: 0 0 auto; width: 96px; }
+
+/* ------------------------------------------------------------ capture */
+
+.namerow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 4px 0 6px;
+}
+
+.fieldlabel { color: var(--muted); font-size: 16px; flex: 0 0 auto; }
+
+.field {
+    flex: 1 1 auto;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 9px;
+    color: var(--text);
+    font: inherit;
+    padding: 9px 12px;
+}
+
+.field:enabled:hover,
+.field:enabled:focus { border-color: var(--ring); }
+
+.field:disabled { border-color: var(--danger); cursor: default; }
+
+/* ------------------------------------------------------------- report */
+
+.verdict {
+    font-size: 44px;
+    line-height: 1;
+    margin-bottom: 10px;
+}
+
+.tick { color: var(--ring); font-size: 20px; flex: 0 0 auto; }
+
+.cross { color: var(--danger); font-size: 20px; flex: 0 0 auto; }
+
+/* ------------------------------------------------------------- donate */
+
+/* The rail down the right holds two things that do not belong together: the
+   buttons of whatever panel is showing, replaced wholesale every time it does,
+   then the donation button at its foot, which belongs to the window and never
+   changes. The rule the shared theme draws above .footer is drawn beside the
+   rail instead, since the rail stands beside the panel rather than under it. */
+.rail {
+    flex: 0 0 236px;
+    display: flex;
+    flex-direction: column;
+    gap: 13px;
+    min-height: 0;
+    padding-left: 18px;
+    border-left: 1px solid var(--border);
+}
+
+.rail .footer {
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 0;
+    overflow-y: auto;
+    padding-top: 0;
+    border-top: 0;
+}
+
+/* Every button takes the rail's width, so a column of them reads as one list
+   rather than a ragged edge; a long label wraps rather than widening the rail. */
+.rail .btn {
+    width: 100%;
+    white-space: normal;
+    padding-left: 12px;
+    padding-right: 12px;
+}
+
+/* The gap between two groups takes whatever height the rail has spare, so the
+   group after it sits at the foot, just above the donation button. */
+.rail .btnsep { flex: 1 1 auto; min-height: 18px; }
+
+/* The donation button wears the header's own button class, so the two match by
+   construction rather than by a second set of numbers kept in step by hand.
+   Only its width differs, taking the rail's as the buttons above it do; the
+   picture is wider than it is tall, so it is sized by height. */
+.rail .donatebtn { width: 100%; flex: 0 0 auto; }
+
+.donatebtn img {
+    height: 46px;
+    width: auto;
+    display: block;
+}
+

@@ -1,0 +1,153 @@
+/* ------------------------------------------------------------- dialog */
+
+/* The house dialog: a backdrop over the whole window, a card centred on it, a
+   cross in its corner, a body that scrolls and a row of actions pinned under
+   the body rather than scrolling away with it. */
+/* The hidden attribute has to be said here as well. A page's own display rule
+   beats the browser's rule for [hidden], so a backdrop given display: flex is
+   shown whatever the attribute says: the window came up with an empty card over
+   it, blocking everything, while a check reading the .hidden PROPERTY saw
+   nothing wrong. Measured on the built application, 2026-09-20. */
+.modal-backdrop[hidden] { display: none; }
+
+.modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 40;
+}
+
+/* The cross is measured once here, because the body's top inset is derived from
+   it: two literals would drift apart and put the scrollbar back under it. */
+:root {
+    --modal-close-size: 32px;
+    --modal-close-inset: 10px;
+}
+
+.modal {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    width: calc(100% - 80px);
+    max-width: 680px;
+    max-height: calc(100vh - 80px);
+}
+
+/* The body starts below the cross rather than beside it. Its scrollbar runs the
+   full height of the body along its right edge, which is where the cross sits,
+   so a body starting level with the cross puts a moving bar straight through the
+   only control the corner has. The inset is the cross's own height plus its
+   offset, so the two cannot be brought back into contact by resizing either. */
+.modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    margin-top: calc(var(--modal-close-size) + var(--modal-close-inset));
+    /* A gutter each side, so a line that runs to the right edge (the licence
+       beside each credit) stops clear of the scroll track rather than reading as
+       though it were cut off by it. Both sides, because the sheets are centred
+       and a gutter on one would lean them. */
+    padding: 0 14px;
+}
+
+.modal-close {
+    position: absolute;
+    top: var(--modal-close-inset);
+    right: var(--modal-close-inset);
+    width: var(--modal-close-size);
+    height: var(--modal-close-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.modal-close:enabled:hover,
+.modal-close:enabled:focus { border-color: var(--ring); }
+
+.modal-actions {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 18px;
+}
+
+/* A sheet is one dialog's content, shown one at a time exactly as the panels
+   behind are, so the cross and the actions are written once for all of them. */
+.sheet { display: none; }
+
+.sheet.active { display: block; }
+
+.sheet.centred { text-align: center; }
+
+/* --------------------------------------------------------------- menu */
+
+/* Help is a trigger with a menu under it. The wrapper is what the menu is
+   positioned against, so the menu hangs from the button rather than from the
+   bar. It takes no part in the ring: a container is never a stop. */
+.menuwrap {
+    position: relative;
+    flex: 0 0 auto;
+}
+
+/* Right aligned, because this trigger is the last thing on the bar: a menu
+   opening leftwards from the right edge is the only one that stays on screen. */
+.menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 210px;
+    padding: 5px;
+    background: var(--raised);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    z-index: 20;
+}
+
+.menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 9px 12px;
+    border: 2px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* The three-state ring, on a menu item as on anything else: nothing at rest, the
+   ring under the pointer or the keyboard, the danger colour while inert. */
+.menu-item:enabled:hover,
+.menu-item:enabled:focus { border-color: var(--ring); }
+
+.menu-item:disabled {
+    color: var(--muted);
+    border-color: var(--danger);
+    cursor: default;
+}
+
+.menu-sep {
+    height: 1px;
+    margin: 5px 7px;
+    background: var(--border);
+}
+
