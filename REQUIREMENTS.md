@@ -1522,8 +1522,8 @@ the same rectangle, drawn properly; the second process then exited by itself.
 
 Status: PROPOSED 2026-09-22. Not baselined and not built. Nothing in this
 appendix describes what the product does today; sections 1 to 5 still do. The
-owner's rulings closed OQ-14 to OQ-17 the same day; OQ-13, a measurement, is
-the one question left. Once it is settled the amendment is baselined: each
+owner's rulings closed OQ-14 to OQ-17 the same day and a measurement closed
+OQ-13, so every question is closed and the amendment is ready to baseline: each
 requirement moves into section 3, OOS-2 is amended and appendix D is recounted.
 
 ### F.1 The need
@@ -1683,7 +1683,7 @@ version question is OQ-16.
 
 | ID | Question | Owner | Confirm by |
 |---|---|---|---|
-| OQ-13 | Does the capture read the stacking order as it stands? ARCHITECTURE.md says the first enumeration of windows comes back in stacking order; that is a statement about Windows, not yet measured here. Settled by a desktop probe that makes three windows of its own in a known order and reads them back through `Desktop.Windows`. | Oliver | before FR-081 is built |
+| OQ-13 | CLOSED 2026-09-22, by measurement, against the assumption. The capture's read order cannot be taken as the stacking order. A desktop probe put two windows of its own one above the other, confirmed the order by walking `GetWindow` upwards, then read the desktop through `Desktop.Windows` in both arrangements: each time the window beneath was read first (index 5, then the one on top at 6). `Desktop.Windows` keeps the order `EnumWindows` hands it, so that order came from Windows. One machine and two windows only; it is enough to rule the read order out, not to say what `EnumWindows` does in general. FR-081 therefore takes each rank from the stacking order itself, walked window by window with `GetWindow`, the walk that FR-027's probe already relies on. | Oliver | closed 2026-09-22 |
 | OQ-14 | CLOSED 2026-09-22. No: once the user has pressed a key or clicked, the recorded order is not applied, since it would draw windows over the one being used. Written as FR-087. | Oliver | closed 2026-09-22 |
 | OQ-15 | CLOSED 2026-09-22. Yes: Apply applies the recorded order as a sign-in does, since it is a request to make the desktop match the profile. FR-083 covers every restore; FR-027's keeping of the order found governs only a profile with no ranks (FR-088). | Oliver | closed 2026-09-22 |
 | OQ-16 | CLOSED 2026-09-22. Format version 1, with the rank as an optional field (DATA-006). An older build lists and applies the profile, ignoring the ranks; one that rewrites it drops them, which returns that profile to FR-088. | Oliver | closed 2026-09-22 |
@@ -1693,7 +1693,8 @@ version question is OQ-16.
 
 1. Domain: the rank on `Placement`, validated (a positive whole number, unique
    within a profile), with a `With*` copy method.
-2. Application: the capture reading ranks from the desktop's order; the restore
+2. Application: the capture taking ranks from a new `Desktop` question that
+   answers the stacking order (never from the order `Windows` returns, OQ-13); the restore
    step of FR-083 against a new `Desktop` method that restacks a list of windows
    without activating; FR-085 to FR-088 as tests over the fake desktop.
 3. Infrastructure: the store field (DATA-006); the restack in `win32` built on
