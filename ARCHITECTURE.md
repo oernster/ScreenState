@@ -81,10 +81,10 @@ later edit could undo without anybody noticing.
   mutex and `startup` is the sign-in entry. Never imported by Domain or Application.
 - **UI** (`internal/ui`): the notification area icon, its menu, the message loop that serves them,
   the splash and the keyboard handover for the manager's webview. It calls the Application use cases
-  plus, for the keyboard handover alone, `internal/infrastructure/window`. The manager window itself is
-  a page under `frontend/dist`, bound to `app.go`, `app_profiles.go` and `about.go`. They are clients
-  of the use cases too; beyond them they reach `internal/ui`, for the keyboard handover and to
-  refresh the tray, plus the domain's value types and `internal/product` for the names the page is
+  plus, for the keyboard handover and greying the window's cross, `internal/infrastructure/window`.
+  The manager window itself is a page under `frontend/dist`, bound to `app.go`, `app_window.go`,
+  `app_profiles.go` and `about.go`. They are clients of the use cases too; beyond them they reach
+  `internal/ui`, for the keyboard handover, the greyed cross and to refresh the tray, plus the domain's value types and `internal/product` for the names the page is
   sent. `splash.go` beside them reads the palette and the artwork once for the two
   surfaces the agent draws itself.
 
@@ -491,14 +491,16 @@ than by `go build`. Wails owns the main thread; the notification area icon keeps
 thread of its own, because a window belongs to the thread that made it. They meet at one point: the
 tray is handed a callback and asks for the manager rather than opening anything itself.
 
-**The window is a client of the use cases.** `app.go` holds the window plumbing and most of the
+**The window is a client of the use cases.** `app.go` holds the facade itself and most of the
 shapes crossing the boundary, the rest sitting beside the method that answers them (the unreadable
 file and the progress reading in `app_profiles.go`, About and its credits in `about.go`); `about.go`
-answers About and the licence text. `app_profiles.go` holds most
+answers About and the licence text. `app_window.go` holds the window's own life: coming up, taking
+the keyboard, hiding, refusing a close under a dialog and quitting. `app_profiles.go` holds most
 of the bound methods, each a call into one of the services: `ManagerService`, `CaptureService`,
 `RestoreService`, `TrayService` for Apply and `UpdateService` for the update check. The only other
-calls are into `internal/ui`: `TakeWindowFocus` for the keyboard and `RefreshTray` after an Apply.
-No rule about what a profile means lives in any of the three files, so none of them can be got
+calls are into `internal/ui`: `TakeWindowFocus` for the keyboard, `AllowWindowClose` to grey the
+cross under a dialog and `RefreshTray` after an Apply.
+No rule about what a profile means lives in any of the four files, so none of them can be got
 wrong there without a test in the application layer failing first. The composition-root test
 holds the wiring: `main.go` is still the only file that imports both the application layer and
 infrastructure. The test reads each file's own imports, so the facade reaching the keyboard
@@ -753,7 +755,7 @@ or tests that assert what happened to be on screen.
 
 Measured statement coverage on 2026-09-22: domain 100%, application 97.3%, clock 100%, store 93.8%,
 settings 91.2%, instance 90.9%, runlog 76.7%, win32 41.6%, setup 33.6%, ui 25.8%, the root package
-(the composition root and the manager's facade) 13.1%. The shortfalls outside the floor are IO and
+(the composition root and the manager's facade) 16.8%. The shortfalls outside the floor are IO and
 platform failures that would need the disk or the window manager to fail mid-call, plus the Win32
 calls themselves; they are not padded with tests that assert nothing.
 
