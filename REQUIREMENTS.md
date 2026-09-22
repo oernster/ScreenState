@@ -437,15 +437,22 @@ behaviour before.
 Priority: Should
 Requirement: The manager's main screen shall show, beside the profile list,
 each application the selected profile holds, what it arranges and a control to
-take it out of the profile, with every path shown whole. Where no profile is
+take it out of the profile. Each application shall be named first, with the
+file it starts, its show state, its display (named by where it sits) and its
+size beneath; its whole path and every recorded rectangle and monitor id shall
+be available on the row without leaving the screen. Where no profile is
 selected it shall say that there is nothing to show until one is.
 Rationale: reported 2026-09-21, then revised by the owner the same day. The
 applications first filled a column beside the list shared with the settings,
 which left every part of the window cramped: a path was cut off after a few
 words and each setting added took a row off the list above it. They moved to a
 dialog. The settings then moved to a dialog of their own (EIR-002), so the main
-screen became three parts: the profiles; what the selected one arranges, with
-room for a path to wrap and be read whole; the buttons down the right.
+screen became three parts: the profiles; what the selected one arranges; the
+buttons down the right. Revised again by the owner on 2026-09-22: a whole path
+led every row, which made the executable the first thing read about an
+application. The name now leads and the path moved to the row's tooltip,
+kept rather than dropped because saying exactly what was captured is part of
+what the product is for.
 
 **FR-069 Every window a profile records**
 Priority: Must

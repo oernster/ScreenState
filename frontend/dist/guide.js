@@ -45,7 +45,7 @@ const guideSections = [
     },
     {
         heading: 'The profiles',
-        intro: 'A profile is a list of applications and where their windows belong. The profiles are down the left. Press one and what it arranges fills the middle: every application it holds and where its windows go, each path shown in full.',
+        intro: 'A profile is a list of applications and where their windows belong. The profiles are down the left. Press one and what it arranges fills the middle: every application it holds by name, with the file it starts and where its windows go beneath: how each is shown, on which display (by where that display sits) and how large. Rest the pointer on an application for exactly what was recorded: its whole path, where each window was and the display it was captured on.',
         entries: [
             {
                 art: 'profile.png', name: 'A profile',
