@@ -29,12 +29,13 @@ async function openCapture() {
         const tick = document.createElement('span')
         tick.className = 'check'
         const text = document.createElement('span')
+        text.title = entry.application + '\nrecognised by ' + entry.kind
         const title = document.createElement('span')
         title.className = 'label'
-        title.textContent = entry.application
+        title.textContent = entry.name
         const hint = document.createElement('span')
         hint.className = 'hint'
-        hint.textContent = entry.kind + ', '
+        hint.textContent = entry.program + PART
             + (entry.windows === 0 ? 'no window placed'
                 : entry.windows === 1 ? '1 window placed' : entry.windows + ' windows placed')
         text.append(title, hint)
@@ -107,9 +108,10 @@ async function openReport() {
         mark.textContent = entry.satisfied ? '✓' : '⚠'
         const words = document.createElement('span')
         words.className = 'words'
+        words.title = entry.application
         const name = document.createElement('span')
         name.className = 'name'
-        name.textContent = entry.application
+        name.textContent = entry.name
         const note = document.createElement('span')
         note.className = 'note wrap'
         note.textContent = entry.satisfied

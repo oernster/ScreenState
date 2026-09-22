@@ -191,6 +191,65 @@ func fileName(value string) string {
 	return value
 }
 
+// UpdaterStartFlag is how an updater is told which program to start, which is
+// what an updater identity holds between the updater's path and that program.
+const UpdaterStartFlag = "--processStart"
+
+// packageSeparator ends the package name in a model id, before the publisher
+// hash; packageApplication ends the package family, before the application.
+const (
+	packageSeparator   = "_"
+	packageApplication = "!"
+	packageNamespace   = "."
+)
+
+// Program is the file the identity starts, as a person would recognise it: the
+// executable a path names, the program an updater is told to start; the model id
+// itself for a packaged application known by nothing else.
+//
+// It is the second line of what the manager shows, so the user can see exactly
+// which file was recorded without reading the whole path.
+func (identity ApplicationIdentity) Program() string {
+	switch identity.Kind {
+	case KindUpdaterCommand:
+		if _, target, found := strings.Cut(identity.Value, " "+UpdaterStartFlag+" "); found {
+			return fileName(strings.TrimSpace(target))
+		}
+		return fileName(identity.Value)
+	case KindAppUserModelID:
+		return identity.Value
+	default:
+		return fileName(identity.Value)
+	}
+}
+
+// Name is what the application is called, for the line a person reads first.
+// It is derived from the identity rather than read from the executable, so it
+// needs no file to exist and cannot disagree with what was recorded.
+//
+// A packaged application is named from its model id where it has one, because
+// its path ends in whatever casing the package chose: Claude's measured path
+// ends in claude.exe while its model id begins Claude. The model id names the
+// package before the publisher hash; the last dotted part of that is the name.
+// Everything else is its program without the extension.
+func (identity ApplicationIdentity) Name() string {
+	if modelID := identity.packageModelID(); modelID != "" {
+		family, _, _ := strings.Cut(modelID, packageApplication)
+		pkg, _, _ := strings.Cut(family, packageSeparator)
+		if cut := strings.LastIndex(pkg, packageNamespace); cut >= 0 {
+			pkg = pkg[cut+1:]
+		}
+		if pkg != "" {
+			return pkg
+		}
+	}
+	program := identity.Program()
+	if cut := strings.LastIndex(program, "."); cut > 0 {
+		return program[:cut]
+	}
+	return program
+}
+
 // String renders an identity for the report.
 func (identity ApplicationIdentity) String() string {
 	return fmt.Sprintf("%s:%s", identity.Kind, identity.Value)

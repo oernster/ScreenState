@@ -53,8 +53,9 @@ const versionedPrefix = "app-"
 // current version of the application.
 const updaterName = "Update.exe"
 
-// processStartFlag is how that updater is told which program to start.
-const processStartFlag = "--processStart"
+// processStartFlag is how that updater is told which program to start. The
+// domain owns the spelling, since it reads the program back out of the command.
+const processStartFlag = domain.UpdaterStartFlag
 
 // updaterFor returns the command that starts the current version of an
 // application installed under a versioned directory, plus whether the path

@@ -235,12 +235,15 @@ type ProfileDTO struct {
 type PlacementDTO struct {
 	Display string `json:"display"`
 	Rect    string `json:"rect"`
+	Size    string `json:"size"`
 	State   string `json:"state"`
 }
 
 // EntryDTO is one application within a profile.
 type EntryDTO struct {
 	Application string         `json:"application"`
+	Name        string         `json:"name"`
+	Program     string         `json:"program"`
 	Kind        string         `json:"kind"`
 	Running     bool           `json:"running"`
 	Placements  []PlacementDTO `json:"placements"`
@@ -263,6 +266,8 @@ func stated[T any](values []T) []T {
 // ReviewEntryDTO is one candidate in a capture the user is reviewing.
 type ReviewEntryDTO struct {
 	Application string `json:"application"`
+	Name        string `json:"name"`
+	Program     string `json:"program"`
 	Kind        string `json:"kind"`
 	Windows     int    `json:"windows"`
 }
@@ -277,6 +282,7 @@ type ReviewDTO struct {
 // EntryReportDTO is one line of the report of the most recent restore.
 type EntryReportDTO struct {
 	Application string   `json:"application"`
+	Name        string   `json:"name"`
 	Satisfied   bool     `json:"satisfied"`
 	Reason      string   `json:"reason"`
 	Notes       []string `json:"notes"`

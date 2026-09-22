@@ -61,11 +61,14 @@ func (a *App) Entries(name string) ([]EntryDTO, error) {
 			placements = append(placements, PlacementDTO{
 				Display: placement.Display,
 				Rect:    placement.Rect,
+				Size:    placement.Size,
 				State:   placement.State,
 			})
 		}
 		out = append(out, EntryDTO{
 			Application: view.Application,
+			Name:        view.Name,
+			Program:     view.Program,
 			Kind:        view.Kind,
 			Running:     view.Running,
 			Placements:  placements,
@@ -137,6 +140,8 @@ func (a *App) Capture() (ReviewDTO, error) {
 	for _, entry := range review.Entries {
 		entries = append(entries, ReviewEntryDTO{
 			Application: entry.Application.Value,
+			Name:        entry.Application.Name(),
+			Program:     entry.Application.Program(),
 			Kind:        entry.Application.Kind.String(),
 			Windows:     len(entry.Placements),
 		})
@@ -257,6 +262,7 @@ func reportOf(profile string, report *application.Report) ReportDTO {
 	for _, entry := range report.Entries() {
 		entries = append(entries, EntryReportDTO{
 			Application: entry.Application.Value,
+			Name:        entry.Application.Name(),
 			Satisfied:   entry.Satisfied,
 			Reason:      entry.Reason,
 			Notes:       stated(entry.Notes),

@@ -175,9 +175,10 @@ async function toggleDefault(profile) {
 
 // entryRows fills the column with one row per entry.
 //
-// A name wraps rather than being cut off after a few words: this column is the
-// one place a profile's applications are shown, so it is the place that has to
-// show a whole path (FR-068).
+// The application's name leads, with the file it starts and what it arranges
+// beneath in the quieter note style. The whole path and the exact recorded
+// rectangle and monitor are still there, on the row's tooltip: what was
+// captured stays readable in full (FR-068), it just no longer comes first.
 function entryRows(container, entries) {
     container.innerHTML = ''
     if (!entries.length) {
@@ -190,13 +191,17 @@ function entryRows(container, entries) {
         row.className = 'row'
         const words = document.createElement('span')
         words.className = 'words'
+        words.title = details(entry)
         const name = document.createElement('span')
         name.className = 'name wrap'
-        name.textContent = entry.application
-        const note = document.createElement('span')
-        note.className = 'note wrap'
-        note.textContent = describe(entry)
-        words.append(name, note)
+        name.textContent = entry.name
+        words.appendChild(name)
+        describe(entry).forEach((line) => {
+            const note = document.createElement('span')
+            note.className = 'note wrap'
+            note.textContent = line
+            words.appendChild(note)
+        })
         row.appendChild(words)
 
         const remove = document.createElement('button')
@@ -239,13 +244,32 @@ async function drawEntries() {
     entryRows(rows, entries)
 }
 
-// describe says in words what one entry asks for.
+// The mark between the parts of one line of a row's note.
+const PART = ' · '
+
+// describe says in words what one entry asks for, a line at a time: the file it
+// starts and whether it runs, then how its window is shown and how large. One
+// placement shares the first line; several take a line each.
 function describe(entry) {
-    const where = entry.placements.map((placement) =>
-        placement.state + ' at ' + placement.rect).join('; ')
     const running = entry.running ? 'running' : 'not started'
-    if (!where) return entry.kind + ', ' + running + ', no window placed'
-    return entry.kind + ', ' + running + ', ' + where
+    const placements = entry.placements
+    if (!placements.length) {
+        return [[entry.program, running, 'no window placed'].join(PART)]
+    }
+    if (placements.length === 1) {
+        return [[entry.program, running, placements[0].state].join(PART), placements[0].size]
+    }
+    return [[entry.program, running].join(PART)].concat(placements.map((placement) =>
+        [placement.state, placement.size].join(PART)))
+}
+
+// details is exactly what was recorded for one entry, for the row's tooltip:
+// the whole identity, how it is recognised, then every placement's rectangle
+// and the monitor it was recorded against.
+function details(entry) {
+    return [entry.application, 'recognised by ' + entry.kind].concat(
+        entry.placements.map((placement) =>
+            placement.state + ' at ' + placement.rect + ' on ' + placement.display)).join('\n')
 }
 
 // removeEntry takes one application out of the profile, then draws the list and

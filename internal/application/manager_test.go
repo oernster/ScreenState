@@ -160,6 +160,10 @@ func TestEntriesDescribesEveryEntryOfTheProfile(t *testing.T) {
 	if views[0].Application != pigeonpost.Value {
 		t.Errorf("first entry names %q, want %q", views[0].Application, pigeonpost.Value)
 	}
+	if views[0].Name != "PigeonPost" || views[0].Program != "PigeonPost.exe" {
+		t.Errorf("first entry reads %q over %q, want PigeonPost over PigeonPost.exe",
+			views[0].Name, views[0].Program)
+	}
 	if views[0].Kind != pigeonpost.Kind.String() {
 		t.Errorf("first entry's kind is %q, want %q", views[0].Kind, pigeonpost.Kind.String())
 	}
@@ -178,6 +182,9 @@ func TestEntriesDescribesEveryEntryOfTheProfile(t *testing.T) {
 	}
 	if placement.Rect == "" {
 		t.Error("the placement shows no rectangle")
+	}
+	if placement.Size == "" {
+		t.Error("the placement shows no size")
 	}
 }
 
