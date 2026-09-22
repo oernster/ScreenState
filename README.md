@@ -1,4 +1,4 @@
-# ScreenState
+# <img width="128" height="128" alt="application-icon" src="https://github.com/user-attachments/assets/3934d8ed-bdcb-4830-ba69-8a177bcb1816" /> ScreenState
 
 Window layout profiles for Windows.
 
