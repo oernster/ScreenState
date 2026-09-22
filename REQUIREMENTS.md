@@ -9,9 +9,11 @@ Status: BASELINED 2026-09-20. Every open question in appendix B is closed.
 ### 1.1 Purpose
 
 ScreenState restores a Windows desktop to a chosen arrangement after a reboot or
-a sign-in. It records, per user, the applications that should be running and
-where each of their windows belongs across the connected displays, then puts the
-desktop back into that state without the user arranging it by hand.
+a sign-in. It records, per user, the applications with a window on screen and
+where each of those windows belongs across the connected displays, then puts the
+desktop back into that state without the user arranging it by hand. It controls
+the state of the screen rather than which applications run: it starts an
+application only so that the windows the profile records for it can be placed.
 
 ### 1.2 Intended audience
 
@@ -22,9 +24,10 @@ the README, which is derived from section 1.3 and NFR-PRIV-002.
 
 In scope:
 
-- Named profiles describing the desired end state of a set of applications.
+- Named profiles describing where the windows of a set of applications belong.
 - Capture of a profile from the desktop as it stands.
-- Launch of applications that a profile records as running.
+- Launch of an application a profile records that is not running, so that its
+  recorded windows can be placed.
 - Placement of windows on a named display at a recorded size, position and
   show state.
 - Automatic application of one default profile after sign-in.
@@ -54,8 +57,8 @@ Out of scope (each settled with the owner on 2026-09-19):
 | Agent | The ScreenState process running in the signed-in user's session. It owns the tray icon, performs capture and performs restore. |
 | Manager | The profile management window presented by the agent. |
 | Setup program | The program that installs, updates, repairs and removes ScreenState. |
-| Profile | A named record of the desired end state of a set of applications for one user. |
-| Entry | One application within a profile, holding its application identity, whether it should be running and its placements. |
+| Profile | A named record, for one user, of where the windows of a set of applications belong. |
+| Entry | One application within a profile, holding its application identity, whether a restore is to start it where it is not running and its placements. |
 | Placement | One window's desired display, normal rectangle and show state. |
 | Application identity | A value identifying an application that stays the same across updates of that application. |
 | Display identity | A value identifying a physical display that stays the same across reboots and distinguishes displays of the same model. |
@@ -161,15 +164,20 @@ Verified by: an integration test over a redirected store root.
 **FR-002 Named profiles**
 Priority: Must
 Requirement: The ScreenState agent shall identify each profile by a name unique
-within the user's profile store.
+within the user's profile store, two names differing only in case being one
+name.
 Acceptance: Given a profile named "Desk", when the user saves a second profile
-as "Desk", then the agent refuses the save and states that the name is in use.
+as "desk", then the agent refuses the save and states that the name is in use.
 
 **FR-003 Profile contents**
 Priority: Must
 Requirement: The ScreenState agent shall record in each profile, for every
-entry, the application identity, whether the application was running and every
-placement of that application's windows.
+entry, the application identity, whether a restore is to start the application
+where it is not running and every placement of that application's windows.
+Rationale: a restore starts an application only so that its recorded windows
+can be placed (ruled by the owner 2026-09-21). A capture records only the
+applications with a window shown (FR-005), so every entry it writes carries at
+least one placement and is marked to be started.
 Acceptance: Given a captured profile holding four running applications with one
 window each, when the stored profile is read back, then it holds four entries,
 each with one placement naming a display identity, a normal rectangle and a show
@@ -188,7 +196,8 @@ Requirement: A capture shall record only the applications with a window shown,
 whether or not a profile of the same name already exists. An entry recording an
 application as running with no placement, which a profile file can still hold,
 shall be satisfied by the application running; a restore shall move nothing of
-its.
+its. An entry recording the application as not running, which a capture never
+writes, shall be satisfied at once with nothing done to it or its windows.
 Rationale: ScreenState arranges what is on the screen, not which applications
 are running (ruled by the owner 2026-09-21). An application with no window shown
 has nothing on screen to arrange. A capture offering every application running
@@ -218,7 +227,9 @@ every temporary arrangement as though it were intended.
 **FR-011 Review before write**
 Priority: Must
 Requirement: When the user confirms a review, the ScreenState agent shall write a
-profile holding the entries remaining in the review list.
+profile holding the entries remaining in the review list. Where no entry
+remains, it shall refuse the save, state that a profile needs at least one
+application in it and write nothing.
 Acceptance: Given a capture listing twelve entries, when the user removes five
 and confirms, then the stored profile holds seven entries.
 
@@ -230,7 +241,8 @@ write no profile.
 **FR-012 Candidate applications**
 Priority: Must
 Requirement: The ScreenState agent shall treat as a candidate every application
-owned by the signed-in user that has a top-level window shown on screen.
+with a top-level window that is visible, not cloaked, not owned by another
+window, not a tool window and titled. A minimised window counts as shown.
 Rationale: without a rule, a capture either lists hundreds of background
 processes or silently omits an application the user wants.
 
@@ -283,13 +295,15 @@ may never appear. It is a policy choice rather than a measurement of how long
 this machine takes to start.
 Acceptance: Given a default profile naming an application that never starts,
 when the ceiling passes, then the other entries are already placed and the
-report names that application as not started.
+report names that application as started but showing no window to place.
 
 **FR-024 Launch missing applications**
 Priority: Must
 Requirement: When the agent begins a restore, the ScreenState agent shall launch
-every application the profile records as running that is not running.
-Rationale: launching at the start rather than one at a time lets those
+every application the profile marks to be started that is not running.
+Rationale: an application is started so that the windows the profile records
+for it can be placed, not to keep it running for its own sake (ruled by the
+owner 2026-09-21). Launching at the start rather than one at a time lets those
 applications load alongside the rest.
 
 **FR-025 No second instance**
@@ -335,15 +349,16 @@ ended by it. Nothing about a window says which kind it is, so the agent would
 have been quitting applications and taking whatever was unsaved in them with
 it, in the name of tidying a desktop.
 
-An application that should be present but out of the way is recorded with the
+A window that should be on the desktop but out of the way is recorded with the
 minimised show state, which is reversible, loses nothing and quits nothing. The
 number is retired rather than reused.
 
 **FR-063 Windows the profile does not name**
 Priority: Must
 Requirement: When a restore has satisfied every entry it can, the ScreenState
-agent shall put away every visible window whose application the profile does not
-name, excluding its own windows, then shall name each one in the report. Putting
+agent shall put away every visible window not already minimised whose
+application the profile does not name, excluding its own windows, then shall
+name each one in the report by its application. Putting
 a window away means minimising it, unless FR-064 says it is to be closed.
 Rationale: reported 2026-09-20. Applications that start with Windows and take no
 part in a session, NordVPN and GameGlass on the reference machine, arrived on top
@@ -442,14 +457,16 @@ opened a window. Where a run opens no new window before the user's first key
 press or mouse click or the ceiling (FR-079), the agent shall stop asking for
 that entry; the report shall say how many of the recorded windows opened. In any
 other restore, where the application is already running with windows of its
-own, the agent shall open no window for it, shall leave its windows as they are
-and shall say so in the report.
+own, the agent shall place those windows against the profile's first
+placements, shall open no further window for it and shall say in the report
+how many of the recorded windows it had.
 Rationale: reported 2026-09-21. A profile is the desktop as it was when it was
 recorded and a restore reproduces it, however many windows of one application
 that means; how many there should be is never a question for the user. That
 holds at sign-in, where the desktop is being rebuilt from nothing. It does not
 hold for an application already running with windows of its own: those windows
-are the ones the user has, so opening another adds a window nobody asked for,
+are the ones the user has, so opening another adds a window nobody asked for
+(the ones it has are still placed),
 which is what every start of the agent was doing. Some applications open another
 window each time they are run. An application that allows one copy answers a second run by bringing its own window forward and opens
 nothing, which is why a run that opens no window ends the asking rather than
@@ -596,9 +613,9 @@ taking the keyboard and its taskbar button is not red.
 
 **FR-078 Saying the desktop is being prepared**
 Priority: Should
-Requirement: When a restore begins, whether at sign-in or from the manager, the
-ScreenState agent shall show a splash on every display, above every other
-window, carrying the application's artwork and the words "Please wait while
+Requirement: When a restore begins, whether at sign-in or from the manager or
+the tray, the ScreenState agent shall show a splash on every display, above
+every other window, carrying the application's artwork and the words "Please wait while
 your desktop is prepared". When the restore ends, every splash shall say "Your
 desktop is ready". Where any entry is still outstanding it shall add "N
 application did not start" for one entry or "N applications did not start" for
@@ -630,7 +647,7 @@ names, reduced from the master and never enlarged.
 Acceptance: Given a sign-in restore of the owner's profile on four displays,
 when it begins, then each display shows the artwork and "Please wait while your
 desktop is prepared" and the window the user is typing into keeps the keyboard.
-When all five entries are satisfied, then each splash says "Your desktop is
+When every entry is satisfied, then each splash says "Your desktop is
 ready" and all four close at the next key press or mouse click. Given a restore that ends with one
 entry outstanding, then each splash says "Your desktop is ready" and "1
 application did not start".
@@ -644,7 +661,8 @@ destroyed or moved; the displays changing; a taskbar button added, taken away or
 flashing (FR-080). Where the agent needs to know that something will not happen (an application asked for a window shows none,
 a window asked to close stays open) it shall stop waiting at whichever comes
 first of the user's first key press or mouse click after the restore began and
-the ceiling. It shall then report what did not happen. The ceiling
+the ceiling; a click on a splash (FR-078) is not counted. It shall then report
+what did not happen. The ceiling
 (NFR-PERF-003) shall be the only timer a restore runs to, save the one FR-080
 allows before a restore says ready. The setup program
 shall wait for the agent to end on the agent's own process rather than by
@@ -777,8 +795,9 @@ Priority: Must
 Requirement: When a placement has been applied, the ScreenState agent shall
 re-read the window each time Windows reports the desktop changed (FR-079) and
 shall apply the placement once more if the window no longer matches it. It
-shall keep doing so after the restore has ended, until the user's first key
-press or mouse click or the ceiling, whichever comes first.
+shall keep doing so after the restore has ended, until whichever comes first of
+the user's first key press or mouse click, the ceiling, another restore
+beginning and the user cancelling a restore.
 Rationale: an application may move its own window after starting. The owner
 observes Discord arriving in the wrong place after every reboot. Revised
 2026-09-21 when the owner ruled that the product acts on events: the window is
@@ -817,9 +836,9 @@ made the running instance show and draw that same window, at the same handle
 and the same rectangle, after which the second process exited by itself. That
 is what a user does from the tray; it is the mechanism this requirement now
 uses. Where no window appears before the user's first key press or mouse
-click or the ceiling (FR-079), the report states that the application could
-not be shown. An application this restore itself started is never run a second
-time before it has shown a window. Nothing Windows reports says it has
+click or the ceiling (FR-079), the report states that the application is running
+but showed no window to place. An application this restore itself started is
+never run a second time before it has shown a window. Nothing Windows reports says it has
 finished starting; running it early is the second copy FR-025 forbids. One that
 starts into the tray therefore stays there. The report says so.
 
@@ -907,8 +926,11 @@ default; marking a profile as default clears the mark from any other.
 Priority: Must
 Requirement: When the user selects a profile from the tray menu, the ScreenState
 agent shall restore that profile immediately.
-Rationale: during a session the windows are already there, so every entry can be
-placed at once.
+Rationale: during a session the applications are usually running already; where
+all of them are, every entry can be placed at once. An application the profile
+records that is not running is started and its windows are waited for as a
+sign-in restore waits for them, until the user's first key press or mouse click
+or the ceiling (FR-079, NFR-PERF-003), so such a restore can take minutes.
 
 **FR-042 Manage profiles**
 Priority: Must
@@ -1105,9 +1127,11 @@ restore cycle, with the update check off.
 
 **NFR-PRIV-001 What is stored**
 Priority: Must
-Requirement: The ScreenState agent shall store nothing beyond application
-identities, window geometry, window show states, display identities and profile
-names.
+Requirement: The ScreenState agent shall store in a profile nothing beyond its
+name, its default marking, application identities, whether each application is
+to be started, window geometry, window show states and display identities. Its
+settings shall hold nothing beyond the choices made in the manager and a
+version the user chose to skip. Its log shall name no window by its title.
 Rationale: a window title can say what the user is working on. The log is
 stored: on 2026-09-21 it was measured naming the windows a sign-in restore put
 away by their titles, which came through the report written into it. A window is
@@ -1258,31 +1282,38 @@ Displays on the reference machine, as Windows Settings numbers them:
 
 ```
 Given profile "Desk" is marked as default and records:
-  Claude          running, maximised on display 1
-  Stellody        running, maximised on display 4
-  Discord         running, maximised on display 3
-  PigeonPost      running, maximised on display 2
-  NordVPN         running, no window
-  GameGlass       running, no window
-  Postal Gambit   running, no window
+  Claude          maximised on display 1
+  Stellody        maximised on display 4
+  Discord         maximised on display 3
+  PigeonPost      maximised on display 2
+And it was captured while NordVPN and GameGlass ran with their windows hidden
+  and Postal Gambit was not running, so none of the three is in it (FR-005)
 And Claude, Discord, PigeonPost, NordVPN and GameGlass start at sign-in by
-  themselves
-And neither Stellody nor Postal Gambit starts by itself
+  themselves, NordVPN and GameGlass each showing a window
+And Stellody does not start by itself
+And the setting of FR-064 is off
 
 When the user signs in
 
-Then the agent launches Stellody and Postal Gambit; it launches nothing else
-And each of the four placed applications is placed as its own window appears,
+Then the agent launches Stellody; it launches nothing else
+And each of the four applications is placed as its own window appears,
   without waiting for the others
 And Claude is maximised on display 1
 And Stellody is maximised on display 4
 And Discord is maximised on display 3
 And PigeonPost is maximised on display 2
-And the NordVPN, GameGlass and Postal Gambit windows are not touched, since
-  their entries record no placement
-And all seven applications are still running
-And the report lists seven entries satisfied and none outstanding
+And the NordVPN and GameGlass windows, which the profile does not name, are
+  minimised once every entry is satisfied (FR-063)
+And Postal Gambit is not started, since the profile does not name it
+And the report lists four entries satisfied and none outstanding and names the
+  NordVPN and GameGlass windows it minimised
 ```
+
+With the setting of FR-064 on, the same sign-in asks the NordVPN and GameGlass
+windows to close instead of minimising them. The restore then waits only for
+those two windows to close, until the user's first key press or mouse click or
+the ceiling (FR-079); any still open by then is minimised and the report says it
+did not close.
 
 Second scenario, derived from FR-023 and FR-026:
 
@@ -1292,7 +1323,7 @@ And Stellody cannot be launched because its executable is absent
 
 When the user signs in
 
-Then the other six entries are satisfied
+Then the other three entries are satisfied
 And the report names Stellody, states that it could not be launched and states
   the reason
 And the tray icon indicates that the restore was incomplete
