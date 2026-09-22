@@ -1,6 +1,7 @@
 # ScreenState: Software Requirements Specification
 
-Status: BASELINED 2026-09-20. Every open question in appendix B is closed.
+Status: BASELINED 2026-09-20. Amendment 1 (appendix F, recording the stacking
+order) baselined 2026-09-22. Every open question in appendix B is closed.
 
 ---
 
@@ -38,8 +39,12 @@ Out of scope (each settled with the owner on 2026-09-19):
 
 - **OOS-1** Content inside an application: browser tabs, open documents, the
   folder an Explorer window is showing.
-- **OOS-2** Window z-order, Snap layout groups and virtual desktop placement.
-  Reason: the owner cannot test them effectively.
+- **OOS-2** Snap layout groups and virtual desktop placement. Reason: the owner
+  cannot test them effectively. Narrowed by amendment 1 (appendix F): the
+  stacking order of the windows a profile names is in scope (FR-081 to FR-088).
+  Still out: the order of windows a profile does not name, keeping the order
+  once a restore has ended and the order among windows on different virtual
+  desktops.
 - **OOS-3** Any operating system other than Windows.
 - **OOS-4** Sharing or synchronising profiles between machines.
 - **OOS-5** Applications running with administrator rights. ScreenState never
@@ -59,7 +64,9 @@ Out of scope (each settled with the owner on 2026-09-19):
 | Setup program | The program that installs, updates, repairs and removes ScreenState. |
 | Profile | A named record, for one user, of where the windows of a set of applications belong. |
 | Entry | One application within a profile, holding its application identity, whether a restore is to start it where it is not running and its placements. |
-| Placement | One window's desired display, normal rectangle and show state. |
+| Placement | One window's desired display, normal rectangle and show state, with its rank where one was recorded. |
+| Stacking order | Which of two top-level windows is drawn over the other where they overlap. Windows keeps one order for all top-level windows across every display. |
+| Rank | A placement's position in the recorded stacking order among the placements of one profile, 1 being the window on top. |
 | Application identity | A value identifying an application that stays the same across updates of that application. |
 | Display identity | A value identifying a physical display that stays the same across reboots and distinguishes displays of the same model. |
 | Show state | One of normal, minimised or maximised. |
@@ -256,6 +263,33 @@ Requirement: If the agent cannot read the state of a candidate window during a
 capture, then the ScreenState agent shall omit that window from the capture and
 shall name it in the review as unreadable.
 
+**FR-081 Record the stacking order**
+Priority: Should
+Requirement: When the user confirms a review, the ScreenState agent shall
+record in each placement of the saved profile its rank among the placements of
+that profile, as the windows stood when the capture read the desktop.
+Rationale: amendment 1 (appendix F). A rank relative to the profile's own
+windows, rather than a position among every window on the desktop, is what can
+be put back: the other windows of the next session are different ones. The rank
+is taken from the stacking order itself, walked window by window, never from the
+order the desktop is read in: measured 2026-09-22, that order put the lower of
+two windows first (appendix E, OQ-13).
+Acceptance: Given Claude and Windows Terminal maximised on the primary display
+with Terminal behind Claude, when the user captures and saves a profile, then
+Claude's placement holds rank 1 and Terminal's holds rank 2.
+Verified by: an application test over a fake desktop answering windows in a
+known stacking order; a desktop probe for the real one.
+
+**FR-082 Stacking order that cannot be read**
+Priority: Should
+Requirement: If the stacking order cannot be read during a capture, then the
+ScreenState agent shall save the profile without ranks and shall state in the
+review that the order was not recorded.
+Acceptance: Given a desktop whose stacking order cannot be read, when the user
+captures and saves, then the profile holds no ranks and the review said so
+before it was saved.
+Verified by: an application test with the fake desktop's order read failing.
+
 #### Sign-in restore
 
 **FR-020 Settled: WITHDRAWN**
@@ -342,8 +376,8 @@ above the window that had been in front of it, because maximising without
 activating (FR-074) restores the window from minimised and a restored window
 goes on top. It is now put back beneath the nearest window a person can see
 that was above it, as FR-075 does for a rebuilt button. This keeps the order a
-restore finds; restoring an order the profile recorded stays out of scope
-(OOS-2), since a capture records none.
+restore finds while windows are being placed; where the profile records ranks,
+FR-083 sets the recorded order once, after every other step that moves a window.
 Acceptance: Given a placement naming the left display and the maximised show
 state, when it is applied, then the window is maximised on the left display; restoring
 it down places it within that display.
@@ -586,8 +620,8 @@ nearest window above it that a person can see. Measured 2026-09-21: putting it
 back beneath the window directly above, whatever it was, left the left Windows
 Terminal on top of Claude, since that window was Terminal's own hidden input
 method window and came to the top with it. Restoring the stacking order a
-profile recorded stays out of scope (OOS-2); this only keeps the rebuild from
-disturbing the order it found. A rebuild does not clear the red a finished flash
+profile recorded is FR-083's, which runs after the rebuild; this only keeps the
+rebuild from disturbing the order it found. A rebuild does not clear the red a finished flash
 series (FR-080) leaves on a button, measured on Stellody the same day; neither
 did FlashWindowEx with FLASHW_STOP. The shell's own "window activated" notice,
 which it sent after Claude's rebuild and Claude's red cleared, was then posted
@@ -932,6 +966,84 @@ With two profiles or more the marking is the user's and FR-039 governs: none
 marked stays a choice they are entitled to make; a later capture never moves the
 marking off the profile they chose.
 
+**FR-083 Restore the stacking order**
+Priority: Should
+Requirement: When a restore has settled every entry it can and FR-075 has
+rebuilt the taskbar buttons it names, the ScreenState agent shall stack the
+placed windows of the profile in rank order, rank 1 on top, before the splash
+says the desktop is ready (FR-078).
+Rationale: amendment 1 (appendix F). It holds for Apply as for a sign-in
+(OQ-15), since Apply is a request to make the desktop match the profile. Last
+among the steps that move windows, because each earlier one can change the
+order: an application starting puts its own window in front; the rebuild shows
+each window again. Stacking once at the end is the only point at which the
+order can be set and then left alone. Before "ready", because the splash is the
+product saying it has finished. The steps run: settle, put away (FR-063),
+taskbar nudge (FR-072), flash wait (FR-080), rebuild (FR-075), restack, ready.
+Acceptance: Given a profile ranking Claude 1 and Terminal 2, both on the primary
+display, when a sign-in restore starts Terminal after Claude, then when the
+splash says ready Claude is drawn over Terminal.
+Verified by: an application test asserting the order of the fake desktop's
+restack calls; the desktop probe of TestPlacingKeepsTheStackingOrder extended
+to a recorded order; the hand check on the reference machine.
+
+**FR-084 Stacking without activation**
+Priority: Must
+Requirement: The ScreenState agent shall set the stacking order of FR-083
+without activating any window.
+Rationale: FR-074. A taskbar marks the window last activated on its display;
+restacking by activation would undo what FR-075 cleared.
+Acceptance: Given a profile ranking Claude 1 and Terminal 2 and the user typing
+into Notepad, when FR-083 restacks them, then Notepad still holds the keyboard
+and neither Claude nor Terminal was activated.
+Verified by: the desktop probe counting WM_ACTIVATE, as
+TestMaximisingDoesNotActivate does.
+
+**FR-085 A window that cannot be restacked**
+Priority: Should
+Requirement: If a window cannot be restacked, then the ScreenState agent shall
+record it in the report by its application.
+Acceptance: Given ranks Claude 1 and Terminal 2 with Terminal refusing its
+restack, when the restore restacks, then the report names Terminal as left
+where it was in the stacking order.
+Verified by: an application test with the fake desktop refusing one restack.
+
+**FR-086 Some windows missing from the order**
+Priority: Should
+Requirement: While some ranked placements have no window placed or a window
+that cannot be restacked, the ScreenState agent shall stack the remaining
+windows in their recorded order relative to each other.
+Acceptance: Given ranks Claude 1, Stellody 2 and Terminal 3 and Stellody not
+started, when the restore settles, then Claude is drawn over Terminal. Given
+the same ranks with Stellody placed but refusing its restack, then Claude is
+still drawn over Terminal.
+Verified by: application tests over the fake desktop, one per case.
+
+**FR-087 The user has taken over**
+Priority: Should
+Requirement: If the user takes over the desktop (FR-079) before FR-083 runs,
+then the ScreenState agent shall not restack and shall record in the report that
+the order was left as the user found it.
+Rationale: from the first key press or click the user is working; drawing
+windows over the one they are using, without it losing the keyboard, would put
+their work behind something they did not ask for. Ruled by the owner
+2026-09-22 (OQ-14).
+Acceptance: Given a sign-in restore of a ranked profile, when the user presses
+a key before the restack, then no window is restacked and the report says the
+order was left as the user found it.
+Verified by: an application test raising the user's input before the restack.
+
+**FR-088 A profile with no ranks**
+Priority: Must
+Requirement: While a profile holds no ranks, the ScreenState agent shall keep
+the stacking order a restore finds, as FR-027 requires.
+Rationale: every profile saved before amendment 1 holds none; each
+behaves exactly as it did. DATA-007 sends a profile with damaged ranks here too.
+Acceptance: Given a profile saved before amendment 1 and Terminal found behind
+Claude, when it is applied, then Terminal is still behind Claude and no restack
+was made.
+Verified by: an application test asserting the fake desktop saw no restack.
+
 #### Profile management
 
 **FR-040 At most one default**
@@ -1109,6 +1221,12 @@ profile's windows within 2 seconds of being started at sign-in.
 Rationale: an agent that is itself slow at sign-in adds to the problem it exists
 to solve.
 
+**NFR-PERF-008 Restacking speed**
+Priority: Should
+Requirement: The ScreenState agent shall complete FR-083 for up to 20 ranked
+windows within 1 second, measured from the first restack to the last.
+Method: timestamps in the step log around the restack, on the reference machine.
+
 **NFR-REL-001 No data loss**
 Priority: Must
 Requirement: The ScreenState agent shall lose no stored profile if the process
@@ -1264,6 +1382,37 @@ Priority: Must
 Requirement: When the user uninstalls ScreenState, the setup program shall remove
 the profile store only if the user agrees to its removal.
 
+**DATA-006 Rank in the stored profile**
+Priority: Must
+Requirement: The ScreenState agent shall store a placement's rank as an
+optional field of that placement, absent where no rank was recorded.
+Rationale: measured 2026-09-22 by reading `store/document.go`: a profile is
+decoded with the standard JSON decoder, which ignores a field it does not know;
+it is refused only where its format version differs. An optional field on format
+version 1 therefore leaves every existing profile readable and leaves a profile
+saved by amendment 1 readable by an older build, which lists and applies it
+ignoring the ranks; an older build that rewrites it drops them, which returns
+that profile to FR-088 (OQ-16).
+Acceptance: Given a profile file with no rank fields, when it is read, then it
+lists and restores as FR-088 describes. Given a saved profile with ranks, when
+it is read back, then every placement holds the rank it was saved with.
+Verified by: infrastructure tests over a real store in a temporary directory.
+
+**DATA-007 Ranks that cannot be used**
+Priority: Should
+Requirement: If the ranks of a stored profile are not a distinct positive whole
+number on every placement, then the ScreenState agent shall restore that profile
+as holding no ranks and shall record in the report that its stacking order was
+ignored and why.
+Rationale: only a hand edit or a damaged file produces such ranks. Ignoring them
+loses nothing the product had before amendment 1, while refusing the profile
+would cost the whole restore for the sake of the order alone. Ruled by the owner
+2026-09-22.
+Acceptance: Given a profile file edited so that Claude and Terminal both hold
+rank 1, when it is applied, then no restack is made and the report says the
+stacking order was ignored because two placements share rank 1.
+Verified by: an application test over the fake desktop.
+
 ---
 
 ## 4. Other requirements
@@ -1368,6 +1517,11 @@ requirement or is recorded as deliberately unaddressed.
 | The user signing out during a restore | The agent's session ends with it. Nothing is written half way, per FR-006. |
 | A display connected during a restore | FR-057. The restore continues against the displays as they then stand and the report records the change (OQ-10). Switching to a different profile because the displays changed stays out of scope (OOS-6). |
 | Time or timezone change | No requirement depends on wall-clock time, only on elapsed spans. |
+| A profile saved before the stacking order was recorded | FR-088. The order a restore finds is kept. |
+| Ranks damaged by a hand edit | DATA-007. The profile restores as holding no ranks. |
+| An older build opening a ranked profile | DATA-006. It lists and applies it, ignoring the ranks; a rewrite by it drops them. |
+| A window captured minimised | Ranked like any other (FR-081); stacking a minimised window changes nothing on screen. |
+| An application raising its own window after "ready" | Not fought. Keeping the order once a restore has ended stays out of scope (OOS-2); FR-033 watches position, not order. |
 
 ---
 
@@ -1390,6 +1544,11 @@ that settles it. The first five form the spike.
 | OQ-10 | CLOSED 2026-09-20. The restore continues against the displays as they then stand and the report records the change. Abandoning it would leave the desktop half arranged, which is worse than where it started. See FR-057. | Oliver | closed 2026-09-20 |
 | OQ-11 | CLOSED 2026-09-20. Yes, as every other released application of the owner's carries one. C-4 is reworded to name it as the single outbound call; FR-059 lets the user turn it off and have C-4 absolutely. See FR-058. | Oliver | closed 2026-09-20 |
 | OQ-12 | CLOSED 2026-09-20. Yes. FR-060 carries the link in the manager. | Oliver | closed 2026-09-20 |
+| OQ-13 | CLOSED 2026-09-22, by measurement, against the assumption. The order the desktop is read in cannot be taken as the stacking order: the lower of two windows was read first in both arrangements. FR-081 therefore walks the stacking order itself. See appendix E. | Oliver | closed 2026-09-22 |
+| OQ-14 | CLOSED 2026-09-22. No: once the user has pressed a key or clicked, the recorded order is not applied, since it would draw windows over the one being used. Written as FR-087. | Oliver | closed 2026-09-22 |
+| OQ-15 | CLOSED 2026-09-22. Yes: Apply applies the recorded order as a sign-in does, since it is a request to make the desktop match the profile. FR-083 covers every restore; FR-027's keeping of the order found governs only a profile with no ranks (FR-088). | Oliver | closed 2026-09-22 |
+| OQ-16 | CLOSED 2026-09-22. Format version 1, with the rank as an optional field (DATA-006). An older build lists and applies the profile, ignoring the ranks; one that rewrites it drops them, which returns that profile to FR-088. | Oliver | closed 2026-09-22 |
+| OQ-17 | CLOSED 2026-09-22. Should, as marked, with FR-084, FR-088 and DATA-006 Must because they protect existing behaviour and existing files. | Oliver | closed 2026-09-22 |
 
 ---
 
@@ -1412,8 +1571,8 @@ not in the Must or Should figures.
 
 | Priority | Count | Notes |
 |---|---|---|
-| Must | 74 | The product does not work without any one of them. |
-| Should | 18 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, FR-078, NFR-PERF-006, NFR-USE-001 and NFR-USE-002. |
+| Must | 77 | The product does not work without any one of them. |
+| Should | 26 | FR-014, FR-036, FR-037, FR-049, FR-056, FR-058, FR-059, FR-060, FR-064, FR-065, FR-066, FR-067, FR-068, FR-072, FR-078, FR-081, FR-082, FR-083, FR-085, FR-086, FR-087, NFR-PERF-006, NFR-PERF-008, NFR-USE-001, NFR-USE-002 and DATA-007. |
 | Could | 0 | |
 | Won't this time | 8 | OOS-1 to OOS-8. |
 | Withdrawn | 8 | FR-020, FR-021, FR-022, FR-028, FR-030, FR-076, NFR-PERF-002 and NFR-PERF-004. Kept in place with their numbers retired so nothing that cited them can quietly come to mean something else. |
@@ -1516,15 +1675,25 @@ empty frame the application was not drawing. Running NordVPN again while it was
 running made the running instance show that same window, at the same handle and
 the same rectangle, drawn properly; the second process then exited by itself.
 
+### Stacking order against read order, 2026-09-22
+
+A desktop probe put two windows of its own one above the other, confirmed which
+was on top by walking `GetWindow` upwards, then read the desktop through
+`Desktop.Windows` in both arrangements. Each time the window beneath was read
+first (index 5, then the one on top at 6). The source read afterwards, the
+same day, explains it: `Desktop.Windows` walks the `EnumWindows` order
+backwards on purpose, to put the windows that have been behind the others
+longest first (`desktop_windows.go`). The reading therefore fits `EnumWindows`
+going front to back, with the reversal the product's own. One machine and two
+windows only. The read order is an order chosen for FR-037, not a stacking
+order, which is why FR-081 walks the stacking order instead.
+
 ---
 
-## Appendix F: Proposed amendment 1, recording the stacking order
+## Appendix F: Amendment 1, recording the stacking order
 
-Status: PROPOSED 2026-09-22. Not baselined and not built. Nothing in this
-appendix describes what the product does today; sections 1 to 5 still do. The
-owner's rulings closed OQ-14 to OQ-17 the same day and a measurement closed
-OQ-13, so every question is closed and the amendment is ready to baseline: each
-requirement moves into section 3, OOS-2 is amended and appendix D is recounted.
+Status: BASELINED 2026-09-22. Proposed and baselined the same day; every
+question it raised (OQ-13 to OQ-17) is closed in appendix B.
 
 ### F.1 The need
 
@@ -1533,8 +1702,8 @@ the primary display. After Apply it was on top; FR-027 now keeps the order a
 restore finds, so Apply no longer reshuffles it. A sign-in finds no order at
 all: it builds the desktop from nothing and each application puts its own
 window in front as it starts, so the order after a reboot is the order the
-applications happened to start in. A profile records no stacking order (OOS-2),
-so nothing can put the captured one back.
+applications happened to start in. Before this amendment a profile recorded no
+stacking order, so nothing could put the captured one back.
 
 - Solution asked for: record the stacking order and restore it.
 - Need: after a sign-in or Apply, the windows of a profile overlap each other
@@ -1543,160 +1712,14 @@ so nothing can put the captured one back.
   window the owner put behind another should not have to be sent back by hand
   after every reboot.
 
-### F.2 Scope change
+### F.2 What the amendment changed
 
-- OOS-2 is narrowed to Snap layout groups and virtual desktop placement. The
-  stacking order of the windows a profile names comes into scope.
-- Still out: the order of windows a profile does not name (FR-063 puts them
-  away); keeping the order once the restore has ended (an application raising
-  its own window later is not fought, as FR-034 does not fight a move); the
-  order among windows on different virtual desktops.
-
-### F.3 Definitions
-
-| Term | Meaning |
+| Where | Change |
 |---|---|
-| Stacking order | Which of two top-level windows is drawn over the other where they overlap. Windows keeps one order for all top-level windows across every display. |
-| Rank | A placement's position in the recorded stacking order among the placements of one profile, 1 being the window on top. |
-
-### F.4 Functional requirements
-
-**FR-081 Record the stacking order**
-Priority: Should
-Requirement: When the user confirms a review, the ScreenState agent shall
-record in each placement of the saved profile its rank among the placements of
-that profile, as the windows stood when the capture read the desktop.
-Rationale: F.1. A rank relative to the profile's own windows, rather than a
-position among every window on the desktop, is what can be put back: the other
-windows of the next session are different ones.
-Acceptance: Given Claude and Windows Terminal maximised on the primary display
-with Terminal behind Claude, when the user captures and saves a profile, then
-Claude's placement holds rank 1 and Terminal's holds rank 2.
-Verified by: an application test over a fake desktop answering windows in a
-known stacking order; the capture probe of OQ-13 for the real one.
-Depends on: OQ-13.
-
-**FR-082 Stacking order that cannot be read**
-Priority: Should
-Requirement: If the stacking order cannot be read during a capture, then the
-ScreenState agent shall save the profile without ranks and shall state in the
-review that the order was not recorded.
-Acceptance: Given a desktop whose stacking order cannot be read, when the user
-captures and saves, then the profile holds no ranks and the review said so
-before it was saved.
-Verified by: an application test with the fake desktop's order read failing.
-
-**FR-083 Restore the stacking order**
-Priority: Should
-Requirement: When a restore has settled every entry it can and has rebuilt the
-taskbar buttons (FR-075), the ScreenState agent shall stack the placed windows
-of the profile in rank order, rank 1 on top, before the splash says the desktop
-is ready (FR-078).
-Rationale: it holds for Apply as for a sign-in (OQ-15), since Apply is a request
-to make the desktop match the profile. Last among the steps that move windows, because each earlier one can
-change the order: an application starting puts its own window in front; the
-rebuild shows each window again. Stacking once at the end is the only point at
-which the order can be set and then left alone. Before "ready", because the
-splash is the product saying it has finished.
-Acceptance: Given a profile ranking Claude 1 and Terminal 2, both on the primary
-display, when a sign-in restore starts Terminal after Claude, then when the
-splash says ready Claude is drawn over Terminal.
-Verified by: an application test asserting the order of the fake desktop's
-restack calls; the desktop probe of TestPlacingKeepsTheStackingOrder extended
-to a recorded order; the hand check on the reference machine.
-
-**FR-084 Stacking without activation**
-Priority: Must
-Requirement: The ScreenState agent shall set the stacking order of FR-083
-without activating any window.
-Rationale: FR-074. A taskbar marks the window last activated on its display;
-restacking by activation would undo what FR-075 cleared.
-Verified by: the desktop probe counting WM_ACTIVATE, as
-TestMaximisingDoesNotActivate does.
-
-**FR-085 A window that cannot be restacked**
-Priority: Should
-Requirement: If a window cannot be restacked, then the ScreenState agent shall
-record it in the report by its application.
-Verified by: an application test with the fake desktop refusing one restack.
-
-**FR-086 Some windows missing from the order**
-Priority: Should
-Requirement: While some ranked placements have no window placed or a window
-that cannot be restacked, the ScreenState agent shall stack the remaining
-windows in their recorded order relative to each other.
-Acceptance: Given ranks Claude 1, Stellody 2 and Terminal 3 and Stellody not
-started, when the restore settles, then Claude is drawn over Terminal. Given
-the same ranks with Stellody placed but refusing its restack, then Claude is
-still drawn over Terminal.
-
-**FR-087 The user has taken over**
-Priority: Should
-Requirement: If the user takes over the desktop (FR-079) before FR-083 runs,
-then the ScreenState agent shall not restack and shall record in the report that
-the order was left as the user found it.
-Rationale: from the first key press or click the user is working; drawing
-windows over the one they are using, without it losing the keyboard, would put
-their work behind something they did not ask for. Ruled by the owner
-2026-09-22 (OQ-14).
-
-**FR-088 A profile with no ranks**
-Priority: Must
-Requirement: While a profile holds no ranks, a restore shall keep the stacking
-order it finds, as FR-027 requires today.
-Rationale: every profile saved before this amendment holds none; it must behave
-exactly as it did.
-
-### F.5 Non-functional and data requirements
-
-**NFR-PERF-008 Restacking speed**
-Priority: Should
-Requirement: The ScreenState agent shall complete FR-083 for up to 20 windows
-within 1 second.
-Method: timestamps in the step log around the restack, on the reference machine.
-
-**DATA-006 Rank in the stored profile**
-Priority: Must
-Requirement: The ScreenState agent shall store a placement's rank as an
-optional field of that placement, absent where no rank was recorded.
-Rationale: measured 2026-09-22 by reading `store/document.go`: a profile is
-decoded with the standard JSON decoder, which ignores a field it does not know;
-it is refused only where its format version differs. An optional field therefore
-leaves every existing profile readable and leaves a profile saved by this
-amendment readable by an older build, which ignores the ranks. The format
-version question is OQ-16.
-
-### F.6 Silence check
-
-| Situation | Answer |
-|---|---|
-| A profile saved before the amendment | FR-088. |
-| Several windows of one application | Each placement carries its own rank (FR-081). |
-| A window captured minimised | It is ranked like any other (FR-012 counts it as shown); stacking a minimised window changes nothing on screen. |
-| Displays connected or gone since capture | The order is one across every display, so it is unaffected; FR-031 moves the window, the rank goes with it. |
-| An application raises its own window after "ready" | Not fought (F.2); FR-033 watches position, not order. |
-| The user takes over before the end | FR-087. |
-| A window the profile does not name, still visible | FR-063 has already put it away; it takes no rank. |
-| An older build opens a new profile | DATA-006: it lists and applies it, ignoring the ranks. A rewrite by the older build drops them (OQ-16). |
-
-### F.7 Open questions
-
-| ID | Question | Owner | Confirm by |
-|---|---|---|---|
-| OQ-13 | CLOSED 2026-09-22, by measurement, against the assumption. The capture's read order cannot be taken as the stacking order. A desktop probe put two windows of its own one above the other, confirmed the order by walking `GetWindow` upwards, then read the desktop through `Desktop.Windows` in both arrangements: each time the window beneath was read first (index 5, then the one on top at 6). `Desktop.Windows` keeps the order `EnumWindows` hands it, so that order came from Windows. One machine and two windows only; it is enough to rule the read order out, not to say what `EnumWindows` does in general. FR-081 therefore takes each rank from the stacking order itself, walked window by window with `GetWindow`, the walk that FR-027's probe already relies on. | Oliver | closed 2026-09-22 |
-| OQ-14 | CLOSED 2026-09-22. No: once the user has pressed a key or clicked, the recorded order is not applied, since it would draw windows over the one being used. Written as FR-087. | Oliver | closed 2026-09-22 |
-| OQ-15 | CLOSED 2026-09-22. Yes: Apply applies the recorded order as a sign-in does, since it is a request to make the desktop match the profile. FR-083 covers every restore; FR-027's keeping of the order found governs only a profile with no ranks (FR-088). | Oliver | closed 2026-09-22 |
-| OQ-16 | CLOSED 2026-09-22. Format version 1, with the rank as an optional field (DATA-006). An older build lists and applies the profile, ignoring the ranks; one that rewrites it drops them, which returns that profile to FR-088. | Oliver | closed 2026-09-22 |
-| OQ-17 | CLOSED 2026-09-22. Should, as marked, with FR-084, FR-088 and DATA-006 Must because they protect existing behaviour and existing files. | Oliver | closed 2026-09-22 |
-
-### F.8 Build order, once baselined
-
-1. Domain: the rank on `Placement`, validated (a positive whole number, unique
-   within a profile), with a `With*` copy method.
-2. Application: the capture taking ranks from a new `Desktop` question that
-   answers the stacking order (never from the order `Windows` returns, OQ-13); the restore
-   step of FR-083 against a new `Desktop` method that restacks a list of windows
-   without activating; FR-085 to FR-088 as tests over the fake desktop.
-3. Infrastructure: the store field (DATA-006); the restack in `win32` built on
-   `keepStackingPlace`'s `SetWindowPos` without activation; the OQ-13 probe.
-4. UI: the review line of FR-082; nothing else changes on screen.
+| 1.3 | OOS-2 narrowed to Snap layout groups and virtual desktop placement, with what stays out stated. |
+| 1.4 | Placement gains its rank; Stacking order and Rank defined. |
+| 3.1 Capture | FR-081 and FR-082 added. |
+| 3.1 Sign-in restore | FR-083 to FR-088 added; FR-027 and FR-075 rationales point at FR-083. |
+| 3.2 | NFR-PERF-008 added. |
+| 3.4 | DATA-006 and DATA-007 added. |
+| Appendices | Silence check rows (A), OQ-13 to OQ-17 (B), the recount (D), the read order measurement (E). |
