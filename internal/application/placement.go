@@ -135,7 +135,7 @@ func (service *RestoreService) applyPlacements(
 			// since the display it names is the one that cannot be named by place.
 			state.report.NoteEntry(pending.entry.Application,
 				"the display it was recorded on is not connected, so the %s was used instead",
-				set.name(display.Identity))
+				state.names.name(display.Identity))
 			service.log.Step(fmt.Sprintf("%s: display %s is not connected, so %s was used instead",
 				pending.entry.Application, placement.Display, display.Identity))
 		}
@@ -145,7 +145,7 @@ func (service *RestoreService) applyPlacements(
 			return
 		}
 		state.report.NoteEntry(pending.entry.Application, "placed %s",
-			describePlacement(placement.State, set.name(display.Identity), rect))
+			describePlacement(placement.State, state.names.name(display.Identity), rect))
 		state.track(&placedWindow{
 			application: pending.entry.Application,
 			id:          window.ID,

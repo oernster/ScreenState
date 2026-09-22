@@ -118,8 +118,9 @@ the report, the tray, the manager's list with a profile it cannot read, what an
 entry shows (its name, file and size), naming each display by where it sits
 (`display_names_test.go`: the reference machine's four displays, a single one,
 rows, columns and stacks, a tie decided by the primary, a display not connected,
-displays that cannot be read), the report and the log saying which display a
-position meant, profile naming and marking, the sign-in entry, the update check
+displays that cannot be read), a restore keeping each display's name when a
+display comes or goes (`restore_names_test.go`), the report and the log saying
+which display a position meant, profile naming and marking, the sign-in entry, the update check
 and the failure wording.
 
 There are no mocking libraries. The fakes are written by hand, in
@@ -136,7 +137,7 @@ tests share.
 | `runlog` | a real log file, its header and its steps; a run keeping the 10 most recent restores with the header of each one's run; a long log of fewer restores kept whole |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
-| `win32` | the naming rules, the stacking-order rule and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window), the flash series worked out from the machine's settings and a taskbar button added or taken away waking the watch a restore waits on; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it |
+| `win32` | the naming rules, the stacking-order rule and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window), the flash series worked out from the machine's settings and a taskbar button added or taken away waking the watch a restore waits on; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it; `TestPlacingKeepsTheStackingOrder`, which puts one of its windows behind the other and places it normal then maximised to prove it stays behind |
 | `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
@@ -188,10 +189,10 @@ drifted from its master in `assets/`.
 ## What the tests never do
 
 - **Move a window they did not make.** Nothing in the suite arranges the
-  desktop of the machine running it. The one test that opens windows,
-  `TestMaximisingDoesNotActivate`, makes two of its own and touches no other;
-  it takes the front, so it is skipped unless `SCREENSTATE_DESKTOP_PROBE` is
-  set.
+  desktop of the machine running it. The two tests that open windows,
+  `TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder`, each
+  make two of their own and touch no other; they take the front, so they are
+  skipped unless `SCREENSTATE_DESKTOP_PROBE` is set.
 - **Reach the network.** The update check is tested against a fake release
   source; the real one is exercised by hand.
 - **Touch the real profiles, settings or log.** Tests work in temporary
@@ -203,11 +204,11 @@ drifted from its master in `assets/`.
 go test ./internal/domain/...
 go test -run TestAnUnreadableWindowIsNamedRatherThanDropped -v ./internal/application
 go test -cover ./internal/infrastructure/store
-$env:SCREENSTATE_DESKTOP_PROBE = '1'; go test -run TestMaximisingDoesNotActivate -v ./internal/infrastructure/win32
+$env:SCREENSTATE_DESKTOP_PROBE = '1'; go test -run 'TestMaximisingDoesNotActivate|TestPlacingKeepsTheStackingOrder' -v ./internal/infrastructure/win32
 ```
 
-The last opens two windows and takes the front; clear the variable afterwards
-with `Remove-Item Env:\SCREENSTATE_DESKTOP_PROBE`.
+The last opens windows of its own and takes the front; clear the variable
+afterwards with `Remove-Item Env:\SCREENSTATE_DESKTOP_PROBE`.
 
 ## Checked by hand
 
@@ -233,6 +234,7 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | A click on the splash lets the restore carry on (FR-078) | Sign in with an application in the profile that is slow to start, click a splash while it says "Please wait": every splash should close and the slow application should still be placed when it appears. The log should not say "the desktop was taken over with entries outstanding". |
 | The flashing has ended before the rebuild (FR-080) | Sign in without touching anything until the splash says ready, then look at the taskbars: no button should be red or flashing, the underline should sit on the window that has the front and clicking a button should bring its window forward rather than minimise it. The log says how long the restore waited for the buttons to stop flashing and how often a flash began the wait again. Only a real sign-in shows it: whether an application asks for the front (and when) belongs to that application. |
 | Installing arranges nothing (FR-038) | With a profile recording two Terminal windows and one open, install over an existing copy and let setup start the agent: no window should open, move or close; the log should say setup started that copy so nothing was arranged. |
+| Apply keeps the stacking order (FR-027) | With Windows Terminal behind Claude on the same display, both maximised and both in the profile, press Apply: Terminal should still be behind Claude when the restore ends. The rule is held by `TestPlacingKeepsTheStackingOrder`. A sign-in rebuilds the desktop from nothing and the profile records no stacking order (OOS-2), so after a reboot the order is whatever the applications made as they started. |
 | Placing a window never activates it (FR-074) | Type into a window on one display, then apply a profile that places maximised windows on the others: the keyboard should stay where it was and no taskbar button should be lit when the restore ends. Each maximised window minimises and comes back maximised as it is placed; watch that an application that hides itself when minimised (one that goes to the notification area) comes back on screen. The rule itself is held by `TestMaximisingDoesNotActivate`, run with `$env:SCREENSTATE_DESKTOP_PROBE = '1'` since it opens two windows and takes the front. |
 | A packaged application is named and started by its path (FR-071) | Capture with Claude and Windows Terminal open: the review should list each by name with its file beneath (Claude over `claude.exe`) and resting the pointer on it should show a path under `WindowsApps`, not a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
 | A packaged application survives its own update (FR-071) | After Claude next updates, apply the profile without recapturing: it should start and be placed, never put away; the log should say it did not start from its path so its model id was used. |

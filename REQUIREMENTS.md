@@ -331,9 +331,19 @@ then continue with the remaining entries.
 Priority: Must
 Requirement: When applying a placement, the ScreenState agent shall set the
 window's normal rectangle relative to the recorded display, then set the
-recorded show state.
+recorded show state. The window shall keep its position in the stacking order
+among the windows a person can see.
 Rationale: maximising a window maximises it on the display its normal rectangle
-sits on, so the rectangle is set first.
+sits on, so the rectangle is set first. Reported 2026-09-22: Windows Terminal,
+captured behind Claude on the primary display, was on top of Claude after
+Apply. Measured the same day with two windows of the probe's own: a window
+placed at its normal size kept its place, while one placed maximised came up
+above the window that had been in front of it, because maximising without
+activating (FR-074) restores the window from minimised and a restored window
+goes on top. It is now put back beneath the nearest window a person can see
+that was above it, as FR-075 does for a rebuilt button. This keeps the order a
+restore finds; restoring an order the profile recorded stays out of scope
+(OOS-2), since a capture records none.
 Acceptance: Given a placement naming the left display and the maximised show
 state, when it is applied, then the window is maximised on the left display; restoring
 it down places it within that display.

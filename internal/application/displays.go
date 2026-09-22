@@ -1,11 +1,6 @@
 package application
 
-import (
-	"fmt"
-	"sort"
-
-	"github.com/oernster/ScreenState/internal/domain"
-)
+import "github.com/oernster/ScreenState/internal/domain"
 
 // displaySet is the connected displays as they stood at one moment, with the
 // questions a capture and a restore both ask of them.
@@ -39,21 +34,6 @@ func (set displaySet) name(identity domain.DisplayIdentity) string {
 	}
 	return displayGone
 }
-
-// legend pairs every display's name with its monitor id, in a settled order.
-// It is what lets a reader of the log or the report turn a position back into
-// the exact display it meant.
-func (set displaySet) legend() []string {
-	lines := make([]string, 0, len(set.displays))
-	for _, display := range set.displays {
-		lines = append(lines, fmt.Sprintf(legendFormat, set.name(display.Identity), display.Identity))
-	}
-	sort.Strings(lines)
-	return lines
-}
-
-// legendFormat is one line of a legend: a position, then the monitor id.
-const legendFormat = "%s is %s"
 
 // primary returns the display a placement falls back to. Where Windows names
 // none, the first is taken: a fallback that exists beats a correct refusal,

@@ -90,10 +90,12 @@ type restoreState struct {
 	arranged []*placedWindow
 	launched []domain.ApplicationIdentity
 	// displays is the reading taken at the last pass, kept so that a change
-	// part way through can be recorded rather than passed over (FR-057), with a
-	// display that went away named by where it sat in it.
+	// part way through can be recorded rather than passed over (FR-057).
 	displays displaySet
 	read     bool
+	// names is what this restore calls each display it has seen, fixed at the
+	// first sight so that a change part way through renames nothing.
+	names stableNames
 	// waiting is what the restore waits on between passes (FR-079).
 	waiting waiting
 }
@@ -101,7 +103,7 @@ type restoreState struct {
 // newRestoreState returns the state of a restore about to begin, with every
 // entry of the profile outstanding and named in the report.
 func newRestoreState(profile domain.Profile, report *Report) *restoreState {
-	state := &restoreState{report: report}
+	state := &restoreState{report: report, names: newStableNames()}
 	for _, entry := range profile.Entries {
 		report.Track(entry.Application)
 		state.pending = append(state.pending, &pendingEntry{entry: entry})
@@ -207,13 +209,15 @@ func (state *restoreState) abandonRemaining(reason string) {
 // desktop half arranged, which is worse than the state it started from
 // (FR-057).
 //
-// A display that arrived is named by where it sits now; one that went away by
-// where it sat before, since it has no place now. The report keeps the legend
-// of the latest reading, so each position can be turned back into a monitor id.
-// It answers whether this reading is the first or differs from the last, which
-// is when the caller writes the legend to the log.
+// Every display is named as this restore first saw it (stableNames), so a
+// change renames nothing and each note means the monitor the legend pairs it
+// with. The report's legend holds every display the restore has named,
+// including one that has since gone. It answers whether this reading is the
+// first or differs from the last, which is when the caller writes the reading
+// to the log.
 func (state *restoreState) noteDisplayChange(set displaySet) bool {
-	state.report.Displays = set.legend()
+	state.names.learn(set)
+	state.report.Displays = state.names.legend()
 	if !state.read {
 		state.displays, state.read = set, true
 		return true
@@ -221,10 +225,10 @@ func (state *restoreState) noteDisplayChange(set displaySet) bool {
 	arrived := missingFrom(set, state.displays)
 	gone := missingFrom(state.displays, set)
 	for _, display := range arrived {
-		state.report.Note("the %s was connected during the restore", set.name(display.Identity))
+		state.report.Note("the %s was connected during the restore", state.names.name(display.Identity))
 	}
 	for _, display := range gone {
-		state.report.Note("the %s went away during the restore", state.displays.name(display.Identity))
+		state.report.Note("the %s went away during the restore", state.names.name(display.Identity))
 	}
 	state.displays = set
 	return len(arrived)+len(gone) > 0

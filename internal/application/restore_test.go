@@ -257,13 +257,20 @@ func TestARestoreContinuesWhenADisplayGoesAway(t *testing.T) {
 	if !anyContaining(report.Notes, "the left display went away during the restore") {
 		t.Fatalf("the display change was not recorded in words: %v", report.Notes)
 	}
-	// The legend reaches the log once per reading that differs, so each word in
-	// the log can be turned back into the display it meant.
+	// A restore renames nothing: once the left display has gone, the one left
+	// alone would read as the only display if positions were worked out
+	// afresh, so the notes written before would no longer match the legend. It
+	// keeps the name it had when the restore began, in the log and the report.
 	if !log.saying("the displays: left display is "+leftID.MonitorID+"; right display is "+primaryID.MonitorID) ||
-		!log.saying("the displays: only display is "+primaryID.MonitorID) {
-		t.Fatal("the log does not carry the legend of each reading")
+		!log.saying("the displays: right display is "+primaryID.MonitorID) {
+		t.Fatal("the log does not carry each reading under the names the restore began with")
 	}
-	if want := []string{"only display is " + primaryID.MonitorID}; !slices.Equal(report.Displays, want) {
+	if log.saying("only display") {
+		t.Fatal("a display was renamed part way through the restore")
+	}
+	// The report's legend keeps the display that went away, since a note names it.
+	want := []string{"left display is " + leftID.MonitorID, "right display is " + primaryID.MonitorID}
+	if !slices.Equal(report.Displays, want) {
 		t.Fatalf("the report's legend is %v, want %v", report.Displays, want)
 	}
 }

@@ -122,7 +122,10 @@ func probeWindows(t *testing.T) (anchor, subject uintptr) {
 	title, _ := windows.UTF16PtrFromString("ScreenState FR-074 probe")
 	registration := probeClass{procedure: windows.NewCallback(probeProcedure), className: class}
 	registration.size = uint32(unsafe.Sizeof(registration))
-	if atom, _, err := pProbeRegisterClass.Call(uintptr(unsafe.Pointer(&registration))); atom == 0 {
+	// Several probes share the class within one test binary, so a class the
+	// last one registered is ready rather than a fault.
+	if atom, _, err := pProbeRegisterClass.Call(uintptr(unsafe.Pointer(&registration))); atom == 0 &&
+		err != windows.ERROR_CLASS_ALREADY_EXISTS {
 		t.Fatalf("registering the probe's window class: %v", err)
 	}
 	make := func(left int) uintptr {

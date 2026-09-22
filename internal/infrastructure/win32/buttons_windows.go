@@ -59,22 +59,41 @@ func (desktop *Desktop) RebuildTaskbarButton(
 	if alive, _, _ := pIsWindow.Call(handle); alive == 0 {
 		return application.ErrWindowGone
 	}
-	above := nearestWindowAbove(handle, windowDirectlyAbove, isCandidate)
-	if above == 0 {
-		above = hwndTop
-	}
+	restack := keepStackingPlace(handle)
 	// ShowWindow answers the window's previous visibility rather than whether
 	// it worked, so there is nothing here to read as success.
 	_, _, _ = pShowWindow.Call(handle, swHide)
 	_, _, _ = pShowWindow.Call(handle, swShowNA)
-	// A restack that fails leaves the window on top, which is untidy rather
-	// than wrong, so there is nothing here worth failing the repair over.
-	_, _, _ = pSetWindowPos.Call(handle, above, 0, 0, 0, 0,
-		swpNoMove|swpNoSize|swpNoActivate)
+	restack()
 	// A rebuilt button can still be red from a flash series: see
 	// clearAttention.
 	clearAttention(handle)
 	return nil
+}
+
+// keepStackingPlace notes where a window sits in the stacking order before
+// something is done to it that brings it to the top, answering the call that
+// puts it back: beneath the nearest window above it that a person would call a
+// window (see nearestWindowAbove); at the top where there was none.
+//
+// Showing a window again brings it to the top. So does restoring one from
+// minimised, which is how a window is maximised without activating it
+// (maximiseWithoutActivating). Measured 2026-09-22 by
+// TestPlacingKeepsTheStackingOrder: a window placed maximised came up above the
+// window that had been in front of it, which is how Windows Terminal ended on
+// top of Claude after Apply.
+//
+// A restack that fails leaves the window on top, which is untidy rather than
+// wrong, so there is nothing in it worth failing the caller over.
+func keepStackingPlace(handle uintptr) func() {
+	above := nearestWindowAbove(handle, windowDirectlyAbove, isCandidate)
+	if above == 0 {
+		above = hwndTop
+	}
+	return func() {
+		_, _, _ = pSetWindowPos.Call(handle, above, 0, 0, 0, 0,
+			swpNoMove|swpNoSize|swpNoActivate)
+	}
 }
 
 // windowDirectlyAbove answers the window immediately above another in the

@@ -219,6 +219,10 @@ func (desktop *Desktop) Place(
 	if alive, _, _ := pIsWindow.Call(handle); alive == 0 {
 		return application.ErrWindowGone
 	}
+	// Placing a window must leave it where it was among the others: maximising
+	// without activating brings it to the top (see keepStackingPlace).
+	restack := keepStackingPlace(handle)
+	defer restack()
 	// ShowWindow answers whether the window was previously visible rather than
 	// whether it worked, so there is nothing here to read as success.
 	//

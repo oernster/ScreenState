@@ -244,10 +244,15 @@ from four); one display is the only display. A placement whose display is not co
 "display not connected"; where the displays cannot be read at all, every placement says "display
 not known" and the log says why. The manager reads the displays once for each profile it shows. The reference machine reads top, left, centre and right. The names come from
 the same `displaySet` a restore places against, so the manager and the report cannot name one display
-two ways; a display that went away mid-restore is named from the reading it was last in. A word never
-replaces the identity it was read from: every reading's legend pairs each position with its monitor
-id, written to the log whenever the displays are first read or change and carried on the report,
-where the page shows it on the summary's tooltip.
+two ways. **A restore renames nothing** (`restore_names.go`): positions are worked out afresh from
+every reading, so a display coming or going moves the others (after the left display goes, the centre
+one reads as left). A restore therefore keeps each display's name from the first reading it was in;
+one that arrives later takes its name from its own reading, marked "(connected during the restore)"
+where another display already held that name, so each name means one monitor for the whole report.
+A word never replaces the identity it was read from: the report carries a legend pairing every name
+the restore used with its monitor id, a display that has since gone included, which the page shows on
+the summary's tooltip; the log writes the displays connected at each reading that differs, under the
+same names.
 
 **An application is shown by its name.** `ApplicationIdentity.Name` and `Program` in the domain
 derive what the manager shows from the identity alone: the file without its extension for a path,
@@ -291,6 +296,17 @@ from a process with no administrator rights, across a 96 dpi to 240 dpi boundary
 
 A profile records the **normal** rectangle even for a maximised window, because that is what decides
 which display maximising puts it on.
+
+**Placing a window leaves it where it was among the others** (FR-027). Restoring a window from
+minimised puts it on top, so the two-step maximise above brought each maximised window over the
+ones in front of it: Windows Terminal, captured behind Claude, came out on top of it after Apply.
+`Place` notes the nearest window above that a person would call a window before it acts and puts
+the window back beneath it afterwards (`keepStackingPlace`, shared with the button rebuild).
+`TestPlacingKeepsTheStackingOrder` holds it on the real desktop, run only when
+`SCREENSTATE_DESKTOP_PROBE` is set: it failed with the maximised case before the fix and passes
+after. This keeps the order a restore finds. It cannot bring back the order of a desktop that was
+captured, because a capture records none (OOS-2): after a sign-in the order is whatever the
+applications made as they started, which the rebuild of FR-075 then leaves alone.
 
 Two rules keep a window reachable. A placement naming a display that is no longer connected is applied
 to the primary display and the substitution is recorded (FR-031). Every window is then held within the
@@ -733,9 +749,10 @@ the taskbar's own top-level window, skipping where there is no taskbar. The four
 count and caret blink the FR-080 wait is worked out from. None moves a window or starts an
 application, since either would disturb the desktop of whoever ran the suite. A fifth asks Windows
 for the shell hook's message number and hands the watch a taskbar button added then one taken
-away, asserting each wakes it; it skips where Windows names no such message. A sixth,
-`TestMaximisingDoesNotActivate`, does move windows (only two of its own), so it runs only when
-`SCREENSTATE_DESKTOP_PROBE` is set; the gate skips it.
+away, asserting each wakes it; it skips where Windows names no such message. The sixth and
+seventh (`TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder`) do move windows
+(only two of their own), so they run only when `SCREENSTATE_DESKTOP_PROBE` is set; the gate skips
+them.
 
 ## Design decisions
 
@@ -768,7 +785,8 @@ stacking order; the user cannot predict that from the order they opened them.
 
 **Moving a window and starting an application are proved by use, not by test.** No test the gate
 runs calls either, because both would disturb the desktop of whoever ran the suite; the opt-in
-`TestMaximisingDoesNotActivate` places one window of its own and no other. Both are run at every
+`TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder` place windows of their own
+and no other. Both are run at every
 sign-in on the reference machine, where the log records each application started and each window
 placed.
 
@@ -839,10 +857,5 @@ these open. Each was confirmed in the code, not inferred:
 - **NFR-MAINT-002, coverage.** The requirement says 100 percent; the gate holds every function
   reached, not every statement (97.2% of the application's statements on this date), as
   [TESTING.md](TESTING.md) states.
-- **FR-057 and appendix E, the report's legend after a display change.** The report keeps the legend
-  of the latest reading only. A display that went away drops out of it; positions are worked out
-  afresh, so after the left display goes, "left display" in the legend is the one that was centre
-  while notes written before the change meant the old one. The log is right: it writes a legend at
-  every change.
 
 What remains beyond these is proving the rest: see the known limits above.
