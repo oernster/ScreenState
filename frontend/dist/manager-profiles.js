@@ -249,8 +249,8 @@ async function drawEntries() {
 const PART = ' · '
 
 // describe says in words what one entry asks for, a line at a time: the file it
-// starts and whether it runs, then how its window is shown and how large. One
-// placement shares the first line; several take a line each.
+// starts and whether it runs, then how its window is shown, on which display and
+// how large. One placement shares the first line; several take a line each.
 function describe(profileEntry) {
     const running = profileEntry.running ? 'running' : 'not started'
     const placements = profileEntry.placements
@@ -259,10 +259,11 @@ function describe(profileEntry) {
     }
     if (placements.length === 1) {
         const placement = placements[0]
-        return [[profileEntry.program, running, placement.state].join(PART), placement.size]
+        return [[profileEntry.program, running, placement.state, placement.displayName].join(PART),
+            placement.size]
     }
     return [[profileEntry.program, running].join(PART)].concat(placements.map((placement) =>
-        [placement.state, placement.size].join(PART)))
+        [placement.state, placement.displayName, placement.size].join(PART)))
 }
 
 // details is exactly what was recorded for one entry, for the row's tooltip:

@@ -233,10 +233,11 @@ type ProfileDTO struct {
 
 // PlacementDTO is one placement of one entry.
 type PlacementDTO struct {
-	Display string `json:"display"`
-	Rect    string `json:"rect"`
-	Size    string `json:"size"`
-	State   string `json:"state"`
+	Display     string `json:"display"`
+	DisplayName string `json:"displayName"`
+	Rect        string `json:"rect"`
+	Size        string `json:"size"`
+	State       string `json:"state"`
 }
 
 // EntryDTO is one application within a profile.

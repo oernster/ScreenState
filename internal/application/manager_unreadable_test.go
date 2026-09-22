@@ -15,7 +15,7 @@ func TestTheManagerNamesAProfileItCannotRead(t *testing.T) {
 	store.unreadable = []UnreadableProfile{
 		{File: "Evening.json", Reason: "profile was written in a newer format: format 3"},
 	}
-	service := NewManagerService(store, &fakeStartup{}, &fakeLog{})
+	service := NewManagerService(store, &fakeStartup{}, &fakeDesktop{}, &fakeLog{})
 
 	unreadable, err := service.Unreadable(context.Background())
 	if err != nil {
@@ -37,7 +37,7 @@ func TestAStoreThatCannotBeCheckedIsSaid(t *testing.T) {
 	t.Parallel()
 	store := newFakeStore()
 	store.unreadableErr = errors.New("access is denied")
-	service := NewManagerService(store, &fakeStartup{}, &fakeLog{})
+	service := NewManagerService(store, &fakeStartup{}, &fakeDesktop{}, &fakeLog{})
 
 	if _, err := service.Unreadable(context.Background()); !containsText(errText(err), "access is denied") {
 		t.Fatalf("the refusal was not passed on: %v", err)

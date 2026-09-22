@@ -13,12 +13,16 @@ const sizeSeparator = " × "
 // already words, because deciding how a rectangle reads is a judgement and this
 // layer is where judgements live.
 //
-// It carries two readings of the same placement. Size and State are what a
-// person reads first; Display and Rect are exactly what was recorded, kept so
-// the manager can still say precisely what it captured when asked.
+// It carries two readings of the same placement. State, DisplayName and Size
+// are what a person reads first; Display and Rect are exactly what was
+// recorded, kept so the manager can still say precisely what it captured when
+// asked.
 type PlacementView struct {
 	// Display is the recorded monitor id.
 	Display string
+	// DisplayName is where that display sits among those connected now; where
+	// it is not connected, it says so.
+	DisplayName string
 	// Rect is the recorded normal rectangle, coordinates and all.
 	Rect string
 	// Size is the normal rectangle's width and height alone.
@@ -44,15 +48,17 @@ type EntryView struct {
 	Placements []PlacementView
 }
 
-// viewOf turns one entry into what the manager shows for it.
-func viewOf(entry domain.Entry) EntryView {
+// viewOf turns one entry into what the manager shows for it, naming each
+// placement's display from one reading of the displays.
+func viewOf(entry domain.Entry, namer displayNamer) EntryView {
 	placements := make([]PlacementView, 0, len(entry.Placements))
 	for _, placement := range entry.Placements {
 		placements = append(placements, PlacementView{
-			Display: placement.Display.String(),
-			Rect:    placement.Rect.String(),
-			Size:    sizeOf(placement.Rect),
-			State:   placement.State.String(),
+			Display:     placement.Display.String(),
+			DisplayName: namer.name(placement.Display),
+			Rect:        placement.Rect.String(),
+			Size:        sizeOf(placement.Rect),
+			State:       placement.State.String(),
 		})
 	}
 	return EntryView{

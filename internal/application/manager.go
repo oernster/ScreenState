@@ -34,14 +34,15 @@ type Startup interface {
 // no toolkit, so every rule below is settled by a test rather than by opening
 // it and looking.
 type ManagerService struct {
-	store   ProfileStore
-	startup Startup
-	log     Log
+	store    ProfileStore
+	startup  Startup
+	displays DisplayReader
+	log      Log
 }
 
 // NewManagerService returns a manager service over the given collaborators.
-func NewManagerService(store ProfileStore, startup Startup, log Log) *ManagerService {
-	return &ManagerService{store: store, startup: startup, log: log}
+func NewManagerService(store ProfileStore, startup Startup, displays DisplayReader, log Log) *ManagerService {
+	return &ManagerService{store: store, startup: startup, displays: displays, log: log}
 }
 
 // SettleDefault marks the only profile there is as the default (FR-062).
@@ -127,15 +128,17 @@ func (service *ManagerService) Unreadable(ctx context.Context) ([]UnreadableProf
 }
 
 // Entries returns the entries of one profile as the manager shows them
-// (EIR-002).
+// (EIR-002). The displays are read once for the whole view, so every placement
+// is named from the same reading.
 func (service *ManagerService) Entries(ctx context.Context, name string) ([]EntryView, error) {
 	profile, err := service.store.Load(ctx, name)
 	if err != nil {
 		return nil, err
 	}
+	namer := readDisplayNames(ctx, service.displays, service.log)
 	views := make([]EntryView, 0, len(profile.Entries))
 	for _, entry := range profile.Entries {
-		views = append(views, viewOf(entry))
+		views = append(views, viewOf(entry, namer))
 	}
 	return views, nil
 }

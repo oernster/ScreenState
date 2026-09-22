@@ -60,7 +60,8 @@ func profileOf(t *testing.T, name string, applications ...domain.ApplicationIden
 func managerOver(store *fakeStore) (*ManagerService, *fakeStartup, *fakeLog) {
 	startup := &fakeStartup{}
 	log := &fakeLog{}
-	return NewManagerService(store, startup, log), startup, log
+	desktop := &fakeDesktop{displays: []Display{primaryDisplay, leftDisplay}}
+	return NewManagerService(store, startup, desktop, log), startup, log
 }
 
 // markedProfiles returns the names of every profile marked as the default,
@@ -185,6 +186,10 @@ func TestEntriesDescribesEveryEntryOfTheProfile(t *testing.T) {
 	}
 	if placement.Size == "" {
 		t.Error("the placement shows no size")
+	}
+	// The primary display sits to the right of the left one in the fixture.
+	if placement.DisplayName != "right display" {
+		t.Errorf("the placement's display is named %q, want %q", placement.DisplayName, "right display")
 	}
 }
 

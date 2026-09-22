@@ -59,10 +59,11 @@ func (a *App) Entries(name string) ([]EntryDTO, error) {
 		placements := make([]PlacementDTO, 0, len(view.Placements))
 		for _, placement := range view.Placements {
 			placements = append(placements, PlacementDTO{
-				Display: placement.Display,
-				Rect:    placement.Rect,
-				Size:    placement.Size,
-				State:   placement.State,
+				Display:     placement.Display,
+				DisplayName: placement.DisplayName,
+				Rect:        placement.Rect,
+				Size:        placement.Size,
+				State:       placement.State,
 			})
 		}
 		out = append(out, EntryDTO{
