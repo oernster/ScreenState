@@ -99,6 +99,9 @@ async function openReport() {
     }
     $('report-title').textContent = 'Last restore: ' + report.profile
     $('report-summary').textContent = report.summary
+    // Every display below is named by where it sits; hovering the summary says
+    // exactly which display each of those words meant.
+    $('report-summary').title = report.displays.join('\n')
     report.notes.forEach((note) => rows.appendChild(emptyLine(note)))
     report.entries.forEach((outcome) => {
         const row = document.createElement('div')

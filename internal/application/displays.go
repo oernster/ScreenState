@@ -1,6 +1,11 @@
 package application
 
-import "github.com/oernster/ScreenState/internal/domain"
+import (
+	"fmt"
+	"sort"
+
+	"github.com/oernster/ScreenState/internal/domain"
+)
 
 // displaySet is the connected displays as they stood at one moment, with the
 // questions a capture and a restore both ask of them.
@@ -11,6 +16,9 @@ import "github.com/oernster/ScreenState/internal/domain"
 // answers within it.
 type displaySet struct {
 	displays []Display
+	// names says where each display sits, from this same reading, keyed as
+	// displayNames keys it.
+	names map[string]string
 }
 
 // newDisplaySet returns the displays as a set, reporting ErrNoDisplays when
@@ -20,8 +28,32 @@ func newDisplaySet(displays []Display) (displaySet, error) {
 	if len(displays) == 0 {
 		return displaySet{}, ErrNoDisplays
 	}
-	return displaySet{displays: displays}, nil
+	return displaySet{displays: displays, names: displayNames(displays)}, nil
 }
+
+// name answers where a display sits in this reading; that it is not connected
+// where it is not in it.
+func (set displaySet) name(identity domain.DisplayIdentity) string {
+	if name, connected := set.names[displayKey(identity)]; connected {
+		return name
+	}
+	return displayGone
+}
+
+// legend pairs every display's name with its monitor id, in a settled order.
+// It is what lets a reader of the log or the report turn a position back into
+// the exact display it meant.
+func (set displaySet) legend() []string {
+	lines := make([]string, 0, len(set.displays))
+	for _, display := range set.displays {
+		lines = append(lines, fmt.Sprintf(legendFormat, set.name(display.Identity), display.Identity))
+	}
+	sort.Strings(lines)
+	return lines
+}
+
+// legendFormat is one line of a legend: a position, then the monitor id.
+const legendFormat = "%s is %s"
 
 // primary returns the display a placement falls back to. Where Windows names
 // none, the first is taken: a fallback that exists beats a correct refusal,
@@ -64,21 +96,18 @@ func (set displaySet) holding(rect domain.Rect) (Display, bool) {
 	return best, bestArea > 0
 }
 
-// resolve returns the display a placement should be applied to, plus a note
-// where that is not the display the placement names.
+// resolve returns the display a placement should be applied to, plus whether
+// that is not the display the placement names.
 //
 // FR-031: a placement naming a display that is not connected is applied to the
-// primary display and the substitution is recorded. Saying so matters as much
-// as doing it, since a window that has silently moved screens looks like the
-// product getting it wrong.
-func (set displaySet) resolve(placement domain.Placement) (Display, string) {
+// primary display and the substitution is recorded by the caller. Saying so
+// matters as much as doing it, since a window that has silently moved screens
+// looks like the product getting it wrong.
+func (set displaySet) resolve(placement domain.Placement) (Display, bool) {
 	if display, connected := set.find(placement.Display); connected {
-		return display, ""
+		return display, false
 	}
-	primary := set.primary()
-	return primary, "display " + placement.Display.String() +
-		" is not connected, so the primary display " + primary.Identity.String() +
-		" was used instead"
+	return set.primary(), true
 }
 
 // fit returns a rectangle of the same size placed on the given display, moved
@@ -102,13 +131,14 @@ func fit(rect domain.Rect, display Display) domain.Rect {
 
 // place returns where a recorded placement lands on the displays as they now
 // stand: on the display it names where that is connected, on the primary
-// display where it is not. It lies within that display either way.
+// display where it is not. It lies within that display either way. It answers
+// the display used too, plus whether that one was substituted.
 //
 // A placement moved to another display keeps its size and is slid into that
 // display rather than being scaled or centred. It cannot be carried across by
 // the offset between the two displays, because the display it was recorded
 // against is the one that is no longer there, so its origin cannot be read.
-func (set displaySet) place(placement domain.Placement, recorded domain.Rect) (domain.Rect, string) {
-	display, note := set.resolve(placement)
-	return fit(recorded, display), note
+func (set displaySet) place(placement domain.Placement, recorded domain.Rect) (domain.Rect, Display, bool) {
+	display, substituted := set.resolve(placement)
+	return fit(recorded, display), display, substituted
 }

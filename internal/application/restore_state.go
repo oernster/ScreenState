@@ -3,7 +3,6 @@ package application
 import (
 	"fmt"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/oernster/ScreenState/internal/domain"
@@ -90,9 +89,10 @@ type restoreState struct {
 	// needs (FR-075).
 	arranged []*placedWindow
 	launched []domain.ApplicationIdentity
-	// displays is the identities connected at the last pass, kept so that a
-	// change part way through can be recorded rather than passed over (FR-057).
-	displays []string
+	// displays is the reading taken at the last pass, kept so that a change
+	// part way through can be recorded rather than passed over (FR-057), with a
+	// display that went away named by where it sat in it.
+	displays displaySet
 	read     bool
 	// waiting is what the restore waits on between passes (FR-079).
 	waiting waiting
@@ -206,45 +206,39 @@ func (state *restoreState) abandonRemaining(reason string) {
 // in progress. The restore continues either way: abandoning it would leave the
 // desktop half arranged, which is worse than the state it started from
 // (FR-057).
-func (state *restoreState) noteDisplayChange(set displaySet) {
-	now := make([]string, 0, len(set.displays))
-	for _, display := range set.displays {
-		now = append(now, display.Identity.String())
-	}
-	sort.Strings(now)
+//
+// A display that arrived is named by where it sits now; one that went away by
+// where it sat before, since it has no place now. The report keeps the legend
+// of the latest reading, so each position can be turned back into a monitor id.
+// It answers whether this reading is the first or differs from the last, which
+// is when the caller writes the legend to the log.
+func (state *restoreState) noteDisplayChange(set displaySet) bool {
+	state.report.Displays = set.legend()
 	if !state.read {
-		state.displays, state.read = now, true
-		return
+		state.displays, state.read = set, true
+		return true
 	}
-	for _, change := range differences(state.displays, now) {
-		state.report.Note("%s", change)
+	arrived := missingFrom(set, state.displays)
+	gone := missingFrom(state.displays, set)
+	for _, display := range arrived {
+		state.report.Note("the %s was connected during the restore", set.name(display.Identity))
 	}
-	state.displays = now
+	for _, display := range gone {
+		state.report.Note("the %s went away during the restore", state.displays.name(display.Identity))
+	}
+	state.displays = set
+	return len(arrived)+len(gone) > 0
 }
 
-// differences returns one line per display that arrived or went away between
-// two readings.
-func differences(before []string, after []string) []string {
-	held := make(map[string]struct{}, len(before))
-	for _, identity := range before {
-		held[identity] = struct{}{}
-	}
-	still := make(map[string]struct{}, len(after))
-	for _, identity := range after {
-		still[identity] = struct{}{}
-	}
-	var changes []string
-	for _, identity := range after {
-		if _, known := held[identity]; !known {
-			changes = append(changes, fmt.Sprintf("display %s was connected during the restore", identity))
+// missingFrom returns the displays of one reading that another does not hold.
+func missingFrom(from, other displaySet) []Display {
+	var missing []Display
+	for _, display := range from.displays {
+		if _, held := other.find(display.Identity); !held {
+			missing = append(missing, display)
 		}
 	}
-	for _, identity := range before {
-		if _, remains := still[identity]; !remains {
-			changes = append(changes, fmt.Sprintf("display %s went away during the restore", identity))
-		}
-	}
-	return changes
+	return missing
 }
 
 // windowsOf returns the readable windows of one application in the order the
@@ -280,8 +274,9 @@ func visible(windows []Window) []Window {
 	return shown
 }
 
-// describePlacement renders a placement for the report.
-func describePlacement(placement domain.Placement) string {
-	return strings.TrimSpace(fmt.Sprintf("%s on %s, %s",
-		placement.Rect, placement.Display, placement.State))
+// describePlacement renders a placement for the report in the words the
+// manager uses for an entry: how it is shown, the display by where it sits and
+// how large it is.
+func describePlacement(state domain.ShowState, display string, rect domain.Rect) string {
+	return fmt.Sprintf("%s on the %s, %s", state, display, sizeOf(rect))
 }

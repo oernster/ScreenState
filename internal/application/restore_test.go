@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/oernster/ScreenState/internal/domain"
@@ -190,8 +191,9 @@ func TestAPlacementOnAMissingDisplayMovesToThePrimaryOne(t *testing.T) {
 		displays: []Display{primaryDisplay},
 		windows:  []Window{aWindow(1, stellody, at(0))},
 	}
+	log := &fakeLog{}
 	service := restoreUnder(desktop, newFakeProcesses(stellody), &fakeLauncher{},
-		newFakeStore(), newFakeClock(), &fakeLog{})
+		newFakeStore(), newFakeClock(), log)
 
 	profile, _ := domain.NewProfile("Desk",
 		domain.Entry{Application: stellody, Running: true, Placements: []domain.Placement{
@@ -201,9 +203,18 @@ func TestAPlacementOnAMissingDisplayMovesToThePrimaryOne(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
+	// The report names the display by where it sits; with one connected, that
+	// is the only display. The log keeps both monitor ids.
 	entry := reportOf(t, report, stellody)
-	if !entry.Satisfied || !noteSaying(entry, "is not connected") {
-		t.Fatalf("the substitution was not recorded: %+v", entry)
+	if !entry.Satisfied || !noteSaying(entry,
+		"the display it was recorded on is not connected, so the only display was used instead") {
+		t.Fatalf("the substitution was not recorded in words: %+v", entry)
+	}
+	if !noteSaying(entry, "placed maximised on the only display, 3440 × 1392") {
+		t.Fatalf("the placement was not described in words: %+v", entry)
+	}
+	if !log.saying(leftID.MonitorID + " is not connected, so " + primaryID.MonitorID + " was used instead") {
+		t.Fatal("the log does not name both displays of the substitution")
 	}
 	placed := desktop.placements()[0].rect
 	if placed.X < primaryDisplay.WorkArea.X || placed.Right() > primaryDisplay.WorkArea.Right() {
@@ -225,8 +236,9 @@ func TestARestoreContinuesWhenADisplayGoesAway(t *testing.T) {
 			desktop.addWindow(aWindow(2, stellody, at(1)))
 		}
 	}
+	log := &fakeLog{}
 	service := restoreUnder(desktop, newFakeProcesses(pigeonpost, stellody), &fakeLauncher{},
-		newFakeStore(), clock, &fakeLog{})
+		newFakeStore(), clock, log)
 
 	profile, _ := domain.NewProfile("Desk",
 		domain.Entry{Application: pigeonpost, Running: true, Placements: []domain.Placement{
@@ -241,8 +253,18 @@ func TestARestoreContinuesWhenADisplayGoesAway(t *testing.T) {
 	if _, outstanding := report.Counts(); outstanding != 0 {
 		t.Fatalf("the restore abandoned entries: %s", report.Summary())
 	}
-	if !anyContaining(report.Notes, "went away during the restore") {
-		t.Fatalf("the display change was not recorded: %v", report.Notes)
+	// A display that went away is named by where it sat before it went.
+	if !anyContaining(report.Notes, "the left display went away during the restore") {
+		t.Fatalf("the display change was not recorded in words: %v", report.Notes)
+	}
+	// The legend reaches the log once per reading that differs, so each word in
+	// the log can be turned back into the display it meant.
+	if !log.saying("the displays: left display is "+leftID.MonitorID+"; right display is "+primaryID.MonitorID) ||
+		!log.saying("the displays: only display is "+primaryID.MonitorID) {
+		t.Fatal("the log does not carry the legend of each reading")
+	}
+	if want := []string{"only display is " + primaryID.MonitorID}; !slices.Equal(report.Displays, want) {
+		t.Fatalf("the report's legend is %v, want %v", report.Displays, want)
 	}
 }
 

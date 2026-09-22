@@ -3,8 +3,7 @@ package application
 import (
 	"context"
 	"errors"
-
-	"github.com/oernster/ScreenState/internal/domain"
+	"fmt"
 )
 
 // snapshotPending copies the pending list so that satisfying or failing an
@@ -130,17 +129,23 @@ func (service *RestoreService) applyPlacements(
 	for pending.applied < len(placements) && pending.applied < len(shown) {
 		placement := placements[pending.applied]
 		window := shown[pending.applied]
-		rect, substitution := set.place(placement, placement.Rect)
-		if substitution != "" {
-			state.report.NoteEntry(pending.entry.Application, "%s", substitution)
+		rect, display, substituted := set.place(placement, placement.Rect)
+		if substituted {
+			// The report says where in words; the log keeps both monitor ids,
+			// since the display it names is the one that cannot be named by place.
+			state.report.NoteEntry(pending.entry.Application,
+				"the display it was recorded on is not connected, so the %s was used instead",
+				set.name(display.Identity))
+			service.log.Step(fmt.Sprintf("%s: display %s is not connected, so %s was used instead",
+				pending.entry.Application, placement.Display, display.Identity))
 		}
 		if err := service.desktop.Place(ctx, window.ID, rect, placement.State); err != nil {
 			// FR-035: a window Windows will not let this process move.
 			state.fail(pending, "a window could not be moved: %v", err)
 			return
 		}
-		state.report.NoteEntry(pending.entry.Application, "placed at %s", describePlacement(
-			domain.Placement{Display: placement.Display, Rect: rect, State: placement.State}))
+		state.report.NoteEntry(pending.entry.Application, "placed %s",
+			describePlacement(placement.State, set.name(display.Identity), rect))
 		state.track(&placedWindow{
 			application: pending.entry.Application,
 			id:          window.ID,

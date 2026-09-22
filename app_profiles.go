@@ -251,7 +251,10 @@ func (a *App) SetCeilingMinutes(chosen int) (int, error) {
 // are stated as empty rather than left nil, so the page reads the same shapes
 // whether or not there is anything to read.
 func noReport() ReportDTO {
-	return ReportDTO{Notes: stated[string](nil), Entries: stated[EntryReportDTO](nil)}
+	return ReportDTO{
+		Notes: stated[string](nil), Entries: stated[EntryReportDTO](nil),
+		Displays: stated[string](nil),
+	}
 }
 
 // reportOf turns a report into what the page shows for it.
@@ -270,11 +273,12 @@ func reportOf(profile string, report *application.Report) ReportDTO {
 		})
 	}
 	return ReportDTO{
-		Held:    true,
-		Profile: profile,
-		Summary: report.Summary(),
-		Notes:   stated(report.SortedNotes()),
-		Entries: entries,
+		Held:     true,
+		Profile:  profile,
+		Summary:  report.Summary(),
+		Notes:    stated(report.SortedNotes()),
+		Entries:  entries,
+		Displays: stated(append([]string(nil), report.Displays...)),
 	}
 }
 

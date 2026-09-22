@@ -247,20 +247,23 @@ func ordinalEnd(number int) string {
 // displayNamer answers the name of the display a placement names, from one
 // reading of the displays connected now.
 type displayNamer struct {
-	names map[string]string
-	read  bool
+	set  displaySet
+	read bool
 }
 
 // readDisplayNames reads the displays once for a whole view. A reading that
-// fails costs the names rather than the view: every placement then says its
-// display is not known and the reason is logged.
+// fails (or finds none) costs the names rather than the view: every placement
+// then says its display is not known and the reason is logged.
 func readDisplayNames(ctx context.Context, reader DisplayReader, log Log) displayNamer {
 	displays, err := reader.Displays(ctx)
-	if err != nil {
-		log.Step(fmt.Sprintf("the displays could not be read, so none is named: %v", err))
-		return displayNamer{}
+	if err == nil {
+		var set displaySet
+		if set, err = newDisplaySet(displays); err == nil {
+			return displayNamer{set: set, read: true}
+		}
 	}
-	return displayNamer{names: displayNames(displays), read: true}
+	log.Step(fmt.Sprintf("the displays could not be read, so none is named: %v", err))
+	return displayNamer{}
 }
 
 // name answers what the display is called: its position where it is connected,
@@ -269,8 +272,5 @@ func (namer displayNamer) name(identity domain.DisplayIdentity) string {
 	if !namer.read {
 		return displayUnread
 	}
-	if name, connected := namer.names[displayKey(identity)]; connected {
-		return name
-	}
-	return displayGone
+	return namer.set.name(identity)
 }

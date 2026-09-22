@@ -296,6 +296,9 @@ type ReportDTO struct {
 	Summary string           `json:"summary"`
 	Notes   []string         `json:"notes"`
 	Entries []EntryReportDTO `json:"entries"`
+	// Displays is the legend turning each display's position back into its
+	// monitor id, as the restore last read them.
+	Displays []string `json:"displays"`
 }
 
 // UpdateDTO is what one update check found, as the page shows it.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -320,6 +321,10 @@ func (service *RestoreService) readDisplays(ctx context.Context, state *restoreS
 	if err != nil {
 		return displaySet{}, err
 	}
-	state.noteDisplayChange(set)
+	if state.noteDisplayChange(set) {
+		// The report names displays by where they sit; this is what turns each
+		// of those words back into the exact display it meant.
+		service.log.Step("the displays: " + strings.Join(set.legend(), "; "))
+	}
 	return set, nil
 }

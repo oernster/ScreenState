@@ -164,7 +164,7 @@ func TestADisplayArrivingDuringARestoreIsRecorded(t *testing.T) {
 	if err != nil {
 		t.Fatalf("the restore failed: %v", err)
 	}
-	if !anyContaining(report.Notes, "was connected during the restore") {
+	if !anyContaining(report.Notes, "the left display was connected during the restore") {
 		t.Fatalf("the new display was not recorded: %v", report.Notes)
 	}
 }

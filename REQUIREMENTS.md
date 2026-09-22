@@ -1426,8 +1426,11 @@ All were measured on the reference machine in section 2.3.
 Two facts the product depends on. The Settings number, the device name and the
 physical position do not line up, so neither number can identify a display. The
 left and right screens share the model code `HSJ1340`; only the UID tells them
-apart. A display is therefore recorded by its monitor id and named by it in the
-report, never by the Settings number or the device name.
+apart. A display is therefore recorded by its monitor id, never by the Settings
+number or the device name. The manager and the report tell a person which
+display they mean by where it sits among those connected (top, left, centre,
+right); each position is paired with its monitor id in the log and on the
+report, so the words never stand in for the identity they were read from.
 
 ### Application identity, 2026-09-19
 

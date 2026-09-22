@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
+
+	"github.com/oernster/ScreenState/internal/application"
 )
 
 // TestNoListReachesThePageAsNull holds the rule the capture defect broke.
@@ -24,9 +27,12 @@ func TestNoListReachesThePageAsNull(t *testing.T) {
 		"no report has run yet": noReport(),
 		"a report with nothing to note": ReportDTO{
 			Held: true, Profile: "Desk", Summary: "one of one",
-			Notes:   stated[string](nil),
-			Entries: []EntryReportDTO{{Application: "Notepad", Notes: stated[string](nil)}},
+			Notes:    stated[string](nil),
+			Entries:  []EntryReportDTO{{Application: "Notepad", Notes: stated[string](nil)}},
+			Displays: stated[string](nil),
 		},
+		"a restore that read no displays, as the page is handed it": reportOf(
+			"Desk", application.NewReport("Desk", time.Time{})),
 		"a capture with nothing unreadable": ReviewDTO{
 			Entries:    []ReviewEntryDTO{{Application: "Notepad", Kind: "window", Windows: 1}},
 			Unreadable: stated[string](nil),

@@ -41,6 +41,10 @@ type Report struct {
 	// Notes record what happened to the restore as a whole rather than to one
 	// entry, such as a display going away part way through (FR-057).
 	Notes []string
+	// Displays pairs each display's position with its monitor id as the
+	// restore last read them. Every note names a display by where it sits;
+	// this is what says exactly which display each of those words meant.
+	Displays []string
 
 	entries []EntryReport
 	index   map[string]int
