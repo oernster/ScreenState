@@ -21,12 +21,14 @@ enforced by a test under `tests/structural`, not by convention. The table is the
 a guard that is not listed here is undiscoverable, so a rule claimed in prose and enforced nowhere
 reads exactly like one that holds.
 
-One direction is not enforced: nothing stops `internal/ui` importing infrastructure; it does.
-`ui.TakeWindowFocus` hands the manager's webview the keyboard through
-`internal/infrastructure/window`, since on Windows nothing else reliably does.
+One direction is enforced only in part: `internal/ui` may import infrastructure (it does) so long as
+no one file of it imports the application layer as well, which `TestCompositionRootIsWhitelisted`
+fails anywhere but `main.go`. `ui.TakeWindowFocus` (in `signal_windows.go`, which imports no
+application code) hands the manager's webview the keyboard through `internal/infrastructure/window`,
+since on Windows nothing else reliably does.
 
 Each assertion was proved to bite by planting a violation against it and reading the exit code, with
-every plant restored afterwards, except the three page rules marked below. An assertion never seen
+every plant restored afterwards, except the two page rules marked below. An assertion never seen
 to fail is not yet a guard.
 
 | Invariant | Enforcing test | File |
@@ -47,7 +49,7 @@ to fail is not yet a guard.
 | The manager's page names nothing: no product name, no tagline | `TestTheManagerPageNamesNothing` | `shared_assets_test.go` |
 | Every script and stylesheet in the manager's page is loaded by its `index.html` | `TestEveryManagerScriptIsLoadedByThePage` | `shared_assets_test.go` |
 | The manager's page calls only what the agent binds | `TestTheManagerCallsOnlyWhatIsBound` | `shared_assets_test.go` |
-| Every record either page reads or builds names only fields its program's struct carries, each held under one variable name of its own | `TestEveryRecordIsReadAsItIsSent` | `wire_records_test.go` |
+| Every field either page names on a record, read or sent, is one its program's struct carries, read under the variable name the test lists for that record; each listed name is read at least once | `TestEveryRecordIsReadAsItIsSent` | `wire_records_test.go` |
 | The setup page names nothing (not proved by a plant) | `TestTheSetupPageNamesNothing` | `setup_page_test.go` |
 | The setup page calls only what the program binds (not proved by a plant) | `TestThePageCallsOnlyWhatIsBound` | `setup_page_test.go` |
 
@@ -69,8 +71,8 @@ later edit could undo without anybody noticing.
   `ManagerService`, `TrayService` and `UpdateService`, plus the ports they depend on: `Desktop`,
   `Processes`, `Launcher`, `ProfileStore`, `Clock`, `Log`, `StrangerPreferences`,
   `CeilingPreferences`, `Splash` and
-  `DesktopEvents` with its `DesktopWatch` in `ports.go`; `Startup`, `ReleaseSource` and
-  `UpdatePreferences` beside the services that use them. Depends on Domain, `internal/product` (the
+  `DesktopEvents` with its `DesktopWatch` in `ports.go`; `Startup` in `manager.go`, `DisplayReader`
+  in `display_names.go`, `ReleaseSource` and `UpdatePreferences` in `update.go`. Depends on Domain, `internal/product` (the
   tray's tooltip carries the name) and the standard library only. Every rule about what a restore
   does lives here and is exercised against hand-written fakes, on any machine, with no desktop.
 - **Infrastructure** (`internal/infrastructure`): concrete adapters implementing the Application ports.
@@ -225,11 +227,37 @@ locked to its own thread, which is never unlocked, so the thread's COM state end
 comment in `activate_windows.go` records what was tried and measured not to work, so nobody tries it
 again.
 
-**A display** is named by the device instance path from its device interface name, for example
+**A display** is recorded by the device instance path from its device interface name, for example
 `DISPLAY#HSJ1340#5&14514d51&0&UID4356`. Not by the number Windows Settings shows, not by the device
 name: both were measured disagreeing with each other and with where the screens physically sit. Two
 screens of the same model differ only in the UID, so a model code alone would place a window on the
 wrong screen.
+
+**A person is told which display by where it sits.** A monitor id is exact and unreadable, so the
+manager and the report name a display by its position among those connected, worked out in
+`internal/application/display_names.go` from their bounds. Displays whose vertical centres fall
+within each other's height form a row; the row holding the most displays (the primary's, on a tie)
+takes no vertical word; within a row the displays are left, centre and right (centre left and
+centre right in a row of four, "2nd from left" and on from five). Rows off the main one are top and
+bottom (upper and lower between); a single column is top, middle and bottom ("2nd from top" and on
+from four); one display is the only display. A placement whose display is not connected now says
+"display not connected"; where the displays cannot be read at all, every placement says "display
+not known" and the log says why. The manager reads the displays once for each profile it shows. The reference machine reads top, left, centre and right. The names come from
+the same `displaySet` a restore places against, so the manager and the report cannot name one display
+two ways; a display that went away mid-restore is named from the reading it was last in. A word never
+replaces the identity it was read from: every reading's legend pairs each position with its monitor
+id, written to the log whenever the displays are first read or change and carried on the report,
+where the page shows it on the summary's tooltip.
+
+**An application is shown by its name.** `ApplicationIdentity.Name` and `Program` in the domain
+derive what the manager shows from the identity alone: the file without its extension for a path,
+the program an updater is told to start (Discord, not Update) and a packaged application's package
+name from its model id (Claude, not claude.exe). The recorded identity stays what the manager removes
+an entry by and what the row's tooltip shows in full. The capture review and the report lead with
+the name too, the identity on the tooltip. Deciding how an entry reads is a judgement, so it is made
+in the application layer: `views.go` turns each entry into an `EntryView` whose placements are
+already words (the show state, the display's name, the size as "3300 × 2000") beside the recorded
+monitor id and rectangle.
 
 ## Placing a window
 
@@ -435,15 +463,19 @@ than by `go build`. Wails owns the main thread; the notification area icon keeps
 thread of its own, because a window belongs to the thread that made it. They meet at one point: the
 tray is handed a callback and asks for the manager rather than opening anything itself.
 
-**The window is a client of the use cases.** `app.go` holds the window plumbing and the shapes
-crossing the boundary; `about.go` answers About and the licence text. `app_profiles.go` holds most
+**The window is a client of the use cases.** `app.go` holds the window plumbing and most of the
+shapes crossing the boundary, the rest sitting beside the method that answers them (the unreadable
+file and the progress reading in `app_profiles.go`, About and its credits in `about.go`); `about.go`
+answers About and the licence text. `app_profiles.go` holds most
 of the bound methods, each a call into one of the services: `ManagerService`, `CaptureService`,
 `RestoreService`, `TrayService` for Apply and `UpdateService` for the update check. The only other
 calls are into `internal/ui`: `TakeWindowFocus` for the keyboard and `RefreshTray` after an Apply.
 No rule about what a profile means lives in any of the three files, so none of them can be got
 wrong there without a test in the application layer failing first. The composition-root test
-proves it: `main.go` is still the only file that knows both the application layer and the Windows
-layer.
+holds the wiring: `main.go` is still the only file that imports both the application layer and
+infrastructure. The test reads each file's own imports, so the facade reaching the keyboard
+handover through `internal/ui`, which imports `internal/infrastructure/window`, is not a breach of
+it.
 
 **The page is a script per subject, not one file.** `manager.js` holds what the panels share, the
 buttons that belong to the window and the start of a run; beside it sit the interrupting surfaces
@@ -476,9 +508,10 @@ harmless. The report then goes up over the profile list rather than over the App
 closing it leaves the user somewhere they can act (FR-066).
 
 **The main screen is three parts: the profiles, what the selected one arranges and the buttons.**
-The profile list runs down the left; the selected profile's applications fill the middle, where a
-path can wrap and be read whole (FR-068); the buttons of whatever panel is showing run down a rail on
-the right, with the donation button at its foot. The settings are a dialog behind the button in the
+The profile list runs down the left; the selected profile's applications fill the middle, each
+by name with its file, show state, display and size beneath and its whole path, rectangles and
+monitor ids on the row's tooltip (FR-068); the buttons of whatever panel is showing run down a rail
+on the right, with the donation button at its foot. The settings are a dialog behind the button in the
 bar (EIR-002), set apart from the theme and Help by a rule. The layout got here in two steps: the
 applications and the settings first shared one column, which left a path cut off after a few words
 and a list one row tall; the applications then went to a dialog; once the settings had a dialog of
@@ -623,8 +656,9 @@ answer, which is what stops those four drifting apart.
 | Go back a version | the recorded version is newer |
 | Manage | the versions match, so there is nothing to install |
 
-Removal is a screen reachable from every other one, so cancelling it returns to whatever was due
-behind it. The one exception is a start with `-uninstall`, which is how the Apps list asks for it:
+Removal is a screen reachable from every screen that finds an install (Update, Go back a version and
+Manage), so cancelling it returns to whatever was due behind it. The Install screen, which finds
+nothing to remove, does not offer it. The one exception is a start with `-uninstall`, which is how the Apps list asks for it:
 that goes straight to removal.
 
 **An operation moves to a different screen; nothing is greyed in place.** The progress screen offers no
@@ -669,7 +703,7 @@ everything written there would otherwise be lost, including the Go runtime's own
 | `go test -race` | the whole suite, with the race detector and so with cgo on |
 | `go test` | the whole suite again with cgo off, as the product ships, with coverage |
 | Every package ran | a package owning tests that ran none of them fails the gate, since a quarantined test binary reports ok |
-| Structural suite | the invariants above, each proved by a planted violation save the three page rules marked there |
+| Structural suite | the invariants above, each proved by a planted violation save the two page rules marked there |
 | Coverage floor | every function in `internal/domain` and in `internal/application` exercised |
 
 The floor is scoped to the two layers a machine can exercise with no filesystem, no clock and no
@@ -678,15 +712,19 @@ function counts once a test reaches any statement in it. Infrastructure sits del
 it: the Windows half needs a real desktop; gating it would mean either a number that means nothing
 or tests that assert what happened to be on screen.
 
-Measured statement coverage on 2026-09-21: domain 100%, application 97.0%, clock 100%, store 93.8%,
+Measured statement coverage on 2026-09-22: domain 100%, application 97.2%, clock 100%, store 93.8%,
 settings 91.2%, instance 90.9%, runlog 76.7%, win32 42.8%, setup 33.6%, ui 25.8%, the root package
-(the composition root and the manager's facade) 11.6%. The shortfalls outside the floor are IO and
+(the composition root and the manager's facade) 13.1%. The shortfalls outside the floor are IO and
 platform failures that would need the disk or the window manager to fail mid-call, plus the Win32
 calls themselves; they are not padded with tests that assert nothing.
 
 The structural suite also holds both pages' boundaries, which no compiler sees: a page may not write
-the product's name or its tagline down, every `state.` field it reads must be a json tag the program
-actually sends and every call it makes must be a method the program binds.
+the product's name or its tagline down, every call it makes must be a method the program binds and
+every field it reads off a record (or writes into one it sends) must be a json tag on the struct the
+program declares for it. A script says nothing about what an object is except its name, so each
+record is held under one variable name of its own on its page (`profileEntry`, `placement`,
+`candidate`, `outcome` and the rest, listed in `wire_records_test.go`); the test reads fields by
+those names and fails too where a name is no longer read at all.
 
 Four integration tests in `win32` read the real machine and assert only what must hold anywhere.
 Two read the desktop and skip where there is none: the displays and windows, then whether each
@@ -709,7 +747,9 @@ away, asserting each wakes it; it skips where Windows names no such message. A s
 | A newer restore replaces a running one | A restore is a statement of what the desktop should look like now, so the newest statement is the one that is true |
 | Undo nothing when replacing | Putting windows back moves them twice to reach the same end |
 | The normal rectangle is recorded, even when maximised | It is what decides which display maximising puts the window on |
-| A display is named by its device instance path | Every number Windows offers was measured disagreeing with the others |
+| A display is recorded by its device instance path | Every number Windows offers was measured disagreeing with the others |
+| A person is told which display by its position, the identity paired beside it | A monitor id is exact and unreadable; a position is readable and is worked out afresh from the displays connected, so it cannot go stale |
+| An application is listed by name, its path a hover away | The executable is not what a person calls the application; saying exactly what was captured is still part of what the product is for |
 | An application is named by what starts it, with what survives its updates kept beside it | The path starts it as a double-click does; a Store package's path carries its version, so the model id kept beside it recognises and starts it after an update; a window class carries a GUID that changes every reboot |
 | A capture records only applications with a window shown | ScreenState arranges the screen, not which applications run; an application with nothing shown has nothing to arrange |
 | A hidden window is shown by running the application again | Acting on the hidden window from outside produced an empty frame the application was not drawing |
@@ -750,7 +790,9 @@ named panel, the donate link and the update offer on screen. Those are read off 
 suite, so they are checked by the list in TESTING.md. So are the ones added most recently, whose
 rules the suite holds where they have any: stopping a restore, the tray's badge, matching a
 packaged application after an update, the ceiling set in the settings dialog, a start by hand
-arranging nothing, the manager taking the splash down and the three-part main screen.
+arranging nothing, the manager taking the splash down, the three-part main screen, applications
+listed by name with their path on hover and displays named by position on the real four-display
+desk.
 
 **The setup program has installed and nothing else.** It has installed on the reference machine
 many times, each over an existing install of the same version: the files are in
@@ -765,7 +807,7 @@ against a stand-in, which settles the layout and the wiring and settles nothing 
 ## Where the code falls short of the specification
 
 Found by reading the source against every requirement during the documentation pass for the first
-release. Nothing found that way is left open. Eleven items were on this list and are now built:
+release. Eleven items were on this list and are now built:
 cancelling a restore (FR-049), matching a packaged application's window after an update (FR-071),
 marking the tray icon after an incomplete restore (FR-045), counting the rebuilt buttons (FR-075),
 a click on the splash (FR-078), log retention (NFR-OBS-001), setting the ceiling (NFR-PERF-003),
@@ -774,4 +816,33 @@ holding the page files to the module size (NFR-MAINT-003), keeping window titles
 a window without activating it (FR-074). A new shortfall found by reading the source against a
 requirement belongs here, with the requirement it falls short of.
 
-What remains is proving the rest: see the known limits above.
+The documentation pass of 2026-09-22 read the source against every requirement again and found
+these open. Each was confirmed in the code, not inferred:
+
+- **FR-050, the step log.** A restore logs its opening line, the display legend, the taskbar counts
+  and its summary. Only the sign-in restore also writes its notes and each entry's outcome
+  (`write` in `main.go`); a restore from Apply or the tray logs no entry's outcome. No restore logs
+  the placements themselves, which are notes on the entry, so NFR-PERF-001's method (timestamps in
+  the log from the first placement to the last) has no timestamps to read.
+- **FR-045, marking the tray.** `signIn` refreshes the tray only when the sign-in restore returns
+  without an error, so one that ends in an error, a recovered crash (FR-052) among them, leaves its
+  outstanding entries unmarked on the icon until the next refresh.
+- **FR-035, a window that cannot be moved.** A placement that fails fails its whole entry at once:
+  the entry's later placements are not tried.
+- **FR-037, several windows.** The report counts the placements left without a window ("opened 1 of
+  the 2 windows the profile records") and the windows left without a placement; it names neither.
+- **FR-039, no default.** With no profiles at all the manager says there are none yet; it states
+  that no default is set only once a profile exists.
+- **NFR-REL-002, an unreadable store.** A profile folder that cannot be created ends the run before
+  the window opens (`serve` returns the error); one that cannot be listed shows the error panel
+  rather than the note under the profile list the rationale describes.
+- **NFR-MAINT-002, coverage.** The requirement says 100 percent; the gate holds every function
+  reached, not every statement (97.2% of the application's statements on this date), as
+  [TESTING.md](TESTING.md) states.
+- **FR-057 and appendix E, the report's legend after a display change.** The report keeps the legend
+  of the latest reading only. A display that went away drops out of it; positions are worked out
+  afresh, so after the left display goes, "left display" in the legend is the one that was centre
+  while notes written before the change meant the old one. The log is right: it writes a legend at
+  every change.
+
+What remains beyond these is proving the rest: see the known limits above.

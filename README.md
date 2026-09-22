@@ -26,7 +26,8 @@ Windows.
 ## What it does
 
 - **Captures the desktop as a profile.** It lists every application with a window on screen and
-  where each window sits; you untick what you do not want and name the profile. Only what is on screen is
+  how many windows it has, recording where each one sits; you untick what you do not want and name
+  the profile. Only what is on screen is
   captured: an application with no window shown has nothing to arrange. Nothing is written until
   you confirm.
 - **Restores the default profile at sign-in**, waiting in the notification area without opening a
@@ -43,6 +44,11 @@ Windows.
   or (for a packaged application whose path moves with every version) its model id kept beside the
   path. The model id is what still starts it and what still recognises its window once an update
   has moved it to a new path.
+- **Speaks in the names you use.** The manager lists each application by its name, with how its
+  window is shown, on which display and at what size beneath; displays are named by where they sit
+  (top, left, centre, right) in the manager and in the report. Nothing recorded is hidden: the full
+  path, each rectangle and each display's identity are a hover away; the log pairs every position
+  with its display's identity.
 - **Leaves the keyboard and the taskbar alone.** Nothing it starts or places takes the keyboard
   from the window you are typing in; no taskbar button is left lit, red or missing its icon.
 - **Puts away the windows the profile does not name**, by minimising them; at sign-in it can close
@@ -56,7 +62,7 @@ Windows.
 ## What it does not do
 
 - **It never ends another program.** The one process anything here ends is its own agent, which
-  the setup program stops before replacing its files. It closes a window only where you have
+  the setup program stops, when you tell it to, before replacing or removing its files. It closes a window only where you have
   turned that on, only at sign-in and only for a window the profile being restored does not name.
 - **It does not restore what is inside an application**: browser tabs, open documents and the
   folder an Explorer window shows are the application's business. Nor stacking order, Snap groups

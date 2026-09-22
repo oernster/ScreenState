@@ -129,8 +129,17 @@ holds each:
   so a new one that nothing loads is dead weight nothing else would report.
 
 The wire between a program and its page is stated twice, as Go structs with
-json tags and as the names the page reads, with a test comparing the two. Add
-a field on one side only and the test says so.
+json tags and as the names the page reads or writes, with a test comparing the
+two. It checks one direction: a page naming a field its struct does not carry
+fails; a Go field the page never reads passes, since a field nobody reads yet
+is harmless. A script says nothing
+about what an object is except its name, so each record is held under one
+variable name of its own on its page, listed beside its struct in
+`tests/structural/wire_records_test.go`: `profileEntry` for an entry,
+`placement` for a placement, `candidate` for a capture candidate, `outcome` for
+a line of the report and so on. A new record gets a name no other object on
+that page uses and a row in that list; reading a record under any other name
+leaves it unchecked.
 
 ## The icons
 

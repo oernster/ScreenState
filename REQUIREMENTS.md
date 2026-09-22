@@ -1278,21 +1278,22 @@ questions in appendix B, each with a measurement that settles it.
 
 The case that prompted the product, recorded as the primary acceptance scenario.
 
-Displays on the reference machine, as Windows Settings numbers them:
+Displays on the reference machine, by the name the product gives each (where it sits) beside the
+number Windows Settings shows, which the product never uses:
 
-| Settings number | Position | Size |
-|---|---|---|
-| 1, above the others | primary | 3440x1440 |
-| 4, left | left of centre | 3840x2400 |
-| 3, centre | below display 1 | 3840x2400 |
-| 2, right | right of centre | 3840x2400 |
+| Named by the product | Settings number | Position | Size |
+|---|---|---|---|
+| top display | 1 | primary, above the others | 3440x1440 |
+| left display | 4 | left of centre | 3840x2400 |
+| centre display | 3 | below the top display | 3840x2400 |
+| right display | 2 | right of centre | 3840x2400 |
 
 ```
 Given profile "Desk" is marked as default and records:
-  Claude          maximised on display 1
-  Stellody        maximised on display 4
-  Discord         maximised on display 3
-  PigeonPost      maximised on display 2
+  Claude          maximised on the top display
+  Stellody        maximised on the left display
+  Discord         maximised on the centre display
+  PigeonPost      maximised on the right display
 And it was captured while NordVPN and GameGlass ran with their windows hidden
   and Postal Gambit was not running, so none of the three is in it (FR-005)
 And Claude, Discord, PigeonPost, NordVPN and GameGlass start at sign-in by
@@ -1305,10 +1306,10 @@ When the user signs in
 Then the agent launches Stellody; it launches nothing else
 And each of the four applications is placed as its own window appears,
   without waiting for the others
-And Claude is maximised on display 1
-And Stellody is maximised on display 4
-And Discord is maximised on display 3
-And PigeonPost is maximised on display 2
+And Claude is maximised on the top display
+And Stellody is maximised on the left display
+And Discord is maximised on the centre display
+And PigeonPost is maximised on the right display
 And the NordVPN and GameGlass windows, which the profile does not name, are
   minimised once every entry is satisfied (FR-063)
 And Postal Gambit is not started, since the profile does not name it

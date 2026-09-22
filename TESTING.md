@@ -55,13 +55,19 @@ Two suite runs, because they cannot be one: the race detector needs cgo (and
 with it a C compiler) while the binary that ships is built without it. Running
 only one would leave the other configuration untested.
 
-It ends with `All checks passed.` Trust the exit code, not the text:
+It ends with `All checks passed.` Trust the exit code rather than the text;
+read it from a process of its own:
 
 ```powershell
-./test.ps1; $LASTEXITCODE
+pwsh -NoProfile -File ./test.ps1; $LASTEXITCODE
 ```
 
-`0` means every step passed. A failing step stops the script with the reason.
+`0` means every step passed. A failing step stops the script by throwing its
+reason, which is why the gate runs in a process of its own here: run as
+`./test.ps1; $LASTEXITCODE` in the same session, the throw ends the whole line
+before `$LASTEXITCODE` is read. Read afterwards, it still holds whatever the
+last native command left, which can be `0` (measured 2026-09-22). `build.ps1`
+is not affected: the throw stops it as it should.
 
 ### The coverage floor
 
@@ -69,7 +75,7 @@ It ends with `All checks passed.` Trust the exit code, not the text:
 functions: the gate reads `go tool cover -func` and fails naming the package
 when any function in it has no statement a test reached. It is a floor on
 functions, not on statements; measured statement coverage is 100.0% for the
-domain and 97.0% for the application. They are the layers a machine can
+domain and 97.2% for the application. They are the layers a machine can
 exercise with no filesystem, no clock and no desktop, so a function nothing
 calls there is a decision nobody made.
 
@@ -88,7 +94,10 @@ a profile's name, the default marking and telling two displays of one model
 apart; `geometry_test.go` the rectangles, the window states and the stored
 spelling of each kind. `recognises_test.go` holds the rule that a packaged application
 is still recognised once an update has moved its path; both sides must carry
-the same model id.
+the same model id. `naming_test.go` holds what the manager calls an application,
+one case per kind of identity measured in appendix E: PigeonPost from its path,
+Discord from the program its updater starts rather than from the updater,
+Claude from its model id rather than its lower-case file.
 
 ### The decisions
 
@@ -105,8 +114,13 @@ requests to close for the windows asked alone (a window that appears later
 does not hold the restore), the progress reading, the
 splash's words, the wait for the taskbar flashing to end, the click sent to the
 taskbars and the buttons built afresh, watching the desktop after a restore,
-the report, the tray, the manager's list with a profile it cannot read, profile
-naming and marking, the sign-in entry, the update check and the failure wording.
+the report, the tray, the manager's list with a profile it cannot read, what an
+entry shows (its name, file and size), naming each display by where it sits
+(`display_names_test.go`: the reference machine's four displays, a single one,
+rows, columns and stacks, a tie decided by the primary, a display not connected,
+displays that cannot be read), the report and the log saying which display a
+position meant, profile naming and marking, the sign-in entry, the update check
+and the failure wording.
 
 There are no mocking libraries. The fakes are written by hand, in
 `fakes_test.go`, `fakes_desktop_test.go` and `fakes_store_test.go`, with fields
@@ -127,7 +141,8 @@ tests share.
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
 `startup`, `update` and `window` have no tests of their own: they are the
-registry, the network and the desktop. What can be decided about them was
+registry, the network and the desktop. `internal/product` has none either: it
+is two constants and a class name, held to one home by a structural test. What can be decided about them was
 moved into `internal/application`, which is tested; what is left is the call
 itself. Which screen the setup program shows is decided in its page and in
 `installer/app.go`, neither of which has a Go test; it is checked by hand.
@@ -135,10 +150,15 @@ itself. Which screen the setup program shows is decided in its page and in
 ### The wire between the program and its pages
 
 Neither page has a build step, so nothing compiles or type checks them.
-Structural tests stand in for that, holding three rules: a page may read only
-fields the program actually sends; it may call only methods the program
+Structural tests stand in for that, holding three rules: a page may name only
+fields the struct behind a record carries, whether it reads them off an answer
+or writes them into a record it sends; it may call only methods the program
 actually binds; it may not write the product's name down anywhere. Both pages
-are held to all three. Every script and stylesheet in the manager's page
+are held to all three. The first rule works because each record is held under
+one variable name of its own on its page, which `wire_records_test.go` lists
+beside the struct it stands for; the test fails too where a name is no longer
+read at all, so renaming a variable cannot leave a record unchecked in silence.
+A record read under some other name is not seen, which is the rule's one limit. Every script and stylesheet in the manager's page
 directory must be loaded by its `index.html`; every file that page loads must
 be there.
 
@@ -161,8 +181,8 @@ impure domain, a second composition root, a Go or page file over 400 lines or
 in the band just below it, an undocumented exported type, a program ended above
 infrastructure, an application started in front, a decision that is not
 portable, a timing value with two homes, the product's name written twice, a
-page naming the product, a wire that disagrees with itself, a call to a method
-nothing binds, a manager script or stylesheet nothing loads and a shared asset that has
+page naming the product, a field a page names that its record does not carry, a
+call to a method nothing binds, a manager script or stylesheet nothing loads and a shared asset that has
 drifted from its master in `assets/`.
 
 ## What the tests never do
@@ -214,13 +234,14 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | The flashing has ended before the rebuild (FR-080) | Sign in without touching anything until the splash says ready, then look at the taskbars: no button should be red or flashing, the underline should sit on the window that has the front and clicking a button should bring its window forward rather than minimise it. The log says how long the restore waited for the buttons to stop flashing and how often a flash began the wait again. Only a real sign-in shows it: whether an application asks for the front (and when) belongs to that application. |
 | Installing arranges nothing (FR-038) | With a profile recording two Terminal windows and one open, install over an existing copy and let setup start the agent: no window should open, move or close; the log should say setup started that copy so nothing was arranged. |
 | Placing a window never activates it (FR-074) | Type into a window on one display, then apply a profile that places maximised windows on the others: the keyboard should stay where it was and no taskbar button should be lit when the restore ends. Each maximised window minimises and comes back maximised as it is placed; watch that an application that hides itself when minimised (one that goes to the notification area) comes back on screen. The rule itself is held by `TestMaximisingDoesNotActivate`, run with `$env:SCREENSTATE_DESKTOP_PROBE = '1'` since it opens two windows and takes the front. |
-| A packaged application is named and started by its path (FR-071) | Capture with Claude and Windows Terminal open: the review should show each as a path under `WindowsApps`, not as a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
+| A packaged application is named and started by its path (FR-071) | Capture with Claude and Windows Terminal open: the review should list each by name with its file beneath (Claude over `claude.exe`) and resting the pointer on it should show a path under `WindowsApps`, not a model id. Sign out and in: both should start and be placed; the log should not say a model id was used. Then look at the taskbar before clicking it. |
 | A packaged application survives its own update (FR-071) | After Claude next updates, apply the profile without recapturing: it should start and be placed, never put away; the log should say it did not start from its path so its model id was used. |
 | The tray icon asks for attention (FR-045) | Apply a profile naming an application that is not installed: once the restore ends, the tray icon should carry a badge in the theme's danger colour in its bottom-right corner, in the light theme and in the dark one. Apply a profile that completes: the badge should go. After a restore started from the manager and after one at sign-in, rest the pointer on the icon: the tooltip should describe that restore. |
 | A start by hand arranges nothing (FR-038) | Quit from the tray, move a window the default profile places, then start the agent from its shortcut: the manager should open, nothing should move, no splash should appear and the log should say it was started by hand so nothing was arranged. |
 | Bringing the manager up takes the splash down (FR-078) | Sign in, then before touching anything else open the manager from the tray: every splash should close as the window comes up and the log should say the manager was opened so the splash was taken down. Again with a second launch from the shortcut. Before either, the log should say the splash is ready and closes at the next key press or click. |
 | The ceiling is the user's (NFR-PERF-003) | In Settings, set the ceiling to 2 minutes. Apply a profile naming an application that is not installed, then touch nothing. The report should say it was still not there when the ceiling of 2m0s passed; the log's opening line for the restore should say ceiling 2m0s. Type 90: the field should come back as 60. |
-| The main screen (FR-068, EIR-002) | Press each profile: its applications should fill the middle with every path whole. The buttons should run down the right with Close and Quit at the foot above the donation button, all visible at the smallest window size. The settings should open from the gear, with a rule between it and the theme button. |
+| The main screen (FR-068, EIR-002) | Press each profile: its applications should fill the middle, each by name with its file, show state, display and size beneath in the quieter note style; resting the pointer on one should show its whole path, how it is recognised and each window's rectangle and monitor id. The buttons should run down the right with Close and Quit at the foot above the donation button, all visible at the smallest window size. The settings should open from the gear, with a rule between it and the theme button. |
+| Displays are named by where they sit (FR-068, FR-044) | On the reference machine, open a profile placing a window on each display: the entries should read top, left, centre and right display as the screens actually stand. Apply it and open the report: each placement should name its display the same way and resting the pointer on the summary should pair each position with its monitor id. The log should carry the same pairing on a line beginning "the displays:". |
 | The donation button (FR-060) | Rest the pointer on the donation button at the foot of the rail: the tooltip should open by saying the product is free and stays free, with no paid tier, no licence key and no feature held back. Press it: the donation page should open in the browser at the address the README links. |
 | No window title reaches the log (NFR-PRIV-001) | Sign in with a document open in an application the profile does not name, then read the log: the lines about windows put away or asked to close should name the application by its path and never carry the document's title. |
 | An unreadable profile is named in the manager (NFR-REL-002, DATA-003) | Copy a profile file in `%LOCALAPPDATA%\ScreenState\profiles`, change its `format` to 99 and save it, then open the manager: the other profiles should be listed and under them the copy should be named with the reason. Its bytes should be unchanged afterwards. Delete the copy by hand when done. |

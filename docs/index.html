@@ -58,7 +58,7 @@
     <div class="wrap hero">
         <div>
             <p class="eyebrow">
-                <span class="pill">v<!--VERSION-->1.1.0<!--/VERSION--></span>
+                <span class="pill">v<!--VERSION-->1.2.0<!--/VERSION--></span>
                 <span class="pill">Windows</span>
                 <span class="pill">Free and open source</span>
             </p>
@@ -84,8 +84,8 @@
         <ol class="steps">
             <li><strong>Capture.</strong> Arrange your desktop the way you like it and
                 capture it. ScreenState lists every application with a window on screen and
-                where each window sits; untick anything you want left out, name the profile
-                and save. An application running with no window shown is not offered: it
+                how many windows it has, recording where each one sits; untick anything you
+                want left out, name the profile and save. An application running with no window shown is not offered: it
                 has nothing to arrange. Nothing is written until you confirm.</li>
             <li><strong>Mark a default.</strong> The default profile is the one applied
                 after you sign in. With only one profile, it is the default.</li>
@@ -112,7 +112,9 @@
                 <ul>
                     <li><strong>Knows your displays apart</strong>, even two of the same
                         model, by the identity Windows gives each screen rather than a
-                        number that changes.</li>
+                        number that changes. It tells you which one it means by where it
+                        sits: the top, left, centre or right display, with the exact
+                        identity a hover away.</li>
                     <li><strong>Names applications by what survives their updates.</strong>
                         A packaged application whose path moves with every update keeps its
                         model id beside the path, so it is still started and its window still
@@ -142,15 +144,19 @@
                     <li><strong>Keeps everything on one screen.</strong> The manager shows
                         your profiles on the left, the selected profile's applications in
                         the middle and its buttons down the right, with Settings behind
-                        the gear at the top. A profile file it cannot read is named under
-                        the profile list and left exactly as it is.</li>
+                        the gear at the top. Each application is listed by name, with how
+                        its window is shown, on which display and at what size beneath;
+                        the full path it recorded is a hover away. A profile file it cannot
+                        read is named under the profile list and left exactly as it
+                        is.</li>
                 </ul>
             </div>
             <div class="card">
                 <h3>What it does not do</h3>
                 <ul>
                     <li><strong>End another program.</strong> The only process it ever ends is
-                        its own agent, which setup stops before replacing it. It closes a window
+                        its own agent, which setup stops, when you tell it to, before replacing
+                        or removing it. It closes a window
                         only where you have turned that on, only at sign-in and only for a
                         window the profile being restored does not name.</li>
                     <li><strong>Restore what is inside an application.</strong> Browser
