@@ -1521,9 +1521,10 @@ the same rectangle, drawn properly; the second process then exited by itself.
 ## Appendix F: Proposed amendment 1, recording the stacking order
 
 Status: PROPOSED 2026-09-22. Not baselined and not built. Nothing in this
-appendix describes what the product does today; sections 1 to 5 still do. It
-becomes part of the specification only once every question in F.7 is closed,
-at which point each requirement moves into section 3 and OOS-2 is amended.
+appendix describes what the product does today; sections 1 to 5 still do. The
+owner's rulings closed OQ-14 to OQ-17 the same day; OQ-13, a measurement, is
+the one question left. Once it is settled the amendment is baselined: each
+requirement moves into section 3, OOS-2 is amended and appendix D is recounted.
 
 ### F.1 The need
 
@@ -1591,7 +1592,8 @@ Requirement: When a restore has settled every entry it can and has rebuilt the
 taskbar buttons (FR-075), the ScreenState agent shall stack the placed windows
 of the profile in rank order, rank 1 on top, before the splash says the desktop
 is ready (FR-078).
-Rationale: last among the steps that move windows, because each earlier one can
+Rationale: it holds for Apply as for a sign-in (OQ-15), since Apply is a request
+to make the desktop match the profile. Last among the steps that move windows, because each earlier one can
 change the order: an application starting puts its own window in front; the
 rebuild shows each window again. Stacking once at the end is the only point at
 which the order can be set and then left alone. Before "ready", because the
@@ -1635,7 +1637,8 @@ then the ScreenState agent shall not restack and shall record in the report that
 the order was left as the user found it.
 Rationale: from the first key press or click the user is working; drawing
 windows over the one they are using, without it losing the keyboard, would put
-their work behind something they did not ask for. Proposed; see OQ-14.
+their work behind something they did not ask for. Ruled by the owner
+2026-09-22 (OQ-14).
 
 **FR-088 A profile with no ranks**
 Priority: Must
@@ -1681,10 +1684,10 @@ version question is OQ-16.
 | ID | Question | Owner | Confirm by |
 |---|---|---|---|
 | OQ-13 | Does the capture read the stacking order as it stands? ARCHITECTURE.md says the first enumeration of windows comes back in stacking order; that is a statement about Windows, not yet measured here. Settled by a desktop probe that makes three windows of its own in a known order and reads them back through `Desktop.Windows`. | Oliver | before FR-081 is built |
-| OQ-14 | FR-087: once the user has pressed a key or clicked, should the recorded order still be applied? Proposed no, since it would draw windows over the one being used. | Oliver | open |
-| OQ-15 | Apply: should it apply the recorded order (FR-083) as a sign-in does, rather than keep the order it finds as FR-027 does today? Proposed: apply it, since Apply is a request to make the desktop match the profile. | Oliver | open |
-| OQ-16 | Keep format version 1 with the optional field (an older build rewriting the profile drops the ranks) or move to version 2 (an older build then leaves the profile out of its list altogether, DATA-003)? Proposed: keep version 1. | Oliver | open |
-| OQ-17 | Priority: this amendment is marked Should throughout except the two requirements that protect existing behaviour (FR-084, FR-088). Is that right? Is getting the order back a Must instead? | Oliver | open |
+| OQ-14 | CLOSED 2026-09-22. No: once the user has pressed a key or clicked, the recorded order is not applied, since it would draw windows over the one being used. Written as FR-087. | Oliver | closed 2026-09-22 |
+| OQ-15 | CLOSED 2026-09-22. Yes: Apply applies the recorded order as a sign-in does, since it is a request to make the desktop match the profile. FR-083 covers every restore; FR-027's keeping of the order found governs only a profile with no ranks (FR-088). | Oliver | closed 2026-09-22 |
+| OQ-16 | CLOSED 2026-09-22. Format version 1, with the rank as an optional field (DATA-006). An older build lists and applies the profile, ignoring the ranks; one that rewrites it drops them, which returns that profile to FR-088. | Oliver | closed 2026-09-22 |
+| OQ-17 | CLOSED 2026-09-22. Should, as marked, with FR-084, FR-088 and DATA-006 Must because they protect existing behaviour and existing files. | Oliver | closed 2026-09-22 |
 
 ### F.8 Build order, once baselined
 
