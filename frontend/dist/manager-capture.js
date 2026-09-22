@@ -18,26 +18,26 @@ async function openCapture() {
     const rows = $('capture-rows')
     rows.innerHTML = ''
     const keeping = {}
-    review.entries.forEach((entry) => {
-        keeping[entry.application] = true
+    review.entries.forEach((candidate) => {
+        keeping[candidate.application] = true
         const label = document.createElement('label')
         label.className = 'option'
         const input = document.createElement('input')
         input.type = 'checkbox'
         input.checked = true
-        input.onchange = () => { keeping[entry.application] = input.checked }
+        input.onchange = () => { keeping[candidate.application] = input.checked }
         const tick = document.createElement('span')
         tick.className = 'check'
         const text = document.createElement('span')
-        text.title = entry.application + '\nrecognised by ' + entry.kind
+        text.title = candidate.application + '\nrecognised by ' + candidate.kind
         const title = document.createElement('span')
         title.className = 'label'
-        title.textContent = entry.name
+        title.textContent = candidate.name
         const hint = document.createElement('span')
         hint.className = 'hint'
-        hint.textContent = entry.program + PART
-            + (entry.windows === 0 ? 'no window placed'
-                : entry.windows === 1 ? '1 window placed' : entry.windows + ' windows placed')
+        hint.textContent = candidate.program + PART
+            + (candidate.windows === 0 ? 'no window placed'
+                : candidate.windows === 1 ? '1 window placed' : candidate.windows + ' windows placed')
         text.append(title, hint)
         label.append(input, tick, text)
         rows.appendChild(label)
@@ -100,23 +100,23 @@ async function openReport() {
     $('report-title').textContent = 'Last restore: ' + report.profile
     $('report-summary').textContent = report.summary
     report.notes.forEach((note) => rows.appendChild(emptyLine(note)))
-    report.entries.forEach((entry) => {
+    report.entries.forEach((outcome) => {
         const row = document.createElement('div')
         row.className = 'row'
         const mark = document.createElement('span')
-        mark.className = entry.satisfied ? 'tick' : 'cross'
-        mark.textContent = entry.satisfied ? '✓' : '⚠'
+        mark.className = outcome.satisfied ? 'tick' : 'cross'
+        mark.textContent = outcome.satisfied ? '✓' : '⚠'
         const words = document.createElement('span')
         words.className = 'words'
-        words.title = entry.application
+        words.title = outcome.application
         const name = document.createElement('span')
         name.className = 'name'
-        name.textContent = entry.name
+        name.textContent = outcome.name
         const note = document.createElement('span')
         note.className = 'note wrap'
-        note.textContent = entry.satisfied
-            ? (entry.notes.join('; ') || 'put where the profile says it goes')
-            : entry.reason
+        note.textContent = outcome.satisfied
+            ? (outcome.notes.join('; ') || 'put where the profile says it goes')
+            : outcome.reason
         words.append(name, note)
         row.append(mark, words)
         rows.appendChild(row)

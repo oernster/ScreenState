@@ -186,17 +186,17 @@ function entryRows(container, entries) {
             + ' Capture the desktop to make one that does.'))
         return
     }
-    entries.forEach((entry) => {
+    entries.forEach((profileEntry) => {
         const row = document.createElement('div')
         row.className = 'row'
         const words = document.createElement('span')
         words.className = 'words'
-        words.title = details(entry)
+        words.title = details(profileEntry)
         const name = document.createElement('span')
         name.className = 'name wrap'
-        name.textContent = entry.name
+        name.textContent = profileEntry.name
         words.appendChild(name)
-        describe(entry).forEach((line) => {
+        describe(profileEntry).forEach((line) => {
             const note = document.createElement('span')
             note.className = 'note wrap'
             note.textContent = line
@@ -208,7 +208,7 @@ function entryRows(container, entries) {
         remove.className = 'rowbtn'
         remove.textContent = 'Remove'
         remove.title = 'Take this application out of the profile'
-        remove.onclick = () => void removeEntry(entry.application)
+        remove.onclick = () => void removeEntry(profileEntry.application)
         row.appendChild(remove)
         container.appendChild(row)
     })
@@ -250,25 +250,26 @@ const PART = ' · '
 // describe says in words what one entry asks for, a line at a time: the file it
 // starts and whether it runs, then how its window is shown and how large. One
 // placement shares the first line; several take a line each.
-function describe(entry) {
-    const running = entry.running ? 'running' : 'not started'
-    const placements = entry.placements
+function describe(profileEntry) {
+    const running = profileEntry.running ? 'running' : 'not started'
+    const placements = profileEntry.placements
     if (!placements.length) {
-        return [[entry.program, running, 'no window placed'].join(PART)]
+        return [[profileEntry.program, running, 'no window placed'].join(PART)]
     }
     if (placements.length === 1) {
-        return [[entry.program, running, placements[0].state].join(PART), placements[0].size]
+        const placement = placements[0]
+        return [[profileEntry.program, running, placement.state].join(PART), placement.size]
     }
-    return [[entry.program, running].join(PART)].concat(placements.map((placement) =>
+    return [[profileEntry.program, running].join(PART)].concat(placements.map((placement) =>
         [placement.state, placement.size].join(PART)))
 }
 
 // details is exactly what was recorded for one entry, for the row's tooltip:
 // the whole identity, how it is recognised, then every placement's rectangle
 // and the monitor it was recorded against.
-function details(entry) {
-    return [entry.application, 'recognised by ' + entry.kind].concat(
-        entry.placements.map((placement) =>
+function details(profileEntry) {
+    return [profileEntry.application, 'recognised by ' + profileEntry.kind].concat(
+        profileEntry.placements.map((placement) =>
             placement.state + ' at ' + placement.rect + ' on ' + placement.display)).join('\n')
 }
 
