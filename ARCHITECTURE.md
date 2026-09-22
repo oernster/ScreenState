@@ -562,6 +562,17 @@ appear and may take minutes; a manager that could not be opened until it finishe
 the whole of the time a user most wants to look at it. FR-048 asks only that the restore complete
 without the window being opened, which it does.
 
+**A dialog in the page is modal, the window's own frame included.** The dialog is a backdrop over
+the page, while the caption and its cross belong to Windows, so the cross went on working over an
+open dialog and hid the window with it. A true modal dialog disables its owner, which is not open
+to one living inside that owner's own webview. So the page tells the facade as a dialog opens and
+closes (`App.SetDialogOpen`). The window is not set to hide on close, since Wails then hides it
+before any hook is asked. Every close from the frame (the cross, Alt+F4, the taskbar's Close)
+reaches `App.beforeClose`, which refuses it while a dialog is open, hides the window otherwise and
+lets a quit through. The window menu's Close is greyed meanwhile so the cross looks as it behaves;
+that is presentation only, since a greyed Close still reaches the window (measured by
+`TestAGreyedCloseIsNotAGuard`).
+
 **Nothing is written until a capture is confirmed.** The review is held in the facade between
 reading the desktop and confirming what to keep, so a cancelled capture leaves nothing behind
 (FR-011, FR-016), including on disk. Deleting a profile is a panel of its own naming it (FR-043),
@@ -765,7 +776,8 @@ away, asserting each wakes it; it skips where Windows names no such message. Fiv
 windows (only two of their own each), so they run only when `SCREENSTATE_DESKTOP_PROBE` is set and
 the gate skips them: `TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder`, then
 in `restack_windows_test.go` the stacking order read top first, a restack putting a recorded order
-back and a restack activating nothing.
+back and a restack activating nothing. `TestAGreyedCloseIsNotAGuard` in the `window` package runs on
+the same terms with one window of its own.
 
 ## Design decisions
 
@@ -812,10 +824,10 @@ path is proved only in the shape the adapter promises to produce.
 **The manager is proved by use rather than by test.** It has been run for real on the reference
 machine: the log records captures that read the desktop, a capture cancelled without writing
 anything, a profile written, a profile deleted, the default marking settled, restores at start and
-the quit from both the manager and the tray. The facade's own tests hold four things only: no list
+the quit from both the manager and the tray. The facade's own tests hold five things only: no list
 reaches the page as null, a capture saves only the applications ticked, the window stays off
-screen at a sign-in start while a start by hand takes the keyboard and closing the manager puts the
-window back off screen. The panels themselves are still driven in a browser against a stand-in
+screen at a sign-in start while a start by hand takes the keyboard, closing the manager puts the
+window back off screen and a close is refused under a dialog while a quit never is. The panels themselves are still driven in a browser against a stand-in
 for the agent, which settles the layout, the palette and the wiring and settles nothing else. What
 neither has settled: real keyboard focus and the ring, the second-launch message, the tray opening a
 named panel, the donate link and the update offer on screen. Those are read off a run, not off a

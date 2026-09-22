@@ -62,3 +62,7 @@ func Complain(words string) {
 // it could. It is here rather than called directly, so the one file that knows
 // both the application layer and the Windows layer stays the composition root.
 func TakeWindowFocus() bool { return window.TakeFocus() }
+
+// AllowWindowClose greys the manager's close command or restores it, reporting
+// whether it could. It is here for the same reason as TakeWindowFocus.
+func AllowWindowClose(allowed bool) bool { return window.AllowClose(allowed) }

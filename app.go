@@ -6,11 +6,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
-
 	"github.com/oernster/ScreenState/internal/application"
 	"github.com/oernster/ScreenState/internal/product"
-	"github.com/oernster/ScreenState/internal/ui"
 )
 
 // donateURL is where FR-060 sends a user who wants to support the project. The
@@ -51,6 +48,12 @@ type App struct {
 	// by the mutex below, which belongs to the review.
 	onScreen atomic.Bool
 
+	// dialogOpen says a dialog is up in the page. The window is not closed
+	// under it: the dialog is modal (see beforeClose). quitting says the run is
+	// ending on purpose, which is the one close no dialog refuses.
+	dialogOpen atomic.Bool
+	quitting   atomic.Bool
+
 	// review holds the capture the user is looking at, between reading the
 	// desktop and confirming what to keep. It lives here because a review is
 	// not stored anywhere until it is confirmed (FR-011): a cancelled one
@@ -83,69 +86,6 @@ func NewApp(
 	}
 	app.onScreen.Store(!hidden)
 	return app
-}
-
-func (a *App) startup(ctx context.Context) { a.ctx = ctx }
-
-// domReady takes the keyboard once the page exists. It does so only for a
-// window that is actually on screen. A run started at sign-in waits in the
-// notification area; pulling the foreground away from whatever the user is doing would be
-// the opposite of waiting quietly.
-func (a *App) domReady(context.Context) {
-	if a.ctx == nil || !wailsruntime.WindowIsNormal(a.ctx) {
-		return
-	}
-	a.takeFocus()
-}
-
-// takeFocus gives the webview the keyboard. See the window package for the race
-// it loses without this.
-//
-// It does nothing at all while the window is not meant to be on screen, which
-// is the whole of FR-048 in one guard. A sign-in start still builds the window
-// and still loads the page; the page then finds it has no keyboard, which is
-// true and is not a fault, then asks for it. The repair ends in WindowShow,
-// so a run that was supposed to wait in the notification area put its manager
-// up over whatever the user was doing, a few hundred milliseconds after they
-// signed in. The step is logged rather than passed over in silence: a guard
-// nobody can see working is a guard nobody can tell has stopped.
-func (a *App) takeFocus() {
-	if !a.onScreen.Load() {
-		a.log.Step("the page asked for the keyboard while the window was not on screen: left as it was")
-		return
-	}
-	if ui.TakeWindowFocus() {
-		return
-	}
-	if a.ctx != nil {
-		wailsruntime.WindowShow(a.ctx)
-	}
-}
-
-// TakeKeyboard is called by the page when it finds it has no keyboard. The page
-// is the only thing that can tell: from here the window looks focused either
-// way.
-func (a *App) TakeKeyboard() { a.takeFocus() }
-
-// ShowManager brings the window up on the view the tray asked for. It is called
-// from the tray's own thread and from the message the second launch posts, so
-// it touches nothing but the Wails runtime, which is safe from any goroutine.
-func (a *App) ShowManager(request application.ManagerRequest) {
-	if a.ctx == nil {
-		return
-	}
-	a.bringUp()
-	wailsruntime.EventsEmit(a.ctx, "open", viewNames[request])
-	a.takeFocus()
-}
-
-// bringUp puts the window on screen and takes any splash down first, so the
-// window the user asked for is the one they see (FR-078).
-func (a *App) bringUp() {
-	a.splash.Dismiss()
-	a.onScreen.Store(true)
-	wailsruntime.WindowShow(a.ctx)
-	wailsruntime.WindowUnminimise(a.ctx)
 }
 
 // StateDTO is what the page needs before it can draw anything.
@@ -318,53 +258,4 @@ type UpdateDTO struct {
 	Skipped     bool   `json:"skipped"`
 	DownloadURL string `json:"downloadUrl"`
 	PageURL     string `json:"pageUrl"`
-}
-
-// Surface brings the window up without moving it to another panel. The page
-// calls it when a check it ran by itself found something, so an offer reaches a
-// user whose agent has been waiting in the notification area since sign-in.
-func (a *App) Surface() {
-	if a.ctx == nil {
-		return
-	}
-	a.bringUp()
-	a.takeFocus()
-}
-
-// OpenInBrowser opens a link in the user's own browser, which is where a
-// download belongs: this product does not fetch it.
-func (a *App) OpenInBrowser(url string) {
-	if a.ctx != nil {
-		wailsruntime.BrowserOpenURL(a.ctx, url)
-	}
-}
-
-// Quit ends the agent, which is the same act the tray's own Quit performs.
-func (a *App) Quit() {
-	a.log.Step("quit from the manager")
-	wailsruntime.Quit(a.ctx)
-}
-
-// endRun ends the program when the tray has gone, whether it was quit or never
-// appeared at all. It is unexported on purpose: Wails binds what is exported,
-// and this is the composition root's business rather than the page's.
-//
-// The tray is the only way back to a window that hides rather than closing, so
-// a run without one has nothing left to be. Without this the process stayed
-// alive holding the single-instance lock with no tray and no window; every
-// later start then found a copy that was running and could not be seen.
-// Measured on 2026-09-20, with a process from an hour earlier still holding it.
-func (a *App) endRun() {
-	if a.ctx != nil {
-		wailsruntime.Quit(a.ctx)
-	}
-}
-
-// Hide puts the window away without ending the run, which is what closing the
-// manager means: the agent goes on waiting in the notification area.
-func (a *App) Hide() {
-	a.onScreen.Store(false)
-	if a.ctx != nil {
-		wailsruntime.WindowHide(a.ctx)
-	}
 }

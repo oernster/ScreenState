@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"strings"
 	"sync"
 	"testing"
@@ -60,6 +61,38 @@ func TestAStartByHandTakesTheKeyboard(t *testing.T) {
 	app.TakeKeyboard()
 	if log.said("not on screen") {
 		t.Fatal("a start by hand was treated as a window nobody can see")
+	}
+}
+
+// TestTheWindowStaysOpenUnderADialog holds the modal rule: while a dialog is up
+// in the page, a close from the window's frame (the cross, Alt+F4, the
+// taskbar's Close) is refused and said in the log; once it has gone, closing
+// hides the window as it always did.
+func TestTheWindowStaysOpenUnderADialog(t *testing.T) {
+	t.Parallel()
+	app, log := appStartedHidden(false)
+	app.SetDialogOpen(true)
+	if !app.beforeClose(context.Background()) || !app.onScreen.Load() {
+		t.Fatal("the window was closed with a dialog open in it")
+	}
+	if !log.said("while a dialog was open") {
+		t.Error("the refused close was not logged")
+	}
+	app.SetDialogOpen(false)
+	if !app.beforeClose(context.Background()) || app.onScreen.Load() {
+		t.Fatal("closing with no dialog open did not hide the window")
+	}
+}
+
+// TestAQuitIsNeverRefused holds the other half: a dialog keeps the window open,
+// never the run alive when the user has asked it to end.
+func TestAQuitIsNeverRefused(t *testing.T) {
+	t.Parallel()
+	app, _ := appStartedHidden(false)
+	app.SetDialogOpen(true)
+	app.endRun()
+	if app.beforeClose(context.Background()) {
+		t.Fatal("a quit was refused because a dialog was open")
 	}
 }
 

@@ -215,18 +215,21 @@ func serve(steps *runlog.Steps, directory string, hidden, quiet bool) error {
 		background = dark
 	}
 	return wails.Run(&options.App{
-		Title:             windowTitle,
-		Width:             windowWidth,
-		Height:            windowHeight,
-		MinWidth:          minWindowWidth,
-		MinHeight:         minWindowHeight,
-		StartHidden:       hidden,
-		HideWindowOnClose: true,
-		BackgroundColour:  &background,
-		AssetServer:       &assetserver.Options{Assets: assets},
-		OnStartup:         app.startup,
-		OnDomReady:        app.domReady,
-		Bind:              []interface{}{app},
+		Title:       windowTitle,
+		Width:       windowWidth,
+		Height:      windowHeight,
+		MinWidth:    minWindowWidth,
+		MinHeight:   minWindowHeight,
+		StartHidden: hidden,
+		// Not HideWindowOnClose: that hides the window before any hook is asked,
+		// so a close could not be refused while a dialog is open. beforeClose
+		// hides the window itself.
+		BackgroundColour: &background,
+		AssetServer:      &assetserver.Options{Assets: assets},
+		OnStartup:        app.startup,
+		OnDomReady:       app.domReady,
+		OnBeforeClose:    app.beforeClose,
+		Bind:             []interface{}{app},
 		Windows: &windowsoptions.Options{
 			WebviewUserDataPath: webviewData(),
 		},

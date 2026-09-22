@@ -150,8 +150,11 @@ tests share.
 | `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
-`startup`, `update` and `window` have no tests of their own: they are the
-registry, the network and the desktop. `internal/product` has none either: it
+`startup` and `update` have no tests of their own: they are the registry and
+the network. `window` has one, skipped unless `SCREENSTATE_DESKTOP_PROBE` is
+set: `TestAGreyedCloseIsNotAGuard` opens a window of its own and records that a
+greyed Close still reaches it, which is why a dialog's modality is held in the
+facade rather than there. `internal/product` has none either: it
 is two constants and a class name, held to one home by a structural test. What can be decided about them was
 moved into `internal/application`, which is tested; what is left is the call
 itself. Which screen the setup program shows is decided in its page and in
@@ -180,7 +183,9 @@ defect, on 2026-09-20, on a capture that found nothing unreadable.
 
 Two more facade tests sit beside it. `window_test.go` holds FR-048: a sign-in
 start leaves the window off screen, a start by hand takes the keyboard and
-closing the manager puts the window back off screen. `capture_test.go` carries
+closing the manager puts the window back off screen. It also holds the dialogs'
+modality: a close from the window's frame is refused while a dialog is open,
+hides the window once it has gone and never stands in the way of a quit. `capture_test.go` carries
 FR-011 across the wire against the real store in a temporary directory: an
 application unticked in the review is never saved.
 
@@ -198,10 +203,10 @@ drifted from its master in `assets/`.
 ## What the tests never do
 
 - **Move a window they did not make.** Nothing in the suite arranges the
-  desktop of the machine running it. The five tests that open windows,
-  `TestMaximisingDoesNotActivate`, `TestPlacingKeepsTheStackingOrder` and the
-  three in `restack_windows_test.go`, each make two of their own and touch no
-  other; they take the front, so they are skipped unless
+  desktop of the machine running it. The six tests that open windows,
+  `TestMaximisingDoesNotActivate`, `TestPlacingKeepsTheStackingOrder`, the
+  three in `restack_windows_test.go` and `TestAGreyedCloseIsNotAGuard`, each
+  make one or two of their own and touch no other; they take the front, so they are skipped unless
   `SCREENSTATE_DESKTOP_PROBE` is set.
 - **Reach the network.** The update check is tested against a fake release
   source; the real one is exercised by hand.
@@ -255,6 +260,7 @@ while each was built is recorded in its rationale in `REQUIREMENTS.md`.
 | The ceiling is the user's (NFR-PERF-003) | In Settings, set the ceiling to 2 minutes. Apply a profile naming an application that is not installed, then touch nothing. The report should say it was still not there when the ceiling of 2m0s passed; the log's opening line for the restore should say ceiling 2m0s. Type 90: the field should come back as 60. |
 | The main screen (FR-068, EIR-002) | Press each profile: its applications should fill the middle, each by name with its file, show state, display and size beneath in the quieter note style; resting the pointer on one should show its whole path, how it is recognised and each window's rectangle and monitor id. The buttons should run down the right with Close and Quit at the foot above the donation button, all visible at the smallest window size. The settings should open from the gear, with a rule between it and the theme button. |
 | Displays are named by where they sit (FR-068, FR-044) | On the reference machine, open a profile placing a window on each display: the entries should read top, left, centre and right display as the screens actually stand. Apply it and open the report: each placement should name its display the same way and resting the pointer on the summary should pair each position with its monitor id. The log should carry the same pairing on a line beginning "the displays:". |
+| A dialog is modal | Apply a profile and leave the report up, then click the cross in the window's title bar: it should be greyed, nothing should close and the log should say the window was asked to close while a dialog was open. Try Alt+F4 and the taskbar button's Close with the report still up: the same. Close the report, then click the cross: the manager should go to the notification area and the agent keep running. Quit from the tray with a dialog open: the agent should end. |
 | The donation button (FR-060) | Rest the pointer on the donation button at the foot of the rail: the tooltip should open by saying the product is free and stays free, with no paid tier, no licence key and no feature held back. Press it: the donation page should open in the browser at the address the README links. |
 | No window title reaches the log (NFR-PRIV-001) | Sign in with a document open in an application the profile does not name, then read the log: the lines about windows put away or asked to close should name the application by its path and never carry the document's title. |
 | An unreadable profile is named in the manager (NFR-REL-002, DATA-003) | Copy a profile file in `%LOCALAPPDATA%\ScreenState\profiles`, change its `format` to 99 and save it, then open the manager: the other profiles should be listed and under them the copy should be named with the reason. Its bytes should be unchanged afterwards. Delete the copy by hand when done. |

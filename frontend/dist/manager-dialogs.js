@@ -27,6 +27,10 @@ function dialog(name, buttons, returnsTo) {
     showOnly('sheet', name)
     setButtons($('dialog-actions'), buttons)
     $('backdrop').hidden = false
+    // The dialog is modal: the window's own cross in its caption belongs to
+    // Windows rather than to this page, so the program is told to refuse a close
+    // until the dialog goes.
+    backend().SetDialogOpen(true).catch((e) => showError(String(e)))
     dialogArmedAt = Date.now()
     dialogReturnsTo = returnsTo || document.activeElement
     const first = $('dialog-actions').querySelector('.btn.primary:enabled')
@@ -42,6 +46,7 @@ function dialog(name, buttons, returnsTo) {
 function closeDialog() {
     if ($('backdrop').hidden) return
     $('backdrop').hidden = true
+    backend().SetDialogOpen(false).catch((e) => showError(String(e)))
     dialogReader.stop()
     const back = dialogReturnsTo
     dialogReturnsTo = null

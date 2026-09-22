@@ -42,5 +42,8 @@ func Complain(string) {}
 // TakeWindowFocus has no window to focus off Windows.
 func TakeWindowFocus() bool { return false }
 
+// AllowWindowClose has no window menu to grey off Windows.
+func AllowWindowClose(bool) bool { return false }
+
 // RefreshTray does nothing: there is no tray to refresh.
 func RefreshTray() {}

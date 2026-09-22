@@ -8,3 +8,6 @@ package window
 
 // TakeFocus reports that there was nothing to do.
 func TakeFocus() bool { return false }
+
+// AllowClose reports that there was no window menu to change.
+func AllowClose(bool) bool { return false }
