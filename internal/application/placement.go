@@ -151,6 +151,7 @@ func (service *RestoreService) applyPlacements(
 			id:          window.ID,
 			want:        rect,
 			state:       placement.State,
+			rank:        placement.Rank,
 		})
 		pending.applied++
 	}

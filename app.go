@@ -278,6 +278,9 @@ type ReviewEntryDTO struct {
 type ReviewDTO struct {
 	Entries    []ReviewEntryDTO `json:"entries"`
 	Unreadable []string         `json:"unreadable"`
+	// Unstacked says why the stacking order will not be recorded; empty where
+	// it will be (FR-082).
+	Unstacked string `json:"unstacked"`
 }
 
 // EntryReportDTO is one line of the report of the most recent restore.

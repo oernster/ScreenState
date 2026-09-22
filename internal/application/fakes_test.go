@@ -93,6 +93,9 @@ type fakeEvents struct {
 	// reporting those windows flashing.
 	series  time.Duration
 	flashAt map[int][]WindowID
+	// takenOver is the user having pressed a key or clicked while nothing was
+	// waiting, which only Touched hears (FR-087).
+	takenOver bool
 }
 
 func (events *fakeEvents) FlashSeries() time.Duration { return events.series }
@@ -123,6 +126,12 @@ func (watch *fakeWatch) Flashing() []WindowID {
 	flashed := watch.flashed
 	watch.flashed = nil
 	return flashed
+}
+
+func (watch *fakeWatch) Touched() bool {
+	watch.events.mutex.Lock()
+	defer watch.events.mutex.Unlock()
+	return !watch.tail && watch.events.takenOver
 }
 
 func (watch *fakeWatch) Next(ctx context.Context, deadline time.Time) (Wake, error) {

@@ -51,6 +51,14 @@ async function openCapture() {
         unreadable.textContent = 'Could not be read, so they are left out: '
             + review.unreadable.join(', ')
     }
+    // FR-082: said before anything is saved, so a profile that will not put the
+    // windows back in front of one another is not a surprise at the next sign-in.
+    const unstacked = $('capture-unstacked')
+    unstacked.hidden = review.unstacked === ''
+    if (!unstacked.hidden) {
+        unstacked.textContent = 'Which window is in front of which will not be recorded: '
+            + review.unstacked + '. The windows will be placed but left in whatever order they are in.'
+    }
 
     const field = $('capture-name')
     field.value = ''

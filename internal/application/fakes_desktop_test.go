@@ -59,6 +59,8 @@ type fakeDesktop struct {
 	// onWindows runs before the windows are read, which is how a test makes the
 	// desktop fail in a way no error return can express.
 	onWindows func()
+	// stacking is which window is drawn over which (fakes_stacking_test.go).
+	stacking fakeStacking
 }
 
 func (desktop *fakeDesktop) Windows(context.Context) ([]Window, error) {

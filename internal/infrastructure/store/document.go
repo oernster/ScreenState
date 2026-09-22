@@ -52,6 +52,11 @@ type placementDocument struct {
 	Display string       `json:"display"`
 	Rect    rectDocument `json:"rect"`
 	State   string       `json:"state"`
+	// Rank is the placement's place in the recorded stacking order, 1 on top.
+	// It is left out where none was recorded, so a file written before ranks
+	// were recorded reads as holding none and an older build reading a newer
+	// file ignores it (DATA-006).
+	Rank int `json:"rank,omitempty"`
 }
 
 // rectDocument is a window's normal rectangle, as a position and a size.
@@ -80,6 +85,7 @@ func toDocument(profile domain.Profile) document {
 					Width: placement.Rect.Width, Height: placement.Rect.Height,
 				},
 				State: placement.State.String(),
+				Rank:  placement.Rank,
 			})
 		}
 		written.Entries = append(written.Entries, entryDocument{
@@ -153,6 +159,7 @@ func (stored placementDocument) toPlacement() (domain.Placement, error) {
 			Width: stored.Rect.Width, Height: stored.Rect.Height,
 		},
 		State: state,
+		Rank:  stored.Rank,
 	}
 	return placement, placement.Validate()
 }

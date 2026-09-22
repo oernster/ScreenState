@@ -17,4 +17,11 @@ var (
 	// left out rather than named by a number, since the numbers were measured
 	// disagreeing with each other.
 	ErrNoMonitorID = errors.New("display has no usable identity")
+	// ErrStackingUnread is a stacking order Windows would not give: it named
+	// no window on top (FR-082).
+	ErrStackingUnread = errors.New("the stacking order could not be read")
+	// ErrRestackRefused is Windows declining to move a window in the stacking
+	// order, as it does for a window of a process running with administrator
+	// rights (FR-085).
+	ErrRestackRefused = errors.New("windows would not restack the window")
 )

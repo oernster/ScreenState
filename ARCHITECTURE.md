@@ -304,9 +304,18 @@ ones in front of it: Windows Terminal, captured behind Claude, came out on top o
 the window back beneath it afterwards (`keepStackingPlace`, shared with the button rebuild).
 `TestPlacingKeepsTheStackingOrder` holds it on the real desktop, run only when
 `SCREENSTATE_DESKTOP_PROBE` is set: it failed with the maximised case before the fix and passes
-after. This keeps the order a restore finds. It cannot bring back the order of a desktop that was
-captured, because a capture records none (OOS-2): after a sign-in the order is whatever the
-applications made as they started, which the rebuild of FR-075 then leaves alone.
+after. This keeps the order a restore finds while it places windows.
+
+**The recorded stacking order is set once, last** (FR-081 to FR-088). A capture walks the stacking
+order down from the top window (`Desktop.StackingOrder`; never the order `Windows` answers in, which
+is arranged for FR-037) and records each placement's rank among the profile's own placements, 1 on
+top. After the rebuild of FR-075 and before the splash says ready, `restoreTheStacking` hands the
+placed windows to `Desktop.Restack` in rank order: each goes directly beneath the one before it, the
+first taking the highest place any of them held, by `SetWindowPos` without activation, so windows
+outside the profile keep their place relative to it. It is skipped where the profile records no
+ranks (FR-088), where they cannot be used (DATA-007) and where the user has already pressed a key
+or clicked (FR-087, read through `DesktopWatch.Touched`). The desktop probes in
+`restack_windows_test.go` hold the order and the absence of activation on the real desktop.
 
 Two rules keep a window reachable. A placement naming a display that is no longer connected is applied
 to the primary display and the substitution is recorded (FR-031). Every window is then held within the

@@ -64,6 +64,23 @@ func (desktop *Desktop) Close(context.Context, application.WindowID) error {
 	return ErrNotWindows
 }
 
+// StackingOrder refuses: the stacking order belongs to Windows.
+func (desktop *Desktop) StackingOrder(context.Context) ([]application.WindowID, error) {
+	return nil, ErrNotWindows
+}
+
+// Restack refuses every window.
+func (desktop *Desktop) Restack(
+	_ context.Context,
+	ids []application.WindowID,
+) map[application.WindowID]error {
+	refused := make(map[application.WindowID]error, len(ids))
+	for _, id := range ids {
+		refused[id] = ErrNotWindows
+	}
+	return refused
+}
+
 // Processes refuses everything on a machine that is not Windows.
 type Processes struct{}
 

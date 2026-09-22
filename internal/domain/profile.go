@@ -16,6 +16,10 @@ type Placement struct {
 	Display DisplayIdentity
 	Rect    Rect
 	State   ShowState
+	// Rank is the window's place in the recorded stacking order among the
+	// placements of its profile, 1 on top; NoRank where none was recorded
+	// (FR-081). See stacking.go for when a profile's ranks can be used.
+	Rank int
 }
 
 // Validate reports why a placement cannot be used; nil when it can.

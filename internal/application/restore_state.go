@@ -72,6 +72,9 @@ type placedWindow struct {
 	id          WindowID
 	want        domain.Rect
 	state       domain.ShowState
+	// rank is the placement's place in the recorded stacking order, NoRank
+	// where none was recorded (FR-083).
+	rank int
 	// reapplied marks the one further attempt FR-033 allows. After it, FR-034
 	// gives up rather than fight an application for its own window.
 	reapplied bool

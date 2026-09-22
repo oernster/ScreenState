@@ -65,8 +65,10 @@ Windows.
   the setup program stops, when you tell it to, before replacing or removing its files. It closes a window only where you have
   turned that on, only at sign-in and only for a window the profile being restored does not name.
 - **It does not restore what is inside an application**: browser tabs, open documents and the
-  folder an Explorer window shows are the application's business. Nor stacking order, Snap groups
-  or virtual desktops.
+  folder an Explorer window shows are the application's business. Nor Snap groups or virtual
+  desktops. It puts back which of a profile's windows is in front of which once, as a restore
+  ends. It does not fight an application that brings its own window forward afterwards. It
+  leaves the order alone once you have pressed a key or clicked.
 - **It does not encrypt its profiles.** They are plain files in your own folder, holding
   application paths, window positions, display identities and profile names.
 - **It sends nothing about you anywhere.** Its one network connection asks whether a newer version

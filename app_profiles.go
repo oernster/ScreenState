@@ -147,7 +147,8 @@ func (a *App) Capture() (ReviewDTO, error) {
 			Windows:     len(entry.Placements),
 		})
 	}
-	return ReviewDTO{Entries: entries, Unreadable: stated(review.Unreadable)}, nil
+	return ReviewDTO{Entries: entries, Unreadable: stated(review.Unreadable),
+		Unstacked: review.Unstacked}, nil
 }
 
 // CancelCapture drops the review without writing anything (FR-016). It is

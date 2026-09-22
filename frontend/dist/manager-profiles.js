@@ -295,6 +295,7 @@ function renameSelected() {
     const field = $('capture-name')
     $('capture-rows').innerHTML = ''
     $('capture-unreadable').hidden = true
+    $('capture-unstacked').hidden = true
     field.value = selected
     show('capture', [
         {label: 'Cancel', onClick: openProfiles},

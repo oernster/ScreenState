@@ -21,6 +21,9 @@ type Review struct {
 	// Unreadable names every window omitted because its state could not be
 	// read, so the user is told rather than left to notice (FR-014).
 	Unreadable []string
+	// Unstacked says why the stacking order was not recorded; empty where it
+	// was. The review states it before anything is saved (FR-082).
+	Unstacked string
 }
 
 // CaptureService reads the desktop as it stands and turns it into a profile.
@@ -65,14 +68,46 @@ func (service *CaptureService) Review(ctx context.Context) (Review, error) {
 		return Review{}, err
 	}
 
-	review := service.fromWindows(windows, set)
+	ranks, unstacked := service.ranks(ctx)
+	review := service.fromWindows(windows, set, ranks)
+	review.Unstacked = unstacked
+	if _, err := domain.StackingOf(review.Entries); err != nil {
+		// A window read but missing from the order: the order changed between
+		// the two readings. Half an order is not one (DATA-007), so none is kept.
+		review.Entries = domain.StripRanks(review.Entries)
+		review.Unstacked = fmt.Sprintf("the stacking order changed while it was read: %v", err)
+	}
 	service.log.Step(fmt.Sprintf("capture read %d entries and %d unreadable windows",
 		len(review.Entries), len(review.Unreadable)))
+	if review.Unstacked != "" {
+		service.log.Step("capture recorded no stacking order: " + review.Unstacked)
+	}
 	return review, nil
 }
 
-// fromWindows turns the windows now open into one entry per application.
-func (service *CaptureService) fromWindows(windows []Window, set displaySet) Review {
+// ranks answers each window's place in the stacking order, 1 on top, among
+// every top-level window (FR-081); Save turns them into ranks among the
+// profile's own placements. Where the order cannot be read it answers none,
+// with why (FR-082): the profile is still worth saving without it.
+func (service *CaptureService) ranks(ctx context.Context) (map[WindowID]int, string) {
+	order, err := service.desktop.StackingOrder(ctx)
+	if err != nil {
+		return nil, fmt.Sprintf("the stacking order could not be read: %v", err)
+	}
+	ranks := make(map[WindowID]int, len(order))
+	for position, id := range order {
+		ranks[id] = position + 1
+	}
+	return ranks, ""
+}
+
+// fromWindows turns the windows now open into one entry per application, each
+// placement ranked where ranks were read.
+func (service *CaptureService) fromWindows(
+	windows []Window,
+	set displaySet,
+	ranks map[WindowID]int,
+) Review {
 	ordered := make([]Window, len(windows))
 	copy(ordered, windows)
 	sort.SliceStable(ordered, func(one, two int) bool {
@@ -106,7 +141,7 @@ func (service *CaptureService) fromWindows(windows []Window, set displaySet) Rev
 			at[key] = position
 		}
 		review.Entries[position] = review.Entries[position].
-			WithPlacement(placementFor(window, set))
+			WithPlacement(placementFor(window, set).WithRank(ranks[window.ID]))
 	}
 	return review
 }
@@ -147,7 +182,9 @@ func (service *CaptureService) Save(
 	entries []domain.Entry,
 	replace bool,
 ) (domain.Profile, error) {
-	profile, err := domain.NewProfile(name, entries...)
+	// Ranks among the kept placements, not among the windows the capture read
+	// (FR-081): entries the user removed from the review leave no gaps behind.
+	profile, err := domain.NewProfile(name, domain.CompactRanks(entries)...)
 	if err != nil {
 		return domain.Profile{}, err
 	}

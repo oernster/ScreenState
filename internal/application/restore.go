@@ -277,6 +277,7 @@ func (service *RestoreService) run(
 			if err := service.rebuildTheButtons(ctx, state, why); err != nil {
 				return service.stopped(err, state)
 			}
+			service.restoreTheStacking(ctx, profile, state)
 			return nil
 		}
 		if service.waitedOut(state) {

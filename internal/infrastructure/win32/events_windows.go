@@ -139,6 +139,18 @@ func (watch *desktopWatch) Next(ctx context.Context, deadline time.Time) (applic
 	}
 }
 
+// Touched answers, without waiting, whether the user has pressed a key or
+// clicked since the watch began (FR-087). The channel is closed once, at the
+// first key press or click; it stays closed.
+func (watch *desktopWatch) Touched() bool {
+	select {
+	case <-watch.touched:
+		return true
+	default:
+		return false
+	}
+}
+
 // run sets the hooks, carries messages until the context ends, then takes the
 // hooks down. A panic here must not end the agent; it ends the watch and the
 // restore carries on to its ceiling.

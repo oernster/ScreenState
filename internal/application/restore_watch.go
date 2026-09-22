@@ -45,6 +45,9 @@ func (watch deadlineOnly) Next(ctx context.Context, deadline time.Time) (Wake, e
 // Flashing answers nothing: without a watch no flash is heard.
 func (deadlineOnly) Flashing() []WindowID { return nil }
 
+// Touched answers false: without a watch no key press or click is heard.
+func (deadlineOnly) Touched() bool { return false }
+
 // watchDesktop begins watching for the restore. A watch that cannot be begun is
 // said in the log and the report rather than ending the restore, which can
 // still place every window already open.

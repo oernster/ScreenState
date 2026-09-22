@@ -95,6 +95,18 @@ type Desktop interface {
 	// keeps its place, its size and its show state; it is not activated. The
 	// window flickers while the button is rebuilt.
 	RebuildTaskbarButton(ctx context.Context, id WindowID) error
+	// StackingOrder answers every top-level window, the one drawn on top first
+	// (FR-081). It is read by walking the stacking order itself, never taken
+	// from the order Windows answers in, which is arranged for FR-037 rather
+	// than for this: measured 2026-09-22, it put the lower of two windows
+	// first (OQ-13).
+	StackingOrder(ctx context.Context) ([]WindowID, error)
+	// Restack stacks the windows so each is drawn directly beneath the one
+	// before it, the first taking the highest place any of them holds now. It
+	// activates none of them (FR-083, FR-084). It answers the windows it could
+	// not restack, each with why; the rest are still stacked in order relative
+	// to each other (FR-085, FR-086).
+	Restack(ctx context.Context, ids []WindowID) map[WindowID]error
 	// Close asks a window to close, which is a request rather than an order:
 	// the application decides what to do with it and may show a prompt, take
 	// itself to the notification area or end. It is used on a window no
@@ -235,6 +247,10 @@ type DesktopWatch interface {
 	// Flashing answers the windows whose taskbar button the shell reported
 	// flashing since it was last asked, then forgets them (FR-080).
 	Flashing() []WindowID
+	// Touched answers, without waiting, whether the user has pressed a key or
+	// clicked since the watch began. It is how a step that runs between waits
+	// learns the user took over while nothing was listening (FR-087).
+	Touched() bool
 }
 
 // Wake says why DesktopWatch.Next returned.
