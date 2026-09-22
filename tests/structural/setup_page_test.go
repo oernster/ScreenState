@@ -87,35 +87,8 @@ func productTaglineValue(t *testing.T) string {
 	return value
 }
 
-// stateField matches a read of the state the program hands the page.
-var stateField = regexp.MustCompile(`\bstate\.([a-zA-Z][a-zA-Z0-9]*)\b`)
-
 // boundCall matches a call into the setup program from the page.
 var boundCall = regexp.MustCompile(`\bbackend\(\)\.([A-Z][a-zA-Z0-9]*)\s*\(`)
-
-// TestTheWireIsStatedTwiceAndAgrees compares the two statements of the boundary.
-//
-// The program marshals a struct and the page reads a name off an object; the
-// compiler sees only the struct and nothing at all sees the page. A field
-// renamed on one side and not the other therefore produces no error anywhere:
-// the page reads undefined and a screen quietly shows nothing. Saying the wire
-// twice is worth it only if something compares the two statements, which is
-// what this is.
-func TestTheWireIsStatedTwiceAndAgrees(t *testing.T) {
-	tags := jsonTagsOf(t, filepath.Join(repoRoot(t), facade), "StateDTO")
-	for _, path := range pageFiles(t) {
-		if !strings.HasSuffix(path, ".js") {
-			continue
-		}
-		relative, _ := filepath.Rel(repoRoot(t), path)
-		for _, match := range stateField.FindAllStringSubmatch(readSource(t, path), -1) {
-			if !tags[match[1]] {
-				t.Errorf("%s reads state.%s, which the program never sends",
-					filepath.ToSlash(relative), match[1])
-			}
-		}
-	}
-}
 
 // TestThePageCallsOnlyWhatIsBound holds the other half of the boundary: a call
 // into the setup program that no method answers fails at the moment a user
@@ -140,14 +113,37 @@ func TestThePageCallsOnlyWhatIsBound(t *testing.T) {
 }
 
 // jsonTagsOf returns the json names of every field on a struct, which is the
-// program's statement of the wire.
-func jsonTagsOf(t *testing.T, path, typeName string) map[string]bool {
+// program's statement of the wire. It looks through every file of the package
+// in dir rather than one named file. A facade split by subject moves a struct
+// between files; a test naming the old one would stop finding it.
+func jsonTagsOf(t *testing.T, dir, typeName string) map[string]bool {
+	t.Helper()
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatalf("reading %s: %v", dir, err)
+	}
+	tags := map[string]bool{}
+	for _, entry := range entries {
+		name := entry.Name()
+		if entry.IsDir() || !strings.HasSuffix(name, ".go") || strings.HasSuffix(name, "_test.go") {
+			continue
+		}
+		collectJSONTags(t, filepath.Join(dir, name), typeName, tags)
+	}
+	if len(tags) == 0 {
+		t.Fatalf("no file in %s declares json tags on %s", dir, typeName)
+	}
+	return tags
+}
+
+// collectJSONTags adds the json names of a struct's fields, where the file at
+// path declares it, to tags.
+func collectJSONTags(t *testing.T, path, typeName string, tags map[string]bool) {
 	t.Helper()
 	parsed, err := parser.ParseFile(token.NewFileSet(), path, nil, 0)
 	if err != nil {
 		t.Fatalf("parsing %s: %v", path, err)
 	}
-	tags := map[string]bool{}
 	ast.Inspect(parsed, func(node ast.Node) bool {
 		typed, ok := node.(*ast.TypeSpec)
 		if !ok || typed.Name.Name != typeName {
@@ -172,10 +168,6 @@ func jsonTagsOf(t *testing.T, path, typeName string) map[string]bool {
 		}
 		return true
 	})
-	if len(tags) == 0 {
-		t.Fatalf("%s declares no json tags on %s", path, typeName)
-	}
-	return tags
 }
 
 // exportedMethodsOf returns the exported methods declared on a type, which is

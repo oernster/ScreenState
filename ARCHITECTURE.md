@@ -46,9 +46,9 @@ to fail is not yet a guard.
 | The shared palette and page furniture match their masters in `assets/` | `TestTheSharedAssetsHaveNotDrifted` | `shared_assets_test.go` |
 | The manager's page names nothing: no product name, no tagline | `TestTheManagerPageNamesNothing` | `shared_assets_test.go` |
 | Every script and stylesheet in the manager's page is loaded by its `index.html` | `TestEveryManagerScriptIsLoadedByThePage` | `shared_assets_test.go` |
-| The manager's page reads only fields the program sends and calls only what it binds | `TestTheManagerWireIsStatedTwiceAndAgrees` | `shared_assets_test.go` |
+| The manager's page calls only what the agent binds | `TestTheManagerCallsOnlyWhatIsBound` | `shared_assets_test.go` |
+| Every record either page reads or builds names only fields its program's struct carries, each held under one variable name of its own | `TestEveryRecordIsReadAsItIsSent` | `wire_records_test.go` |
 | The setup page names nothing (not proved by a plant) | `TestTheSetupPageNamesNothing` | `setup_page_test.go` |
-| The setup page reads only fields the program sends (not proved by a plant) | `TestTheWireIsStatedTwiceAndAgrees` | `setup_page_test.go` |
 | The setup page calls only what the program binds (not proved by a plant) | `TestThePageCallsOnlyWhatIsBound` | `setup_page_test.go` |
 
 The timing rule covers the application layer, where every decision about waiting lives; a timeout

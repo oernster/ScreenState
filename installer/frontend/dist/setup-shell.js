@@ -67,9 +67,9 @@ function shortcutOptions(state) {
 
 /* ------------------------------------------------------------------- work */
 
-function onProgress(p) {
-    $('progress-fill').style.width = p.pct + '%'
-    $('progress-status').textContent = p.msg
+function onProgress(progress) {
+    $('progress-fill').style.width = progress.pct + '%'
+    $('progress-status').textContent = progress.msg
 }
 
 // run moves to the progress screen and stays there until the work ends in a

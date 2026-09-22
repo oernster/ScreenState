@@ -151,12 +151,12 @@ function watchProgress() {
         if (timer) window.clearInterval(timer)
         timer = 0
     }
-    const read = () => backend().RestoreProgress().then((reading) => {
-        if (!reading || !reading.running) return
-        const done = reading.total ? Math.round(100 * reading.satisfied / reading.total) : 0
+    const read = () => backend().RestoreProgress().then((progress) => {
+        if (!progress || !progress.running) return
+        const done = progress.total ? Math.round(100 * progress.satisfied / progress.total) : 0
         $('busy-fill').style.width = done + '%'
-        $('busy-status').textContent = reading.satisfied + ' of ' + reading.total
-            + (reading.total === 1 ? ' application placed' : ' applications placed')
+        $('busy-status').textContent = progress.satisfied + ' of ' + progress.total
+            + (progress.total === 1 ? ' application placed' : ' applications placed')
     }, stop)
     timer = window.setInterval(read, progressEveryMs)
     read()

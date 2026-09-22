@@ -155,13 +155,12 @@ func isPageSource(name string) bool {
 		strings.HasSuffix(name, ".css")
 }
 
-// TestTheManagerWireIsStatedTwiceAndAgrees compares the two statements of the
-// manager's boundary, exactly as the setup program's is compared: the program
-// marshals a struct and the page reads a name off an object; nothing at all
-// checks the page.
-func TestTheManagerWireIsStatedTwiceAndAgrees(t *testing.T) {
+// TestTheManagerCallsOnlyWhatIsBound holds the manager's page to the surface
+// the agent binds: a call no method answers fails at the moment a user presses
+// the button, which is the worst place to find it. What the page reads off the
+// answers is held by TestEveryRecordIsReadAsItIsSent.
+func TestTheManagerCallsOnlyWhatIsBound(t *testing.T) {
 	root := repoRoot(t)
-	tags := jsonTagsOf(t, filepath.Join(root, "app.go"), "StateDTO")
 	bound := managerMethods(t, root)
 	dir := filepath.Join(root, "frontend", "dist")
 	entries, err := os.ReadDir(dir)
@@ -178,12 +177,6 @@ func TestTheManagerWireIsStatedTwiceAndAgrees(t *testing.T) {
 		}
 		seen++
 		text := readSource(t, filepath.Join(dir, entry.Name()))
-		for _, match := range stateField.FindAllStringSubmatch(text, -1) {
-			if !tags[match[1]] {
-				t.Errorf("%s reads state.%s, which the agent never sends",
-					entry.Name(), match[1])
-			}
-		}
 		for _, match := range boundCall.FindAllStringSubmatch(text, -1) {
 			if !bound[match[1]] {
 				t.Errorf("%s calls %s, which the agent does not bind",

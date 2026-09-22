@@ -13,7 +13,8 @@ async function openProfiles() {
         return
     }
     if (!profiles.some((profile) => profile.name === selected)) {
-        selected = profiles.length ? profiles[0].name : ''
+        const profile = profiles[0]
+        selected = profile ? profile.name : ''
     }
     drawProfiles()
     show('profiles', profileFooter())
@@ -34,8 +35,8 @@ async function drawUnreadable() {
     try {
         // The store's reason already says what is wrong with the file, so it
         // follows the name as it is rather than behind words saying it again.
-        lines = (await backend().UnreadableProfiles()).map((file) =>
-            file.file + ': ' + file.reason + '.')
+        lines = (await backend().UnreadableProfiles()).map((unreadableFile) =>
+            unreadableFile.file + ': ' + unreadableFile.reason + '.')
     } catch (e) {
         lines = ['The profiles could not be checked for files that cannot be read: '
             + String(e) + '.']
