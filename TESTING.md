@@ -75,7 +75,7 @@ is not affected: the throw stops it as it should.
 functions: the gate reads `go tool cover -func` and fails naming the package
 when any function in it has no statement a test reached. It is a floor on
 functions, not on statements; measured statement coverage is 100.0% for the
-domain and 97.2% for the application. They are the layers a machine can
+domain and 97.3% for the application. They are the layers a machine can
 exercise with no filesystem, no clock and no desktop, so a function nothing
 calls there is a decision nobody made.
 
@@ -97,7 +97,10 @@ is still recognised once an update has moved its path; both sides must carry
 the same model id. `naming_test.go` holds what the manager calls an application,
 one case per kind of identity measured in appendix E: PigeonPost from its path,
 Discord from the program its updater starts rather than from the updater,
-Claude from its model id rather than its lower-case file.
+Claude from its model id rather than its lower-case file. `stacking_test.go`
+holds when a profile's ranks make a stacking order: none at all is an answer,
+distinct positive ranks are one (gaps allowed), a shared, missing or
+non-positive rank says why it cannot be used; renumbering keeps the order.
 
 ### The decisions
 
@@ -120,11 +123,17 @@ entry shows (its name, file and size), naming each display by where it sits
 rows, columns and stacks, a tie decided by the primary, a display not connected,
 displays that cannot be read), a restore keeping each display's name when a
 display comes or goes (`restore_names_test.go`), the report and the log saying
-which display a position meant, profile naming and marking, the sign-in entry, the update check
-and the failure wording.
+which display a position meant, the stacking order (a capture ranking the
+profile's own windows, an order that cannot be read or changed while it was
+read; a restore putting the order back last, a window refusing its restack, a
+ranked window missing, the user having taken over, no ranks and ranks that
+cannot be used: `capture_stacking_test.go`, `restore_stacking_test.go`),
+profile naming and marking, the sign-in entry, the update check and the failure
+wording.
 
 There are no mocking libraries. The fakes are written by hand, in
-`fakes_test.go`, `fakes_desktop_test.go` and `fakes_store_test.go`, with fields
+`fakes_test.go`, `fakes_desktop_test.go`, `fakes_stacking_test.go` and
+`fakes_store_test.go`, with fields
 that inject failures; `fixtures_test.go` holds the windows and profiles the
 tests share.
 
@@ -132,12 +141,12 @@ tests share.
 
 | Package | What its tests use |
 |---|---|
-| `store` | a real temporary directory: round trips, the default marking, a profile that is not there, a broken file that costs only itself, a profile in a newer format left alone, a store that cannot be read or has gone away, an interrupted write that must leave the old file whole |
+| `store` | a real temporary directory: round trips, the default marking, a profile that is not there, a broken file that costs only itself, a profile in a newer format left alone, a store that cannot be read or has gone away, an interrupted write that must leave the old file whole, a rank written with its placement and left out where there is none, a file without ranks read as holding none, shared ranks still loading |
 | `settings` | the same, for `settings.json`: what a file that says nothing means (the update check on, unnamed windows minimised rather than closed, no ceiling chosen), the ceiling kept beside the other settings, a damaged file or a ceiling that is not a duration reported as a fault rather than read as the defaults |
 | `runlog` | a real log file, its header and its steps; a run keeping the 10 most recent restores with the header of each one's run; a long log of fewer restores kept whole |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
-| `win32` | the naming rules, the stacking-order rule and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window), the flash series worked out from the machine's settings and a taskbar button added or taken away waking the watch a restore waits on; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it; `TestPlacingKeepsTheStackingOrder`, which puts one of its windows behind the other and places it normal then maximised to prove it stays behind |
+| `win32` | the naming rules, the stacking-order rules (the nearest real window above, the walk down from the top, the highest of several windows, a restack chaining beneath the last window that moved) and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window), the flash series worked out from the machine's settings and a taskbar button added or taken away waking the watch a restore waits on; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it; `TestPlacingKeepsTheStackingOrder`, which puts one of its windows behind the other and places it normal then maximised to prove it stays behind; in `restack_windows_test.go`, the stacking order read with the window on top first, a restack putting a recorded order back and a restack that activates nothing, against a control that does |
 | `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
@@ -189,10 +198,11 @@ drifted from its master in `assets/`.
 ## What the tests never do
 
 - **Move a window they did not make.** Nothing in the suite arranges the
-  desktop of the machine running it. The two tests that open windows,
-  `TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder`, each
-  make two of their own and touch no other; they take the front, so they are
-  skipped unless `SCREENSTATE_DESKTOP_PROBE` is set.
+  desktop of the machine running it. The five tests that open windows,
+  `TestMaximisingDoesNotActivate`, `TestPlacingKeepsTheStackingOrder` and the
+  three in `restack_windows_test.go`, each make two of their own and touch no
+  other; they take the front, so they are skipped unless
+  `SCREENSTATE_DESKTOP_PROBE` is set.
 - **Reach the network.** The update check is tested against a fake release
   source; the real one is exercised by hand.
 - **Touch the real profiles, settings or log.** Tests work in temporary
@@ -204,7 +214,7 @@ drifted from its master in `assets/`.
 go test ./internal/domain/...
 go test -run TestAnUnreadableWindowIsNamedRatherThanDropped -v ./internal/application
 go test -cover ./internal/infrastructure/store
-$env:SCREENSTATE_DESKTOP_PROBE = '1'; go test -run 'TestMaximisingDoesNotActivate|TestPlacingKeepsTheStackingOrder' -v ./internal/infrastructure/win32
+$env:SCREENSTATE_DESKTOP_PROBE = '1'; go test -run 'TestMaximisingDoesNotActivate|StackingOrder|Restack' -v ./internal/infrastructure/win32
 ```
 
 The last opens windows of its own and takes the front; clear the variable

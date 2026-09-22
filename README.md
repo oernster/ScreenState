@@ -49,6 +49,10 @@ Windows.
   (top, left, centre, right) in the manager and in the report. Nothing recorded is hidden: the full
   path, each rectangle and each display's identity are a hover away; the log pairs every position
   with its display's identity.
+- **Puts the windows back in front of one another as they were.** A capture records which of the
+  profile's windows is in front of which; a restore sets that order once, as its last step, without
+  taking the keyboard. A profile captured before this was recorded keeps whatever order the
+  windows come up in.
 - **Leaves the keyboard and the taskbar alone.** Nothing it starts or places takes the keyboard
   from the window you are typing in; no taskbar button is left lit, red or missing its icon.
 - **Puts away the windows the profile does not name**, by minimising them; at sign-in it can close
@@ -66,11 +70,13 @@ Windows.
   turned that on, only at sign-in and only for a window the profile being restored does not name.
 - **It does not restore what is inside an application**: browser tabs, open documents and the
   folder an Explorer window shows are the application's business. Nor Snap groups or virtual
-  desktops. It puts back which of a profile's windows is in front of which once, as a restore
-  ends. It does not fight an application that brings its own window forward afterwards. It
-  leaves the order alone once you have pressed a key or clicked.
+  desktops.
+- **It does not keep the windows in order after a restore.** An application that brings its own
+  window forward afterwards is not fought; once you have pressed a key or clicked during a restore,
+  the order is left as it came up.
 - **It does not encrypt its profiles.** They are plain files in your own folder, holding
-  application paths, window positions, display identities and profile names.
+  application paths, window positions, which window is in front of which, display identities and
+  profile names.
 - **It sends nothing about you anywhere.** Its one network connection asks whether a newer version
   has been released, carries no identifier and can be turned off, after which it connects to
   nothing at all.

@@ -1264,7 +1264,8 @@ restore cycle, with the update check off.
 Priority: Must
 Requirement: The ScreenState agent shall store in a profile nothing beyond its
 name, its default marking, application identities, whether each application is
-to be started, window geometry, window show states and display identities. Its
+to be started, window geometry, window show states, display identities and each
+window's rank in the stacking order (FR-081). Its
 settings shall hold nothing beyond the choices made in the manager and a
 version the user chose to skip. Its log shall name no window by its title.
 Rationale: a window title can say what the user is working on. The log is
@@ -1720,6 +1721,6 @@ stacking order, so nothing could put the captured one back.
 | 1.4 | Placement gains its rank; Stacking order and Rank defined. |
 | 3.1 Capture | FR-081 and FR-082 added. |
 | 3.1 Sign-in restore | FR-083 to FR-088 added; FR-027 and FR-075 rationales point at FR-083. |
-| 3.2 | NFR-PERF-008 added. |
+| 3.2 | NFR-PERF-008 added; NFR-PRIV-001 lists the rank among what a profile stores, which the amendment first left out. |
 | 3.4 | DATA-006 and DATA-007 added. |
 | Appendices | Silence check rows (A), OQ-13 to OQ-17 (B), the recount (D), the read order measurement (E). |

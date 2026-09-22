@@ -119,6 +119,10 @@
                         A packaged application whose path moves with every update keeps its
                         model id beside the path, so it is still started and its window still
                         placed without capturing the profile again.</li>
+                    <li><strong>Puts windows back in front of one another as they
+                        were.</strong> A capture records which of the profile's windows is in
+                        front of which; a restore sets that order once, as its last step,
+                        without taking the front from anything.</li>
                     <li><strong>Leaves your keyboard alone.</strong> Nothing it places or
                         starts takes the keyboard from the window you are typing in; a
                         window it maximises does so without taking the front.</li>
@@ -161,11 +165,15 @@
                         window the profile being restored does not name.</li>
                     <li><strong>Restore what is inside an application.</strong> Browser
                         tabs, open documents and folders are the application's business.</li>
-                    <li><strong>Stacking order, Snap groups or virtual desktops.</strong>
-                        Where each window sits, yes; which is on top, no.</li>
+                    <li><strong>Snap groups or virtual desktops.</strong> Neither is
+                        recorded.</li>
+                    <li><strong>Keep the windows in order afterwards.</strong> An application
+                        that brings its own window forward once the restore is done is not
+                        fought; a key press or click during a restore leaves the order as it
+                        came up.</li>
                     <li><strong>Encrypt your profiles.</strong> They are plain files in your
-                        own folder, holding application paths, window positions, display identities
-                        and profile names.</li>
+                        own folder, holding application paths, window positions, which window
+                        is in front of which, display identities and profile names.</li>
                     <li><strong>Send your desktop anywhere.</strong> The one connection it
                         makes asks whether a newer version exists, carries nothing about you
                         and can be turned off. Window titles, which can say what you are
@@ -189,9 +197,9 @@
         </div>
         <div class="stats">
             <div class="stat">
-                <span class="n">92</span>
-                <p>Requirements in the specification: 74 the product cannot do without and
-                    18 more it carries.</p>
+                <span class="n">103</span>
+                <p>Requirements in the specification: 77 the product cannot do without and
+                    26 more it carries.</p>
             </div>
             <div class="stat">
                 <span class="n">100%</span>

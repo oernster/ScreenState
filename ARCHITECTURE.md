@@ -65,7 +65,7 @@ later edit could undo without anybody noticing.
 - **Domain** (`internal/domain`): pure Go, standard library only. Immutable value objects validated on
   construction, with `With*` copy methods for change. `ShowState` and `Rect` in `geometry.go`,
   `ApplicationIdentity` and `DisplayIdentity` in `identity.go`, `Placement`, `Entry` and `Profile` in
-  `profile.go`. No IO and no wall-clock reads: time enters the product through an injected clock and
+  `profile.go`, the rules for when a profile's ranks make a stacking order in `stacking.go`. No IO and no wall-clock reads: time enters the product through an injected clock and
   never reaches here at all. This is where a profile gets its meaning and its rules for being valid.
 - **Application** (`internal/application`): the use cases, `CaptureService`, `RestoreService`,
   `ManagerService`, `TrayService` and `UpdateService`, plus the ports they depend on: `Desktop`,
@@ -396,9 +396,12 @@ Windows itself decides where to maximise it.
    and the splash told the desktop is ready. A rebuild does not clear the red a finished series leaves
    on a button, so after each rebuild the taskbars are posted the shell's own "window activated"
    notice for that window, then for the window that really has the front; nothing is activated.
-9. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
-   against the displays as they then stand and the change is recorded (FR-057).
-10. A restore requested while one is running **replaces** it (FR-061). The running restore stops
+9. Last of all, before the splash says ready, the placed windows are stacked in the order the
+   profile records (FR-083), unless the user has already pressed a key or clicked (FR-087); see
+   Placing a window.
+10. Displays arriving or going away mid-restore do not abandon it: the remaining entries are placed
+    against the displays as they then stand and the change is recorded (FR-057).
+11. A restore requested while one is running **replaces** it (FR-061). The running restore stops
     before its next action, every window already placed is left exactly where it is; both reports
     say what happened. Nothing is put back. The user can stop a restore the same way without
     starting another (FR-049): "Stop the restore" on the Applying panel calls `App.CancelRestore`,
@@ -737,8 +740,8 @@ function counts once a test reaches any statement in it. Infrastructure sits del
 it: the Windows half needs a real desktop; gating it would mean either a number that means nothing
 or tests that assert what happened to be on screen.
 
-Measured statement coverage on 2026-09-22: domain 100%, application 97.2%, clock 100%, store 93.8%,
-settings 91.2%, instance 90.9%, runlog 76.7%, win32 42.8%, setup 33.6%, ui 25.8%, the root package
+Measured statement coverage on 2026-09-22: domain 100%, application 97.3%, clock 100%, store 93.8%,
+settings 91.2%, instance 90.9%, runlog 76.7%, win32 41.6%, setup 33.6%, ui 25.8%, the root package
 (the composition root and the manager's facade) 13.1%. The shortfalls outside the floor are IO and
 platform failures that would need the disk or the window manager to fail mid-call, plus the Win32
 calls themselves; they are not padded with tests that assert nothing.
@@ -758,10 +761,11 @@ the taskbar's own top-level window, skipping where there is no taskbar. The four
 count and caret blink the FR-080 wait is worked out from. None moves a window or starts an
 application, since either would disturb the desktop of whoever ran the suite. A fifth asks Windows
 for the shell hook's message number and hands the watch a taskbar button added then one taken
-away, asserting each wakes it; it skips where Windows names no such message. The sixth and
-seventh (`TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder`) do move windows
-(only two of their own), so they run only when `SCREENSTATE_DESKTOP_PROBE` is set; the gate skips
-them.
+away, asserting each wakes it; it skips where Windows names no such message. Five more do move
+windows (only two of their own each), so they run only when `SCREENSTATE_DESKTOP_PROBE` is set and
+the gate skips them: `TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder`, then
+in `restack_windows_test.go` the stacking order read top first, a restack putting a recorded order
+back and a restack activating nothing.
 
 ## Design decisions
 
@@ -778,6 +782,7 @@ them.
 | An application is listed by name, its path a hover away | The executable is not what a person calls the application; saying exactly what was captured is still part of what the product is for |
 | An application is named by what starts it, with what survives its updates kept beside it | The path starts it as a double-click does; a Store package's path carries its version, so the model id kept beside it recognises and starts it after an update; a window class carries a GUID that changes every reboot |
 | A capture records only applications with a window shown | ScreenState arranges the screen, not which applications run; an application with nothing shown has nothing to arrange |
+| A stacking order is recorded as ranks among the profile's own windows and set once, last | The other windows of the next session are different ones; every earlier step of a restore can change the order, so it is set after them and then left alone |
 | A hidden window is shown by running the application again | Acting on the hidden window from outside produced an empty frame the application was not drawing |
 | One file per profile, not a database | A profile that cannot be read costs the user that profile rather than all of them |
 | The Windows layer is split into portable rules and system calls | The rules are string work and can be settled by tests on any machine |
@@ -794,8 +799,8 @@ stacking order; the user cannot predict that from the order they opened them.
 
 **Moving a window and starting an application are proved by use, not by test.** No test the gate
 runs calls either, because both would disturb the desktop of whoever ran the suite; the opt-in
-`TestMaximisingDoesNotActivate` and `TestPlacingKeepsTheStackingOrder` place windows of their own
-and no other. Both are run at every
+probes above place and restack windows of their own and no other. Restoring a recorded stacking
+order at a real sign-in has not yet been seen; TESTING.md lists the check. Both are run at every
 sign-in on the reference machine, where the log records each application started and each window
 placed.
 
@@ -864,7 +869,7 @@ these open. Each was confirmed in the code, not inferred:
   the window opens (`serve` returns the error); one that cannot be listed shows the error panel
   rather than the note under the profile list the rationale describes.
 - **NFR-MAINT-002, coverage.** The requirement says 100 percent; the gate holds every function
-  reached, not every statement (97.2% of the application's statements on this date), as
+  reached, not every statement (97.3% of the application's statements on this date), as
   [TESTING.md](TESTING.md) states.
 
 What remains beyond these is proving the rest: see the known limits above.
