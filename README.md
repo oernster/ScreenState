@@ -12,7 +12,7 @@ ScreenState puts your desktop back after you sign in. Capture the desktop once a
 from then on, signing in starts the applications the profile records as running and puts each of
 their windows on the display it belongs on, at the size and in the state it was captured in.
 
-Site: [oernster.github.io/ScreenState](https://oernster.github.io/ScreenState/)
+Site: [ernster.dev/ScreenState](https://ernster.dev/ScreenState/)
 
 ## Who it is for
 
