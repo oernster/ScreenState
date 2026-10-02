@@ -163,7 +163,7 @@ every tool a build needs and what the build does, in order.
 - [ARCHITECTURE.md](ARCHITECTURE.md): how it is built and which test enforces each invariant.
 - [DEVELOPMENT.md](DEVELOPMENT.md): building from source and cutting a release.
 - [TESTING.md](TESTING.md): the gate, what the tests prove and the checks done by hand.
-- [`DECISIONS-TRADEOFFS.md`](DECISIONS-TRADEOFFS.md) sets out the decisions ScreenState rests on, with what each one gains and what it costs.
+- [DECISIONS-TRADEOFFS.md](DECISIONS-TRADEOFFS.md): the decisions it rests on, with what each one gains and what it costs.
 
 ## Supporting the project
 

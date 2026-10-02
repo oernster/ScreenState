@@ -23,9 +23,8 @@ own.
 
 ### Local, per user, on one machine
 
-Profiles, settings and the log are kept under the signed-in user's own local
-application data folder. There is no server, no account and nothing
-synchronised.
+Profiles, settings and the log are kept in the signed-in user's own local
+application data. There is no server, no account and nothing synchronised.
 
 - **Rather than:** profiles shared between machines or between the accounts
   on one.
@@ -37,22 +36,19 @@ synchronised.
 ### Measured before it was built
 
 The specification was written first and every assumption in it was settled
-against the owner's own desktop by a throwaway spike. The spike was deleted
-once its questions were closed; its readings were kept in the specification.
+against the owner's own desktop by a throwaway spike. The spike is gone; its
+readings are kept in the specification.
 
 - **Rather than:** building on what Windows is assumed to do.
-- **Gains:** designs were settled by a reading rather than an argument.
-  Showing a hidden window from outside was measured producing an empty frame;
-  a window class was measured changing on every reboot. A requirement whose
-  evidence was thrown away would be an assertion.
+- **Gains:** designs were settled by a reading rather than an argument; a
+  requirement keeps the evidence it rests on.
 - **Costs:** what was measured was measured on one machine of four displays.
 
 ### What ScreenState deliberately is not
 
 It puts windows where they belong at sign-in or when asked. It does not
-restore what is inside an application (browser tabs, open documents, the
-folder an Explorer window shows), Snap groups or virtual desktops. It does not
-arrange windows while the user works. It runs on Windows alone.
+restore what is inside an application, Snap groups or virtual desktops. It
+does not arrange windows while the user works. It runs on Windows alone.
 
 - **Rather than:** a window manager that acts all the time; a session
   restorer.
@@ -73,9 +69,8 @@ corners on the splash, is ignored by older Windows.
 
 ### No cgo in anything shipped
 
-Both programs are built with cgo off. Windows is reached through the Go
-system package; the one COM call, to the activation manager, is a hand-written
-method table on a thread of its own.
+Both programs are built without C. Windows is reached through Go's own system
+package, including the one COM call the product makes.
 
 - **Rather than:** calling Windows through C.
 - **Gains:** what ships is built without a C compiler.
@@ -86,13 +81,11 @@ method table on a thread of its own.
 
 ### Only what is on screen
 
-A capture records the applications with a window shown. An application
-running only in the notification area is not offered. For a while the review
-listed such applications, unticked; that was taken out again.
+A capture offers the applications with a window shown. An application running
+only in the notification area is not offered.
 
-- **Rather than:** offering the applications whose windows are all hidden. On
-  the reference machine that list still held 25 after leaving out Windows' own
-  programs, helpers among them.
+- **Rather than:** also offering the applications whose windows are all
+  hidden; on the reference machine that list ran to 25, helpers among them.
 - **Gains:** ScreenState arranges the screen, not which programs run; the
   review lists only what there is to arrange.
 - **Costs:** an application wanted at sign-in with no window has to be started
@@ -114,9 +107,8 @@ While there is one profile it is the one applied at sign-in and unmarking it
 is refused. A capture saved while nothing is marked takes the marking. With
 two or more profiles the marking is the user's.
 
-- **Rather than:** waiting for the user to mark one. A desktop was captured,
-  the machine restarted and nothing was arranged, because the only profile
-  had never been marked.
+- **Rather than:** waiting for the user to mark one, which left a captured
+  desktop unarranged after a restart.
 - **Gains:** the first capture is applied at the next sign-in with no further
   step.
 - **Costs:** a single profile cannot be kept without being applied at sign-in,
@@ -133,10 +125,10 @@ A placement records the window's normal rectangle beside its show state.
 
 ### One file per profile, written atomically
 
-Each profile is a JSON file of its own carrying the format version it was
-written in. Every write goes to a temporary file in the same folder, reaches
-the disk, then moves onto the target. A file that cannot be read is left exactly
-as it is and named under the manager's list; so is one in a newer format.
+Each profile is a file of its own carrying the format version it was written
+in. A write either completes or leaves the old file untouched. A file that
+cannot be read is left exactly as it is and named in the manager; so is one in
+a newer format.
 
 - **Rather than:** a database; one file for every profile; rewriting in place.
 - **Gains:** an unreadable file costs that profile alone; an interrupted write
@@ -145,16 +137,15 @@ as it is and named under the manager's list; so is one in a newer format.
 
 ### Profiles kept apart from the program
 
-The profiles sit under the user's local data folder; the program sits in its
-own install folder. Setup asks the store where the profiles are rather than
-writing the path a second time.
+The profiles sit in the user's own data; the program sits in its own install
+folder. Setup asks the agent's own store where the profiles are rather than
+knowing it separately.
 
 - **Rather than:** keeping the user's captures beside the program.
-- **Gains:** removing ScreenState leaves the captures unless the user ticks
-  the box that clears them; what an uninstall offers to clear cannot drift
-  from what the agent writes.
-- **Costs:** setup links the store and with it the domain and application
-  code.
+- **Gains:** removing ScreenState leaves the captures unless the user asks for
+  them to go; what an uninstall offers to clear cannot drift from what the
+  agent writes.
+- **Costs:** setup carries the store and the rules it depends on.
 
 ## Naming things so they survive
 
@@ -163,13 +154,10 @@ writing the path a second time.
 An application is named by the path that starts it, as the user's own
 double-click does. A Store package keeps its model id beside the path, since
 its path carries a version. An application installed under a versioned folder
-is named by its updater command, which does not move.
+is named by its updater, which does not move.
 
-- **Rather than:** the window class, which for NordVPN carried a GUID that
-  changed on every reboot. Also rather than naming a packaged application by
-  its model id alone and never placing it; that was withdrawn once both
-  packaged applications on the reference machine were measured starting from
-  their own paths.
+- **Rather than:** the window class, which was measured changing on every
+  reboot; naming a packaged application by its model id alone.
 - **Gains:** a packaged application is still recognised, started and placed
   after an update has moved its path, without recapturing.
 - **Costs:** three kinds of identity, each with its own rules.
@@ -177,19 +165,18 @@ is named by its updater command, which does not move.
 ### The activation manager as the fallback for a packaged application
 
 Where a packaged application's path no longer starts it, its model id goes to
-the activation manager Windows documents for packaged applications, then to
-the shell only if that fails. It was brought in to cure grey taskbar buttons
-and was measured not to; it stays because it is the documented route.
+the route Windows documents for packaged applications, then to the shell only
+if that fails.
 
 - **Rather than:** the shell's route alone.
-- **Gains:** the worst case is the older route; the log names the route that
-  started each application.
-- **Costs:** COM written by hand, on a thread locked to it for good.
+- **Gains:** the documented route first; the worst case is the older route;
+  the log names the route that started each application.
+- **Costs:** COM written by hand, on a thread of its own.
 
-### A display is known by its device instance path
+### A display is known by the identity Windows gives the device
 
-A display is recorded by the device instance path Windows gives it. Two
-screens of the same model differ only in the UID inside it.
+A display is recorded by its device identity, which tells two screens of the
+same model apart.
 
 - **Rather than:** the number Settings shows or the device name; both were
   measured disagreeing with each other and with where the screens sit. A model
@@ -201,11 +188,11 @@ screens of the same model differ only in the UID inside it.
 ### A person is told which display by where it sits
 
 The manager and the report name a display by its position among those
-connected: top, left, centre and right on the reference machine. The identity
-stays on the tooltip and in the log. Within one restore each display keeps the
-name it was first given.
+connected, such as top, left, centre or right. The identity stays a hover away
+and in the log. Within one restore each display keeps the name it was first
+given.
 
-- **Rather than:** showing the monitor id; the number Settings shows.
+- **Rather than:** showing the identity; the number Settings shows.
 - **Gains:** a position is readable and is worked out from the displays
   connected now, so it cannot go stale; within a report a name means one
   monitor.
@@ -215,7 +202,7 @@ name it was first given.
 
 The manager, the review and the report lead with a name worked out from the
 identity: the file's name, the program an updater starts or a package's name.
-The whole path, each rectangle and each monitor id are on the row's tooltip.
+Everything recorded stays a hover away.
 
 - **Rather than:** the full path on every row; the executable is not what a
   person calls the application.
@@ -227,8 +214,7 @@ The whole path, each rectangle and each monitor id are on the row's tooltip.
 ### A window title is never written down
 
 Titles are read only to name a window the review could not read. The report
-and the log name every window by its application. Two tests plant a revealing
-title and fail on any word that carries it.
+and the log name every window by its application.
 
 - **Rather than:** naming windows by their titles.
 - **Gains:** the log of a sign-in cannot say what the user was working on.
@@ -242,9 +228,9 @@ A restore places an entry the moment the window it names exists, without
 waiting for any other entry.
 
 - **Rather than:** holding every placement until the whole profile had
-  settled; before that, waiting for a quiet period with no new windows. Both
-  made the restore wait for its slowest application and needed a definition
-  of finished that Windows cannot supply.
+  settled; waiting for a quiet period with no new windows. Both made the restore
+  wait for its slowest application and needed a definition of finished that
+  Windows cannot supply.
 - **Gains:** a slow application delays nothing but itself; no figure that
   differs per machine.
 - **Costs:** the desktop is assembled piece by piece while applications are
@@ -252,9 +238,9 @@ waiting for any other entry.
 
 ### The ceiling is a policy and the user's to set
 
-How long a restore waits for windows that have not appeared is set in the
-manager, from 1 to 60 minutes, 15 until chosen. Each restore reads it as it
-begins and counts it from that moment.
+How long a restore waits for windows that have not appeared is the user's
+choice in the manager, in whole minutes within fixed bounds, with a generous
+default. Each restore reads it as it begins and counts it from that moment.
 
 - **Rather than:** a prediction of how long the machine takes to start; a
   figure compiled in.
@@ -264,15 +250,15 @@ begins and counts it from that moment.
 ### Waiting on events, never on a timer
 
 Between passes a restore waits for Windows to say the desktop changed and for
-nothing else. The ceiling and the flash series before the buttons are rebuilt
-are the only timed waits.
+nothing else. The ceiling and the wait for taskbar flashing to end are the
+only timed waits.
 
 - **Rather than:** looking again at an interval.
 - **Gains:** the desktop is read when there is something to read.
-- **Costs:** a change Windows does not announce goes unheard. Three windows
-  that went to the notification area did not wake the wait for 34 seconds,
-  until the shell's word that a taskbar button had gone was listened to as
-  well.
+- **Costs:** a change Windows does not announce goes unheard, so the restore
+  listens to the taskbar's notices as well as to the windows; a kind of change
+  nobody listens for is seen only at the next change that is heard, the
+  user's first key or the ceiling.
 
 ### The user's first key or click ends the waiting
 
@@ -308,7 +294,7 @@ the display it lands on, keeping its size wherever it fits.
 ### A newer restore replaces a running one; nothing is undone
 
 A restore asked for while one is running stops the running one before its
-next action. Stop the restore on the Applying panel does the same without
+next action. Stopping a restore from the manager does the same without
 starting another. Windows already placed stay where they are.
 
 - **Rather than:** queueing restores; putting windows back as they were.
@@ -318,12 +304,12 @@ starting another. Windows already placed stay where they are.
 
 ### Only a sign-in arranges the desktop by itself
 
-The default profile is applied only when the sign-in entry starts the agent.
+The default profile is applied only when Windows starts the agent at sign-in.
 A start by hand and the start setup makes open the manager and arrange
 nothing.
 
 - **Rather than:** restoring on every start, which made each install rearrange
-  the desktop and open another Terminal window.
+  the desktop and open windows nobody asked for.
 - **Gains:** installing or opening ScreenState never moves the windows
   somebody is working in. Apply arranges the desktop whenever it is asked.
 - **Costs:** after an install the profile waits for the next sign-in or for
@@ -335,13 +321,12 @@ An application holding its window hidden is started again, which signals the
 running copy to show and draw its own window. A run not yet answered by a
 window is never followed by another.
 
-- **Rather than:** showing the hidden window from outside, which produced an
-  empty frame the application was not drawing.
-- **Gains:** the application draws its own window.
+- **Rather than:** showing the hidden window from outside, which was measured
+  producing an empty frame the application was not drawing.
+- **Gains:** the application draws its own window; no application is started
+  twice by mistake.
 - **Costs:** an application this restore started that goes straight to the
-  notification area stays there; the report says so. Before the rule against
-  a second run, every launched application was measured being started twice
-  in the same second.
+  notification area stays there; the report says so.
 
 ### More windows only where they cannot surprise
 
@@ -361,13 +346,11 @@ The agent never terminates a program. Windows the profile does not name are
 asked to close only during the sign-in restore and only where the user has
 turned that on; it is off until they do. Apply and a start by hand minimise
 them whatever the setting says. A window asked to close that stays is
-minimised. A structural test allows exactly three methods above the Windows
-layer to speak of closing.
+minimised.
 
-- **Rather than:** forbidding closing outright, as at first; closing whenever
-  the desktop needs tidying. NordVPN and GameGlass survive their windows
-  closing; Postal Gambit is ended by it and nothing about a window says which
-  kind it is.
+- **Rather than:** forbidding closing outright; closing whenever the desktop
+  needs tidying. Some applications survive their window closing while others
+  are ended by it; nothing about a window says which kind it is.
 - **Gains:** applications that live in the notification area can go there at
   sign-in; the user decides the risk, with what it costs stated beside the
   control.
@@ -390,12 +373,10 @@ windows and windows already minimised are left alone.
 
 ### Nothing placed is activated
 
-A window is placed without being activated. Maximising is two steps: the
-placement is set minimised with the flag that restores it maximised, then
-the window is shown without activation.
+A window is placed without being activated, maximised windows included.
 
-- **Rather than:** the direct ways to maximise. Each was measured activating
-  the window, which lights its taskbar button and takes the keyboard.
+- **Rather than:** the direct ways to maximise, each of which was measured
+  activating the window, lighting its taskbar button and taking the keyboard.
 - **Gains:** the keyboard stays where the user is typing; no button is left
   lit.
 - **Costs:** each maximised window minimises and comes back, an animation the
@@ -403,25 +384,24 @@ the window is shown without activation.
 
 ### Nothing started asks for the front
 
-Every application is started with the show state that does not activate it. A
-structural test holds that.
+Every application started by its path or its updater is started without being
+activated.
 
-- **Rather than:** the ordinary show state. An agent started at sign-in holds
-  no right to the foreground, so the request is refused and Windows marks the
-  button red.
+- **Rather than:** the ordinary way of starting a program. An agent started
+  at sign-in holds no right to the foreground, so the request is refused and
+  Windows marks the button red.
 - **Gains:** applications come up behind the window in front, with plain
   buttons.
-- **Costs:** the two model-id routes pass no show state on and can still go
-  red; they are taken only once an update has moved a packaged application's
-  path.
+- **Costs:** the routes that start a packaged application by its model id
+  cannot pass that on and can still go red; they are taken only once an
+  update has moved its path.
 
 ### Placing keeps a window's place among the others
 
-Before a window is placed, the nearest visible window above it is noted; the
-window is put back beneath it afterwards.
+A window is put back beneath whatever was above it once it has been placed.
 
-- **Rather than:** letting a window restored from minimised come out on top.
-  Windows Terminal, captured behind Claude, came out over it after Apply.
+- **Rather than:** letting a window restored from minimised come out on top of
+  the ones that were in front of it.
 - **Gains:** the order a restore finds survives the placing.
 - **Costs:** none recorded.
 
@@ -441,39 +421,37 @@ step, without activation.
 
 ### A click posted to every taskbar
 
-Once a restore has settled, each taskbar window is posted a left click.
-Explorer draws the button of an application started at sign-in without its
-icon on every display but the first, until any taskbar is clicked. It does the
-same with ScreenState not running, so the fault is Windows'.
+Once a restore has settled, every taskbar is posted a click. Windows draws the
+button of an application started at sign-in without its icon on every display
+but the first until a taskbar is clicked, with or without ScreenState running.
 
-- **Rather than:** the other answers tried. A probe tried six; a repaint, the
-  notice that icons have changed and the activation manager were each
-  measured not to cure it.
+- **Rather than:** the other answers tried; a repaint, the notice that icons
+  have changed and the activation manager were each measured not to cure it.
 - **Gains:** every button carries its icon without the user clicking; the
   pointer does not move and no application's window is touched.
 - **Costs:** none recorded.
 
 ### Taskbar buttons rebuilt after a sign-in
 
-After a sign-in restore the shell is made to build the button of every window
-it placed afresh, by hiding the window and showing it again without
-activation, then putting it back beneath the window that was above it. First
-the restore waits until none of those windows has flashed for one full flash
-series. Any other restore does this only for applications it started.
+After a sign-in restore the taskbar button of every window it placed is built
+afresh, by hiding the window and showing it again without activation, then
+putting it back where it was among the others. First the restore waits until
+none of those windows has flashed for one full flash series. Any other
+restore does this only for applications it started.
 
-- **Rather than:** stopping the flash of each button, which was withdrawn when
-  measurement showed it was not what lit them; leaving the desktop marked.
+- **Rather than:** stopping the flash of each button, which measurement showed
+  was not what marked them; leaving the desktop marked.
 - **Gains:** a desktop assembled at sign-in comes back unmarked, as it was
   recorded.
 - **Costs:** each window flickers once; the flash wait holds the end of the
-  restore. A series was traced outlasting the rebuild by up to 7 seconds.
+  restore for some seconds.
 
 ## Privacy and the network
 
 ### One connection: the update check
 
-The only outbound request asks GitHub's feed for the latest published release.
-It carries no identifier and nothing about the desktop. Turned off, nothing is
+The only outbound request asks GitHub for the latest published release. It
+carries no identifier and nothing about the desktop. Turned off, nothing is
 asked of the network at all; the manual check in Help is switched off with it.
 
 - **Rather than:** no check at all; any telemetry.
@@ -483,10 +461,10 @@ asked of the network at all; the manual check in Help is switched off with it.
 
 ### Once per run, quiet unless there is news
 
-The agent checks once a few seconds after its page loads and says nothing
-unless a newer release is out. A check the user asks for reports every
-outcome. A version it cannot read is never treated as newer. Skipping a
-version silences only the check nobody asked for.
+The agent checks once, shortly after it starts. It says nothing unless a
+newer release is out. A check the user asks for reports every outcome. A
+version it cannot read is never treated as newer. Skipping a version silences
+only the check nobody asked for.
 
 - **Rather than:** a check at launch and every day after; one that reports
   every outcome.
@@ -513,12 +491,12 @@ Profiles, settings and the log are ordinary files in the user's own folder.
 - **Costs:** anyone with access to the account can read the application
   paths, window positions, display identities and profile names.
 
-### The log keeps the ten most recent restores
+### The log keeps a set number of whole restores
 
-Each run cuts the log to its ten most recent restores, each with the header of
-its run.
+Each run cuts the log to its most recent restores, each with the header of its
+run.
 
-- **Rather than:** starting the log afresh past 1 MB, which could throw away
+- **Rather than:** starting the log afresh past a size, which could throw away
   the restore being looked into.
 - **Gains:** a restore is kept whole or not at all.
 - **Costs:** a log of fewer restores is kept whole whatever its size.
@@ -547,13 +525,14 @@ anywhere. It never closes on a timer. Opening the manager takes it down.
 - **Gains:** the user knows the desktop is still being arranged without the
   keyboard being taken from them.
 - **Costs:** a splash that says ready stays until the next key or click. It is
-  drawn natively, since the manager is the one window Wails gives the agent.
+  drawn natively, since the manager is the one window the agent's framework
+  gives it.
 
 ### Pages with no framework and no build step
 
 Both windows are plain HTML, CSS and JavaScript. Structural tests stand in for
-a compiler: a page may read only the fields its record's struct carries, call
-only what the program binds and never write the product's name.
+a compiler: a page may read only the fields the program sends, call only what
+the program offers and never write the product's name.
 
 - **Rather than:** a front-end framework with a build step.
 - **Gains:** nothing to install or build for the pages.
@@ -575,7 +554,7 @@ the cross is greyed to match.
 ### Help as a drop-down; the guide drawn from the real controls
 
 Help is a menu under its button. The guide's entries carry the images and
-classes the window itself uses.
+styles the window itself uses.
 
 - **Rather than:** a panel of rows offering other panels; a made-up menu bar
   in a window that has none; screenshots.
@@ -592,17 +571,17 @@ takes over.
 - **Gains:** long text can be read hands free.
 - **Costs:** none recorded.
 
-### Progress counted in entries, asked for twice a second
+### Progress counted in entries, asked for while it matters
 
 The Applying panel's bar fills with the entries satisfied out of the entries
-the profile holds. The page asks for the reading every half second while the
+the profile holds. The page asks for the reading at short intervals while the
 panel is up.
 
 - **Rather than:** seconds, which the agent cannot know; a push through every
   layer between the desktop and the page.
 - **Gains:** the bar measures something real; no route out through every
   layer was needed.
-- **Costs:** the bar can be half a second behind.
+- **Costs:** the bar can be a moment behind.
 
 ### The tray badge is drawn in code
 
@@ -615,9 +594,9 @@ disc in the theme's danger colour, drawn over the product's own artwork.
 
 ### One home for the palette and the page furniture
 
-The palette and the shared page script live once in `assets/` and are copied
-into both page directories by the build; a test fails when a copy has
-drifted. The splash and the badge read their colours from the same sheet.
+The palette and the shared page script are written once and copied into both
+windows by the build; a test fails when a copy has drifted. The splash and the
+badge read their colours from the same palette.
 
 - **Rather than:** colours written where they are used.
 - **Gains:** the manager, setup and the splash cannot quietly stop matching.
@@ -637,10 +616,11 @@ never asks for administrator rights, to install or to run.
 
 ### A setup program of its own, carrying the agent
 
-Setup is a second Wails program with the built agent inside it, so one file is
-the whole distribution. One reading of the machine decides the route
-(install, update, go back a version or manage) and everything on the screen.
-Every file in the payload is checked to land inside the install folder.
+Setup is a second program built the same way as the agent, with the agent
+inside it, so one file is the whole distribution. One reading of the machine
+decides the route (install, update, go back a version or manage) and
+everything on the screen. Every file it unpacks is checked to land inside the
+install folder.
 
 - **Rather than:** a generic installer.
 - **Gains:** one identity throughout; the screen, its options and its buttons
@@ -654,17 +634,17 @@ A running agent is asked about before any file is touched. If the user
 chooses to close it, it is ended by its executable name.
 
 - **Rather than:** ending a process tree, which decides parentage from
-  recorded process ids that churn and so can end setup itself.
+  process ids that are reused and so can end setup itself.
 - **Gains:** a locked executable never leaves a half-written install; setup
   never vanishes mid-run.
 - **Costs:** none recorded.
 
 ### One version string
 
-`VERSION` is the only place a version is written by hand. The build passes it
-into both programs through the linker and a script stamps it into the site.
+One file holds the only version written by hand. The build carries it into
+both programs and a script stamps it into the site.
 
-- **Rather than:** a version literal in the source or the pages.
+- **Rather than:** a version written into the source or the pages.
 - **Gains:** a release cannot announce one version in one place and another
   elsewhere.
 - **Costs:** the site must be stamped by a script, since a page cannot read
@@ -705,8 +685,8 @@ constructor. Structural tests hold the boundaries.
 ### Portable rules apart from system calls
 
 The rules that are string work, such as naming applications, sit apart from
-the Win32 calls. The calls sit behind a build tag with refusing stubs beside
-them. The gate builds the whole module for Linux.
+the calls into Windows, which sit behind stubs on other platforms. The gate
+builds the whole product for a platform that is not Windows.
 
 - **Rather than:** one Windows-only package.
 - **Gains:** the rules are settled by tests on any machine.
@@ -714,9 +694,8 @@ them. The gate builds the whole module for Linux.
 
 ### Rulings held as shapes
 
-No port above the Windows layer can terminate anything. Every timing in the
-application layer has one home. The product's name is written once. Every
-application started through the shell is started without activation. A
+Nothing above the Windows layer can terminate anything; every timing has one
+home; the product's name is written once; nothing is started in front. A
 structural test holds each.
 
 - **Rather than:** rules a reader has to remember.
@@ -739,7 +718,7 @@ test. Infrastructure is tested but not held to a figure.
 
 ### Small files
 
-No Go or page file may exceed 400 lines; one in the band just below is cut
+No source or page file may pass a fixed line limit; one just below it is cut
 well below rather than shaved.
 
 - **Rather than:** letting files grow.
@@ -752,8 +731,8 @@ The gate lists every package that owns tests and fails naming any that ran
 none.
 
 - **Rather than:** trusting the test tool's ok. An anti-virus quarantining a
-  test binary makes its package report ok with no test run; on this project
-  one package's binary was taken five times in six minutes.
+  test binary makes its package report ok with no test run, which happened
+  repeatedly on this project.
 - **Gains:** a green gate means every package was exercised.
 - **Costs:** none recorded.
 
@@ -761,8 +740,8 @@ none.
 
 There is no mocking library; fakes are written by hand. No test reaches the
 network or moves a window it did not make. The few probes that open windows
-of their own are skipped unless asked for. Every structural guard but two was
-proved by planting a violation.
+of their own are skipped unless asked for. Every structural guard but the two
+on the setup page was proved by planting a violation.
 
 - **Rather than:** mocks; tests that arrange the desktop of whoever runs them.
 - **Gains:** a passing test means the real thing works; anyone can run the
