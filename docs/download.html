@@ -55,13 +55,28 @@
     <section class="wrap" id="install">
         <p class="kicker">Install</p>
         <h2>One file. No administrator rights.</h2>
+        <span class="dl-version" id="dl-version">Version <!--VERSION-->1.2.0<!--/VERSION--></span>
+        <!--
+            The button points at GitHub's releases/latest/download redirect, which always
+            serves the newest release's file. The name carries no version, so the link
+            cannot go stale. The script at the foot adds the file size when it can reach
+            the API; without it the page still says everything that matters.
+        -->
+        <div class="downloads">
+            <div class="dl-card">
+                <div class="ico">&#x1FA9F;</div>
+                <h3>Windows</h3>
+                <p class="req">Windows 11 (Windows only)</p>
+                <a class="btn btn-primary" href="https://github.com/oernster/ScreenState/releases/latest/download/ScreenStateSetup.exe">Download for Windows</a>
+                <p class="meta" data-asset="ScreenStateSetup.exe">Setup program (.exe)</p>
+                <p class="meta">Windows may show a SmartScreen warning when you run
+                    it: <a href="https://ernster.dev/windows-smartscreen.html">here is why</a>.</p>
+                <p class="how">Run it and choose Install. It installs for your account
+                    only, so Windows never asks for administrator rights. The same program
+                    updates, repairs and uninstalls.</p>
+            </div>
+        </div>
         <ol class="steps">
-            <li><strong>Download</strong> <code>ScreenStateSetup.exe</code> from the
-                <a href="https://github.com/oernster/ScreenState/releases/latest">latest
-                release</a>.</li>
-            <li><strong>Run it</strong> and choose Install. It installs for your account
-                only, so Windows never asks for administrator rights. The same program
-                updates, repairs and uninstalls.</li>
             <li><strong>Capture your desktop</strong> from the manager, save the profile
                 and sign out and in again to watch it come back.</li>
         </ol>
@@ -70,6 +85,13 @@
                 from the program, so they stay unless you tick the box that removes them
                 too.</p>
         </div>
+        <p class="dl-links">
+            <a id="dl-whats-new" href="https://github.com/oernster/ScreenState/releases/latest">What is new in this release</a>
+            &nbsp;&middot;&nbsp;
+            <a href="https://github.com/oernster/ScreenState/releases">All releases</a>
+            &nbsp;&middot;&nbsp;
+            <a href="https://github.com/oernster/ScreenState">Source on GitHub</a>
+        </p>
     </section>
 
 </main>
@@ -101,6 +123,36 @@
         show();
     });
 })();
+</script>
+
+<script>
+    // The download button never goes stale: it points at GitHub's releases/latest/download
+    // redirect, which always serves the newest release's file. This script only decorates
+    // the page: the version chip, the notes link and the file's size, read from the GitHub
+    // API. Where the call fails, the static text stands on its own; the chip then carries
+    // the version stamped into this page from the VERSION file. No date is ever shown.
+    (function () {
+        var api = 'https://api.github.com/repos/oernster/ScreenState/releases/latest';
+        fetch(api).then(function (r) {
+            if (!r.ok) { throw new Error('release lookup failed'); }
+            return r.json();
+        }).then(function (rel) {
+            var version = (rel.tag_name || '').replace(/^v/, '');
+            if (version) {
+                document.getElementById('dl-version').textContent = 'Version ' + version;
+            }
+            if (rel.html_url) {
+                document.getElementById('dl-whats-new').href = rel.html_url;
+            }
+            (rel.assets || []).forEach(function (asset) {
+                var meta = document.querySelector('[data-asset="' + asset.name + '"]');
+                if (meta && asset.size) {
+                    var mb = (asset.size / (1024 * 1024)).toFixed(1);
+                    meta.textContent = meta.textContent + ' · ' + mb + ' MB';
+                }
+            });
+        }).catch(function () { /* The static page already says everything essential. */ });
+    })();
 </script>
 
 </body>
