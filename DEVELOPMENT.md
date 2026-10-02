@@ -163,9 +163,10 @@ without Pillow. Run it when the artwork changes, then commit the results.
 `VERSION` holds the only version string anyone writes by hand. Change it there
 and nowhere else: the build carries it into both programs through the linker
 and into the site through `stamp_version.py`, which rewrites whatever sits
-between `<!--VERSION-->` and `<!--/VERSION-->` in `docs/` and touches nothing
-else. Run it on its own after changing `VERSION`; a second run changes nothing
-and says so.
+between `<!--VERSION-->` and `<!--/VERSION-->` in `docs/`. It also versions
+the site's stylesheet and script links by content (`styles.css?v=<hash>`), so
+a browser never pairs a new page with a cached old stylesheet. Run it on its
+own after changing `VERSION`; a second run changes nothing and says so.
 
 ```powershell
 python stamp_version.py
