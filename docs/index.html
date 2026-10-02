@@ -41,11 +41,10 @@
 <body>
 
 <header class="wrap site-head">
-    <a class="brand" href="#top"><img src="icon.png" alt="" width="40" height="40"> ScreenState</a>
-    <nav aria-label="Sections">
-        <a href="#how" class="hide-sm">How it works</a>
-        <a href="#what">Features</a>
-        <a href="#install">Install</a>
+    <a class="brand" href="./"><img src="icon.png" alt="" width="40" height="40"> ScreenState</a>
+    <nav aria-label="Pages">
+        <a href="features.html">Features</a>
+        <a href="download.html">Install</a>
         <a href="https://github.com/oernster/ScreenState">GitHub</a>
         <button class="theme" id="theme" type="button" aria-label="Switch between light and dark">
             <img id="theme-art" src="dark-mode.png" alt="" width="28" height="28">
@@ -103,143 +102,6 @@
         </ol>
     </section>
 
-    <section class="wrap" id="what">
-        <p class="kicker">The feature list</p>
-        <h2>It puts the desktop back. Carefully.</h2>
-        <div class="two-col">
-            <div class="card">
-                <h3>What it does</h3>
-                <ul>
-                    <li><strong>Knows your displays apart</strong>, even two of the same
-                        model, by the identity Windows gives each screen rather than a
-                        number that changes. It tells you which one it means by where it
-                        sits: the top, left, centre or right display, with the exact
-                        identity a hover away.</li>
-                    <li><strong>Names applications by what survives their updates.</strong>
-                        A packaged application whose path moves with every update keeps its
-                        model id beside the path, so it is still started and its window still
-                        placed without capturing the profile again.</li>
-                    <li><strong>Puts windows back in front of one another as they
-                        were.</strong> A capture records which of the profile's windows is in
-                        front of which; a restore sets that order once, as its last step,
-                        without taking the front from anything.</li>
-                    <li><strong>Leaves your keyboard alone.</strong> Nothing it places or
-                        starts takes the keyboard from the window you are typing in; a
-                        window it maximises does so without taking the front.</li>
-                    <li><strong>Leaves the taskbar clean.</strong> No button left lit, red
-                        or missing its icon once the restore is done.</li>
-                    <li><strong>Puts away what the profile does not name</strong>, by
-                        minimising it. At sign-in it can close those windows instead, if you
-                        turn that on. It then waits only for the windows it asked to close,
-                        so one that opens afterwards cannot hold the restore up; any that
-                        will not close is minimised.</li>
-                    <li><strong>Copes with change.</strong> A display that is gone sends its
-                        windows to the primary one; displays changing mid-restore do not
-                        stop it; a window that moves itself is put back once.</li>
-                    <li><strong>Applies any profile on demand</strong> from the tray or the
-                        manager, with a bar showing how far it has got. In the manager a
-                        button stops it, leaving what is already placed where it is.</li>
-                    <li><strong>Tells you when something is left over.</strong> While the last
-                        restore has an application it could not start or place, the tray icon
-                        carries a red badge and its tooltip says how many.</li>
-                    <li><strong>Waits as long as you choose.</strong> A restore stops
-                        waiting for windows that have not appeared after a ceiling you set
-                        in Settings, from 1 to 60 minutes; 15 until you change it.</li>
-                    <li><strong>Keeps everything on one screen.</strong> The manager shows
-                        your profiles on the left, the selected profile's applications in
-                        the middle and its buttons down the right, with Settings behind
-                        the gear at the top. Each application is listed by name, with how
-                        its window is shown, on which display and at what size beneath;
-                        the full path it recorded is a hover away. A profile file it cannot
-                        read is named under the profile list and left exactly as it
-                        is.</li>
-                </ul>
-            </div>
-            <div class="card">
-                <h3>What it does not do</h3>
-                <ul>
-                    <li><strong>End another program.</strong> The only process it ever ends is
-                        its own agent, which setup stops, when you tell it to, before replacing
-                        or removing it. It closes a window
-                        only where you have turned that on, only at sign-in and only for a
-                        window the profile being restored does not name.</li>
-                    <li><strong>Restore what is inside an application.</strong> Browser
-                        tabs, open documents and folders are the application's business.</li>
-                    <li><strong>Snap groups or virtual desktops.</strong> Neither is
-                        recorded.</li>
-                    <li><strong>Keep the windows in order afterwards.</strong> An application
-                        that brings its own window forward once the restore is done is not
-                        fought; a key press or click during a restore leaves the order as it
-                        came up.</li>
-                    <li><strong>Encrypt your profiles.</strong> They are plain files in your
-                        own folder, holding application paths, window positions, which window
-                        is in front of which, display identities and profile names.</li>
-                    <li><strong>Send your desktop anywhere.</strong> The one connection it
-                        makes asks whether a newer version exists, carries nothing about you
-                        and can be turned off. Window titles, which can say what you are
-                        working on, are never written to its log.</li>
-                    <li><strong>Ask for administrator rights.</strong> Installed and run for
-                        your account alone.</li>
-                    <li><strong>Anything but Windows.</strong> Built and tested on Windows
-                        11. Windows 10 will very likely work but is untested.</li>
-                </ul>
-            </div>
-        </div>
-    </section>
-
-    <section class="wrap" id="built">
-        <p class="kicker">How it is built</p>
-        <h2>Measured, not guessed.</h2>
-        <div class="prose">
-            <p>The behaviours above were measured on a real four-display desktop; the
-                specification records those measurements beside the requirements they
-                settled. Nothing on this page is a number made up for it.</p>
-        </div>
-        <div class="stats">
-            <div class="stat">
-                <span class="n">103</span>
-                <p>Requirements in the specification: 77 the product cannot do without and
-                    26 more it carries.</p>
-            </div>
-            <div class="stat">
-                <span class="n">100%</span>
-                <p>Of the functions that decide what a profile means and what a restore
-                    does are covered by tests. The build refuses to run below it.</p>
-            </div>
-            <div class="stat">
-                <span class="n">19</span>
-                <p>Structural tests that fail the build if the architecture is broken or a
-                    rule is undone: nothing may end a program, nothing may start in front.</p>
-            </div>
-            <div class="stat">
-                <span class="n">2</span>
-                <p>Timers a restore ever waits on: the ceiling you set to bound a restore
-                    nobody touches and the wait for a taskbar button to stop flashing.
-                    Everything else is an event Windows reports.</p>
-            </div>
-        </div>
-    </section>
-
-    <section class="wrap" id="install">
-        <p class="kicker">Install</p>
-        <h2>One file. No administrator rights.</h2>
-        <ol class="steps">
-            <li><strong>Download</strong> <code>ScreenStateSetup.exe</code> from the
-                <a href="https://github.com/oernster/ScreenState/releases/latest">latest
-                release</a>.</li>
-            <li><strong>Run it</strong> and choose Install. It installs for your account
-                only, so Windows never asks for administrator rights. The same program
-                updates, repairs and uninstalls.</li>
-            <li><strong>Capture your desktop</strong> from the manager, save the profile
-                and sign out and in again to watch it come back.</li>
-        </ol>
-        <div class="prose note">
-            <p>To remove it, uninstall from Settings &gt; Apps. Your profiles live apart
-                from the program, so they stay unless you tick the box that removes them
-                too.</p>
-        </div>
-    </section>
-
     <section class="wrap support" id="support">
         <p class="kicker">Supporting ScreenState</p>
         <h2>Free. It stays free.</h2>
@@ -262,7 +124,10 @@
 <footer class="wrap site-foot">
     <span>&copy; Oliver Ernster. GPL-3.0.
         <a href="https://ernster.dev/commercial-licensing.html">Commercial licences</a> available.</span>
-    <span><a href="https://github.com/oernster/ScreenState">Source</a> &middot;
+    <span><a href="./">Home</a> &middot;
+        <a href="features.html">Features</a> &middot;
+        <a href="download.html">Install</a> &middot;
+        <a href="https://github.com/oernster/ScreenState">Source</a> &middot;
         <a href="https://ernster.dev">ernster.dev</a></span>
 </footer>
 

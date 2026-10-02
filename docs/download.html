@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Install ScreenState: one file, no administrator rights</title>
+    <meta name="description" content="Install ScreenState for your account from one setup file, with no administrator rights. The same program updates, repairs and uninstalls.">
+    <meta name="theme-color" content="#0b0e14">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Install ScreenState: one file, no administrator rights">
+    <meta property="og:description" content="Install ScreenState for your account from one setup file, with no administrator rights. The same program updates, repairs and uninstalls.">
+    <meta property="og:image" content="https://ernster.dev/ScreenState/icon.png">
+    <meta property="og:url" content="https://ernster.dev/ScreenState/download.html">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        // Before first paint, so the page never flashes the wrong ground. Dark
+        // is the default; a choice made with the toggle wins. Storage can be
+        // refused, in which case the page stays dark.
+        (() => {
+            let chosen = null;
+            try { chosen = localStorage.getItem('screenstate-theme'); } catch (_) {}
+            document.documentElement.dataset.theme = chosen === 'light' ? 'light' : 'dark';
+        })();
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "Install ScreenState: one file, no administrator rights",
+        "description": "Install ScreenState for your account from one setup file, with no administrator rights. The same program updates, repairs and uninstalls.",
+        "url": "https://ernster.dev/ScreenState/download.html",
+        "isPartOf": {"@type": "WebSite", "name": "ScreenState", "url": "https://ernster.dev/ScreenState/"},
+        "inLanguage": "en-GB"
+    }
+    </script>
+</head>
+<body>
+
+<header class="wrap site-head">
+    <a class="brand" href="./"><img src="icon.png" alt="" width="40" height="40"> ScreenState</a>
+    <nav aria-label="Pages">
+        <a href="features.html">Features</a>
+        <a href="download.html" aria-current="page">Install</a>
+        <a href="https://github.com/oernster/ScreenState">GitHub</a>
+        <button class="theme" id="theme" type="button" aria-label="Switch between light and dark">
+            <img id="theme-art" src="dark-mode.png" alt="" width="28" height="28">
+        </button>
+    </nav>
+</header>
+
+<main id="top">
+
+    <section class="wrap" id="install">
+        <p class="kicker">Install</p>
+        <h2>One file. No administrator rights.</h2>
+        <ol class="steps">
+            <li><strong>Download</strong> <code>ScreenStateSetup.exe</code> from the
+                <a href="https://github.com/oernster/ScreenState/releases/latest">latest
+                release</a>.</li>
+            <li><strong>Run it</strong> and choose Install. It installs for your account
+                only, so Windows never asks for administrator rights. The same program
+                updates, repairs and uninstalls.</li>
+            <li><strong>Capture your desktop</strong> from the manager, save the profile
+                and sign out and in again to watch it come back.</li>
+        </ol>
+        <div class="prose note">
+            <p>To remove it, uninstall from Settings &gt; Apps. Your profiles live apart
+                from the program, so they stay unless you tick the box that removes them
+                too.</p>
+        </div>
+    </section>
+
+</main>
+
+<footer class="wrap site-foot">
+    <span>&copy; Oliver Ernster. GPL-3.0.
+        <a href="https://ernster.dev/commercial-licensing.html">Commercial licences</a> available.</span>
+    <span><a href="./">Home</a> &middot;
+        <a href="features.html">Features</a> &middot;
+        <a href="download.html">Install</a> &middot;
+        <a href="https://github.com/oernster/ScreenState">Source</a> &middot;
+        <a href="https://ernster.dev">ernster.dev</a></span>
+</footer>
+
+<script>
+(() => {
+    'use strict';
+    // The toggle wears the product's own sun and moon and shows the appearance
+    // it would switch TO, as the manager's does.
+    const root = document.documentElement;
+    const art = document.getElementById('theme-art');
+    const show = () => {
+        art.src = root.dataset.theme === 'dark' ? 'light-mode.png' : 'dark-mode.png';
+    };
+    show();
+    document.getElementById('theme').addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem('screenstate-theme', root.dataset.theme); } catch (_) {}
+        show();
+    });
+})();
+</script>
+
+</body>
+</html>
