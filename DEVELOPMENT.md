@@ -177,7 +177,9 @@ python stamp_version.py
 `docs/` is the GitHub Pages site, served from the `main` branch: plain HTML and
 CSS with no build step. `docs/styles.css` repeats the colours of
 `assets/theme.css` that the site uses, so a change to a shared colour is made in
-both by hand. It shows no
+both by hand. It holds every rule the pages share; `docs/download.css` and
+`docs/features.css` hold the rules only one page uses and are linked after it
+from that page alone. It shows no
 dates anywhere; the version is its only changing text and is stamped as above.
 
 ## Cutting a release

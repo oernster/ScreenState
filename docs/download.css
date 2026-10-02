@@ -1,0 +1,47 @@
+/* ScreenState site: the download page only. The shared tokens and every
+   rule the pages have in common are in styles.css, linked first. */
+
+/* Downloads: the house card per platform (BuildPilot, EarthNow, SymDiary). ScreenState
+   is Windows only, so there is one card, centred at a card's width. */
+
+.dl-version {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 14px;
+}
+
+.downloads {
+    display: grid;
+    grid-template-columns: minmax(0, 420px);
+    justify-content: center;
+    margin-top: 28px;
+}
+
+.dl-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 20px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.dl-card .ico { font-size: 30px; }
+
+.dl-card h3 { margin: 4px 0 0; }
+
+.dl-card .req { color: var(--muted); font-size: 0.85rem; margin: 0; }
+
+.dl-card .btn { align-self: center; margin: 14px 0 4px; }
+
+.dl-card .meta { color: var(--muted); font-size: 0.8rem; min-height: 1.2em; margin: 0; }
+
+.dl-card .how { color: var(--muted); font-size: 0.85rem; margin: 8px 0 0; }
+
+.dl-links { text-align: center; margin-top: 20px; font-size: 0.9rem; }
