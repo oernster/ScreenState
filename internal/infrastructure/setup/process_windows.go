@@ -41,7 +41,7 @@ const (
 )
 
 // IsAppRunning reports whether the agent is currently running.
-func IsAppRunning() bool { return len(processIDs(ExeName)) > 0 }
+func IsAppRunning() bool { return len(agentIDs()) > 0 }
 
 // processIDs returns the ids of every running process with the given executable
 // name, compared without regard to case.
@@ -78,6 +78,47 @@ func processIDs(exeName string) []uint32 {
 	}
 }
 
+// installedAgentIDs returns the ids of the running processes that are the
+// installed agent: the executable of that name inside the install folder. A
+// program of the same name anywhere else is not the agent and holds no lock on
+// the files an install replaces, so it is never ended (README: the one process
+// anything here ends is its own agent). A process whose image cannot be read is
+// not this user's to end.
+func installedAgentIDs(exeName, installDir string) []uint32 {
+	var found []uint32
+	for _, pid := range processIDs(exeName) {
+		if image, ok := imagePath(pid); ok && isInstalledAgent(image, installDir, exeName) {
+			found = append(found, pid)
+		}
+	}
+	return found
+}
+
+// agentIDs returns the installed agent's processes, none where the install
+// folder cannot be named, since nothing can be ours there.
+func agentIDs() []uint32 {
+	dir, err := InstallDir()
+	if err != nil {
+		return nil
+	}
+	return installedAgentIDs(ExeName, dir)
+}
+
+// imagePath reads the full path of a process's executable.
+func imagePath(pid uint32) (string, bool) {
+	handle, err := windows.OpenProcess(windows.PROCESS_QUERY_LIMITED_INFORMATION, false, pid)
+	if err != nil {
+		return "", false
+	}
+	defer windows.CloseHandle(handle)
+	buffer := make([]uint16, windows.MAX_LONG_PATH)
+	size := uint32(len(buffer))
+	if err := windows.QueryFullProcessImageName(handle, 0, &buffer[0], &size); err != nil {
+		return "", false
+	}
+	return windows.UTF16ToString(buffer[:size]), true
+}
+
 // CloseRunningApp ends every running instance and waits for each to exit.
 // Termination is forced rather than a polite window close, because the agent
 // lives in the notification area and has no window to close: only ending the
@@ -88,7 +129,7 @@ func processIDs(exeName string) []uint32 {
 // is the deadline, the one time it waits to.
 func CloseRunningApp() error {
 	var ending []windows.Handle
-	for _, pid := range processIDs(ExeName) {
+	for _, pid := range agentIDs() {
 		if handle, ok := terminate(pid); ok {
 			ending = append(ending, handle)
 		}

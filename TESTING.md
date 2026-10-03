@@ -110,7 +110,9 @@ with a hand-written fake. It covers the capture and what it leaves out (a
 window that is not shown makes no entry; ScreenState records nothing of
 itself), the restore and its lifecycle, stopping a restore part way, starting
 applications and opening every window a profile records, placing a packaged
-application's window after an update has moved its path, waiting for a window
+application's window after an update has moved its path, two programs of one
+package each keeping their own window with no window claimed by two entries
+(`restore_packaged_test.go`), waiting for a window
 that has not appeared, the ceiling the user chooses, putting away the windows a
 profile does not name with no window title reaching the log, waiting after the
 requests to close for the windows asked alone (a window that appears later
@@ -141,13 +143,13 @@ tests share.
 
 | Package | What its tests use |
 |---|---|
-| `store` | a real temporary directory: round trips, the default marking, a profile that is not there, a broken file that costs only itself, a profile in a newer format left alone, a store that cannot be read or has gone away, an interrupted write that must leave the old file whole, a rank written with its placement and left out where there is none, a file without ranks read as holding none, shared ranks still loading |
+| `store` | a real temporary directory: round trips, the default marking, a profile that is not there, a broken file that costs only itself, a profile in a newer format left alone, a store that cannot be read or has gone away, an interrupted write that must leave the old file whole, a rank written with its placement and left out where there is none, a file without ranks read as holding none, shared ranks still loading; a file renamed or copied by hand named rather than offered or applied at sign-in, two files holding one name, two names the manager tells apart never sharing a file (the file name checked against `strings.EqualFold`), a file named the way 1.3.0 named it still its profile, a new profile never written over another file, a file stating no format or an entry not saying whether it runs refused (`identity_test.go`, `decode_test.go`) |
 | `settings` | the same, for `settings.json`: what a file that says nothing means (the update check on, unnamed windows minimised rather than closed, no ceiling chosen), the ceiling kept beside the other settings, a damaged file or a ceiling that is not a duration reported as a fault rather than read as the defaults |
 | `runlog` | a real log file, its header and its steps; a run keeping the 10 most recent restores with the header of each one's run; a long log of fewer restores kept whole |
 | `clock` | the real clock the application layer is given through its `Clock` port |
 | `instance` | a real named mutex |
 | `win32` | the naming rules, the stacking-order rules (the nearest real window above, the walk down from the top, the highest of several windows, a restack chaining beneath the last window that moved) and the rule that a click on a splash is not the user taking over, on any platform; behind a build tag, the probes that read the real desktop (its windows, a running application and a press on the taskbar traced to its top-level window), the flash series worked out from the machine's settings and a taskbar button added or taken away waking the watch a restore waits on; behind the same tag and skipped unless `SCREENSTATE_DESKTOP_PROBE` is set, `TestMaximisingDoesNotActivate`, which opens two windows of its own and places one maximised to prove the placing does not activate it; `TestPlacingKeepsTheStackingOrder`, which puts one of its windows behind the other and places it normal then maximised to prove it stays behind; in `restack_windows_test.go`, the stacking order read with the window on top first, a restack putting a recorded order back and a restack that activates nothing, against a control that does |
-| `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry |
+| `setup` | the version comparison, the payload extraction with its fence against an archive entry that climbs out of the install directory, copying and removing trees, the install and state directories and the sign-in entry; the installed agent told from a program of the same name elsewhere, by path and against the real process table with the test's own process (it reads the table and ends nothing) |
 | `internal/ui` | the splash: its palette read from `theme.css`, its logo reduced from the master and how it hears input; the tray's attention badge, drawn in the theme's colours in the corner over the artwork; the icon Windows builds from it once per theme |
 
 `startup` and `update` have no tests of their own: they are the registry and

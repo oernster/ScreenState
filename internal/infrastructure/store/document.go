@@ -174,16 +174,43 @@ func encode(profile domain.Profile) ([]byte, error) {
 	return append(raw, '\n'), nil
 }
 
+// stated is what the decoder reads before the document itself: the fields every
+// build writes that a missing value would otherwise silently answer for. A
+// missing format would read as 0, which is not a newer format but a file
+// edited by hand; a missing "running" would read as not running, which changes
+// what the profile does (S-8).
+type stated struct {
+	Format  *int `json:"format"`
+	Entries []struct {
+		Running *bool `json:"running"`
+	} `json:"entries"`
+}
+
 // decode reads a stored profile, reporting the format version separately so a
 // caller can tell a file it must not touch from a file that is broken.
 func decode(raw []byte) (domain.Profile, int, error) {
+	var check stated
+	if err := json.Unmarshal(raw, &check); err != nil {
+		return domain.Profile{}, 0, fmt.Errorf("%w: %w", ErrUnreadable, err)
+	}
+	if check.Format == nil {
+		return domain.Profile{}, 0, fmt.Errorf("%w: it states no format version", ErrUnreadable)
+	}
+	if format := *check.Format; format < formatVersion {
+		return domain.Profile{}, format, fmt.Errorf("%w: format %d is not one any version writes",
+			ErrUnreadable, format)
+	} else if format != formatVersion {
+		return domain.Profile{}, format, fmt.Errorf("%w: format %d", ErrUnknownFormat, format)
+	}
+	for index, entry := range check.Entries {
+		if entry.Running == nil {
+			return domain.Profile{}, formatVersion, fmt.Errorf(
+				"%w: entry %d does not say whether it is running", ErrUnreadable, index+1)
+		}
+	}
 	var written document
 	if err := json.Unmarshal(raw, &written); err != nil {
 		return domain.Profile{}, 0, fmt.Errorf("%w: %w", ErrUnreadable, err)
-	}
-	if written.Format != formatVersion {
-		return domain.Profile{}, written.Format, fmt.Errorf("%w: format %d",
-			ErrUnknownFormat, written.Format)
 	}
 	profile, err := written.toProfile()
 	if err != nil {

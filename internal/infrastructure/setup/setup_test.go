@@ -236,3 +236,20 @@ func TestALoginEntryIsReadBackWhateverItsShape(t *testing.T) {
 		}
 	}
 }
+
+// S-9: the installed agent is the executable inside the install folder and
+// nothing else of the same name.
+func TestOnlyTheInstalledExecutableIsTheAgent(t *testing.T) {
+	t.Parallel()
+	dir := filepath.Join(t.TempDir(), "Programs", InstallFolder)
+	if !isInstalledAgent(filepath.Join(dir, ExeName), dir, ExeName) {
+		t.Fatal("the installed executable was not recognised")
+	}
+	if !isInstalledAgent(strings.ToUpper(filepath.Join(dir, ExeName)), dir, ExeName) {
+		t.Fatal("a difference of case alone made it another program")
+	}
+	elsewhere := filepath.Join(t.TempDir(), "build", "bin", ExeName)
+	if isInstalledAgent(elsewhere, dir, ExeName) {
+		t.Fatal("a copy run from elsewhere was taken for the installed agent")
+	}
+}

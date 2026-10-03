@@ -34,17 +34,17 @@ to fail is not yet a guard.
 | Invariant | Enforcing test | File |
 |---|---|---|
 | Domain imports nothing from application, infrastructure or ui | `TestDomainHasNoOutwardImports` | `boundary_test.go` |
-| Domain is pure: no net, os, filepath, syscall, log, `time.Now`, `math/rand` | `TestDomainIsPure` | `boundary_test.go` |
+| Domain is pure: it imports only the standard packages `allowedInDomain` lists (no IO, no `time`, no random source) | `TestDomainIsPure` | `boundary_test.go` |
 | Application never imports infrastructure or ui | `TestApplicationDoesNotImportInfrastructure` | `boundary_test.go` |
 | The composition root is the only place that wires concrete adapters | `TestCompositionRootIsWhitelisted` | `boundary_test.go` |
 | No Go source or page file (HTML, script, stylesheet) exceeds the module-size limit | `TestNoFileExceedsLineLimit` | `size_test.go` |
 | No such file sits in the danger band below the limit | `TestNoFileInDangerBand` | `size_test.go` |
 | Every exported type carries a doc comment | `TestEveryExportedTypeIsDocumented` | `boundary_test.go` |
-| No port above the Windows layer can terminate or kill anything; only the three methods FR-064 names may close a window | `TestNothingAboveInfrastructureCanEndAProgram` | `rulings_test.go` |
+| No port above the Windows layer can terminate or kill anything: every port method is one `portMethods` lists, each read against FR-029; only the three methods FR-064 names may close a window | `TestNothingAboveInfrastructureCanEndAProgram` | `rulings_test.go` |
 | Domain and application import no Windows API | `TestTheDecisionsStayPortable` | `rulings_test.go` |
 | Every timing in the application layer has one home in `ports.go` | `TestEveryTimingHasOneHome` | `rulings_test.go` |
 | The product's name is written down once, in `product.go` | `TestTheProductIsNamedOnce` | `rulings_test.go` |
-| Every application started through the shell is shown without activating (FR-077) | `TestNothingIsStartedInFront` | `rulings_test.go` |
+| Every application started through the shell is shown without activating (FR-077): every call through a selector naming ShellExecute ends with that show state and no such selector is reached any other way; a procedure renamed to hide the name is not seen | `TestNothingIsStartedInFront` | `rulings_test.go` |
 | The shared palette and page furniture match their masters in `assets/` | `TestTheSharedAssetsHaveNotDrifted` | `shared_assets_test.go` |
 | The manager's page names nothing: no product name, no tagline | `TestTheManagerPageNamesNothing` | `shared_assets_test.go` |
 | Every script and stylesheet in the manager's page is loaded by its `index.html` | `TestEveryManagerScriptIsLoadedByThePage` | `shared_assets_test.go` |
@@ -208,7 +208,9 @@ manager still starts it; a window reporting the new path carries the same model 
 `ApplicationIdentity.Recognises` in the domain matches it to its entry, so the restore places it
 rather than putting it away. Two callers use it: `windowsOf` finds an entry's windows to place;
 `Profile.Find` decides what the profile does not name. Neither needs the profile recaptured.
-`Equal` stays exact, since it says whether two stored entries are the same one.
+`Equal` stays exact, since it says whether two stored entries are the same one. Two programs of
+one package share its model id, so `windowsOf` claims each window once per restore: a window an
+entry names exactly is that entry's; a window placed for one entry is never offered to another.
 
 A window class is not an identity. NordVPN's main window class carried a GUID that changed on every
 reboot; the process image path did not.
@@ -444,7 +446,7 @@ setting's other arm would have done; the report says which windows those were.
 
 | What | Where |
 |---|---|
-| Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each |
+| Profiles | `%LOCALAPPDATA%\ScreenState\profiles\<name>.json`, one file each; the file name is the name folded the way the manager compares names, every other letter escaped at a fixed width, so two names share a file exactly when the manager calls them one name |
 | Step log | `%LOCALAPPDATA%\ScreenState\Log.txt`; each run cuts it down to the 10 most recent restores as it starts (NFR-OBS-001), counting the step `application.RestoreBegins` opens |
 | Installed files | `%LOCALAPPDATA%\Programs\ScreenState\`, the agent, its licence and a copy of setup as `uninstall.exe` |
 | Settings | `%LOCALAPPDATA%\ScreenState\settings.json`, the update setting, the skipped version, what a restore does with the windows a profile does not name and the ceiling, written as a Go duration such as `20m0s` |
@@ -481,8 +483,15 @@ a delete rather than one act; a copy can be interrupted half way.
 Every profile carries the format version it was written in (DATA-002). A file from a version this build
 does not understand is left exactly as it is, kept out of the listing, with the reason stated in the
 log on every run (DATA-003) and under the manager's profile list (NFR-REL-002). So is a file that
-cannot be read or is not a profile at all. The store answers them through `ProfileStore.Unreadable`
-and `ManagerService.Unreadable` passes them to the page; nothing ever writes to such a file.
+cannot be read or is not a profile at all. So is a file whose name is not the one its profile is
+kept under (renamed or copied by hand) and every file of two holding one name: otherwise sign-in
+could apply a profile the manager does not show. Every operation on a profile acts on the file it
+was read from; a file named as builds up to 1.3.0 named it is still its profile's. A file in the
+way of a new profile is never written over: the save is refused. The store answers them through
+`ProfileStore.Unreadable` and `ManagerService.Unreadable` passes them to the page; nothing ever
+writes to such a file. A profile file states its format and whether each entry is running, since
+every build writes both; a file without one of them was edited by hand and is refused rather than
+read as format 0 or as not running.
 
 ## The manager window
 
@@ -649,6 +658,11 @@ invisible and work in progress can never raise a prompt. Nothing re-checks those
 direction is deliberate: a missed offer costs a user a day, while a spurious one costs the credibility
 of every later offer.
 
+**Only an https link reaches the browser.** The release page and the download are opened in the
+user's own browser, which hands any other scheme to whatever program claims it. A release naming
+a link that is not https is passed over as a feed that answered something unreadable, with a line
+in the log.
+
 **Skipping silences the check that speaks unbidden, never the one the user pressed a button for.**
 That is the whole of what skipping is for, so a manual check reports a skipped version as available
 and offers the download anyway.
@@ -712,7 +726,8 @@ immediately, since there is no go-ahead button there for it to wait on.
 
 **The agent is asked about before a single file is touched.** Extracting over a locked executable fails
 part way and leaves a half-written install, so a running agent gets its own screen offering Cancel or
-"Close it and continue". It is ended by executable name and never by process tree: descent is decided
+"Close it and continue". It is found by its executable's full path inside the install folder, so a
+program of the same name run from anywhere else is left alone. It is never ended by process tree: descent is decided
 from recorded parent process ids, which churn, so a tree kill can end setup itself and the window then
 vanishes with nothing said.
 

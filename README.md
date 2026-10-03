@@ -61,7 +61,9 @@ Windows.
   away in the tray menu and in the manager's Help. The tray icon's tooltip says what the last
   restore did and is read again after every restore, wherever it was started. While the last
   restore left something outstanding, the icon carries a red badge. A profile file that cannot be
-  read is named under the manager's list of profiles rather than left out in silence.
+  read is named under the manager's list of profiles rather than left out in silence. So is one
+  renamed or copied by hand: it is neither listed nor applied at sign-in until it is put back
+  under the file name the reason gives.
 
 ## What it does not do
 

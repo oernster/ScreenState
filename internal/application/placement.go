@@ -82,7 +82,7 @@ func (service *RestoreService) advanceEntry(
 	pending *pendingEntry,
 	why trigger,
 ) {
-	owned := windowsOf(windows, pending.entry.Application)
+	owned := state.windowsOf(windows, pending.entry.Application)
 	if !pending.wantsPlacement() {
 		service.advanceWithoutPlacement(ctx, state, pending)
 		return

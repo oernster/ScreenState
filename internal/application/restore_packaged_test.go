@@ -86,3 +86,70 @@ func TestAWindowIsMatchedToAnEntryNamedByItsModelIDAlone(t *testing.T) {
 		t.Fatal("Claude was put away as a window the profile does not name")
 	}
 }
+
+// S-4: two programs of one package share its model id. Each window goes to the
+// entry naming its own program exactly; no window is placed for two entries in
+// one restore.
+func TestTwoProgramsOfOnePackageEachKeepTheirOwnWindow(t *testing.T) {
+	t.Parallel()
+	mainApp := domain.ApplicationIdentity{Value: `C:\Package\main.exe`}.WithModelID(claudeModelID)
+	helper := domain.ApplicationIdentity{Value: `C:\Package\helper.exe`}.WithModelID(claudeModelID)
+	mainRect := domain.Rect{X: 0, Y: 0, Width: 1000, Height: 700}
+	helperRect := domain.Rect{X: 1100, Y: 0, Width: 900, Height: 600}
+	for _, order := range [][2]domain.ApplicationIdentity{{mainApp, helper}, {helper, mainApp}} {
+		rects := map[string]domain.Rect{mainApp.Value: mainRect, helper.Value: helperRect}
+		var entries []domain.Entry
+		for _, application := range order {
+			entries = append(entries, domain.Entry{Application: application, Running: true,
+				Placements: []domain.Placement{{Display: primaryID, Rect: rects[application.Value], State: domain.ShowNormal}}})
+		}
+		profile, err := domain.NewProfile("Desk", entries...)
+		if err != nil {
+			t.Fatalf("the profile is not valid: %v", err)
+		}
+		desktop := &fakeDesktop{displays: []Display{primaryDisplay},
+			windows: []Window{aWindow(1, helper, at(0)), aWindow(2, mainApp, at(1))}}
+		service := restoreUnder(desktop, newFakeProcesses(mainApp, helper), &fakeLauncher{},
+			newFakeStore(), newFakeClock(), &fakeLog{})
+		if _, err := service.Restore(context.Background(), profile); err != nil {
+			t.Fatalf("restoring: %v", err)
+		}
+		placedTo := map[WindowID]domain.Rect{}
+		for _, call := range desktop.placements() {
+			if earlier, twice := placedTo[call.id]; twice && earlier != call.rect {
+				t.Fatalf("window %d was placed for two entries: %+v then %+v", call.id, earlier, call.rect)
+			}
+			placedTo[call.id] = call.rect
+		}
+		if placedTo[1] != helperRect || placedTo[2] != mainRect {
+			t.Fatalf("entries in the order %v placed %+v", order, placedTo)
+		}
+	}
+}
+
+// S-4 again: two entries recognising one window by the model id alone share
+// nothing. The window goes to one of them; the other is not reported as
+// satisfied by a window it never had.
+func TestOneWindowIsNeverClaimedByTwoEntries(t *testing.T) {
+	t.Parallel()
+	first := domain.ApplicationIdentity{Value: `C:\Package\first.exe`}.WithModelID(claudeModelID)
+	second := domain.ApplicationIdentity{Value: `C:\Package\second.exe`}.WithModelID(claudeModelID)
+	profile, err := domain.NewProfile("Desk",
+		domain.Entry{Application: first, Running: true, Placements: []domain.Placement{
+			aPlacement(primaryID, domain.Rect{X: 0, Y: 0, Width: 1000, Height: 700})}},
+		domain.Entry{Application: second, Running: true, Placements: []domain.Placement{
+			aPlacement(primaryID, domain.Rect{X: 1100, Y: 0, Width: 900, Height: 600})}})
+	if err != nil {
+		t.Fatalf("the profile is not valid: %v", err)
+	}
+	desktop := &fakeDesktop{displays: []Display{primaryDisplay}, windows: []Window{aWindow(1, claudeUpdated, at(0))}}
+	service := restoreUnder(desktop, newFakeProcesses(first, second), &fakeLauncher{},
+		newFakeStore(), newFakeClock(), &fakeLog{})
+	report, err := service.Restore(context.Background(), profile)
+	if err != nil {
+		t.Fatalf("restoring: %v", err)
+	}
+	if satisfied, _ := report.Counts(); satisfied != 1 {
+		t.Fatalf("%d entries satisfied by one window: %s", satisfied, report.Summary())
+	}
+}

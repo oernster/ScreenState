@@ -25,16 +25,18 @@ const modulePath = "github.com/oernster/ScreenState/"
 // that wires the two layers together is a test failure.
 var compositionRoot = map[string]bool{"main.go": true}
 
-// forbiddenInDomain names the packages that would make the domain impure. Time
-// reaches this product through an injected clock, never through the domain.
-var forbiddenInDomain = []string{
-	"net", "net/http", "os", "path/filepath", "math/rand",
-	"database/sql", "os/exec", "syscall", "unsafe", "log",
+// allowedInDomain is every standard package the domain may import: pure
+// computation over values it is handed. It is a list of what is allowed rather
+// than of what is not, since a denylist passes whatever it did not think of
+// (math/rand/v2 walked past the old one). Time is not on it: time reaches this
+// product through an injected clock and never reaches the domain at all, so
+// neither time.Now nor time.Since can be called here. A package added to this
+// list is a decision about the domain's purity, made in review.
+var allowedInDomain = map[string]bool{
+	"cmp": true, "errors": true, "fmt": true, "maps": true, "math": true,
+	"slices": true, "sort": true, "strconv": true, "strings": true,
+	"unicode": true, "unicode/utf8": true,
 }
-
-// forbiddenCallsInDomain names calls that read the wall clock or the global random
-// source directly, which would make domain behaviour irreproducible.
-var forbiddenCallsInDomain = []string{"time.Now", "rand.Intn", "rand.Float64"}
 
 // repoRoot walks up from the test's directory to the module root.
 func repoRoot(t *testing.T) string {
@@ -134,20 +136,11 @@ func TestDomainIsPure(t *testing.T) {
 			continue
 		}
 		for _, imported := range importsOf(t, path) {
-			for _, banned := range forbiddenInDomain {
-				if imported == banned {
-					t.Errorf("%s imports %q: the domain performs no IO", path, banned)
-				}
+			if strings.HasPrefix(imported, modulePath+"internal/domain") || allowedInDomain[imported] {
+				continue
 			}
-		}
-		raw, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("reading %s: %v", path, err)
-		}
-		for _, call := range forbiddenCallsInDomain {
-			if strings.Contains(string(raw), call+"(") {
-				t.Errorf("%s calls %s: inject the clock instead", path, call)
-			}
+			t.Errorf("%s imports %q: the domain performs no IO, reads no clock and draws no "+
+				"random number; only the packages allowedInDomain lists may be imported", path, imported)
 		}
 	}
 }

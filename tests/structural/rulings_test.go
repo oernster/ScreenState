@@ -35,6 +35,24 @@ var mayClose = map[string]bool{
 	"SetCloseStrangers": true,
 }
 
+// portMethods is every method a port above the Windows layer offers, each read
+// against FR-029 and FR-064 when it was added. A list of verbs to refuse passes
+// whatever it did not think of (End, Shutdown and Dismiss walked past the old
+// one), so a method not listed here fails until somebody has read it and put
+// it here.
+var portMethods = map[string]bool{
+	"Ceiling": true, "Close": true, "CloseStrangers": true, "Default": true,
+	"Delete": true, "Displays": true, "Enabled": true, "FlashSeries": true,
+	"Flashing": true, "Latest": true, "Launch": true, "Load": true,
+	"Names": true, "Next": true, "Now": true, "NudgeTaskbars": true,
+	"Place": true, "Preparing": true, "Ready": true, "RebuildTaskbarButton": true,
+	"Restack": true, "Running": true, "Save": true, "SetCeiling": true,
+	"SetCloseStrangers": true, "SetEnabled": true, "SetSkippedVersion": true,
+	"SetUpdateCheckEnabled": true, "SkippedVersion": true, "Sleep": true,
+	"StackingOrder": true, "Step": true, "Touched": true, "Unreadable": true,
+	"UpdateCheckEnabled": true, "Watch": true, "Window": true, "Windows": true,
+}
+
 // terminationCalls name the ways a Go program ends somebody else's program. None
 // of them belongs above the Windows layer; none belongs in this product at all.
 // The layers this test covers are simply the ones that could reach for one while
@@ -68,6 +86,10 @@ func TestNothingAboveInfrastructureCanEndAProgram(t *testing.T) {
 			continue
 		}
 		for _, method := range interfaceMethods(t, path) {
+			if !portMethods[method] {
+				t.Errorf("%s: the port offers %s, which no one has read against FR-029: "+
+					"read it, then list it in portMethods", filepath.Base(path), method)
+			}
 			lowered := strings.ToLower(method)
 			for _, verb := range terminationVerbs {
 				if strings.Contains(lowered, verb) {
@@ -180,8 +202,14 @@ const launchShowState = "swShowNoActivate"
 // TestNothingIsStartedInFront holds FR-077. The agent holds no right to the
 // foreground at sign-in, so an application started with any show state that
 // activates is refused the front and has its taskbar button marked red. Every
-// call to ShellExecuteW must therefore end with the one show state that does not
+// call to ShellExecute must therefore end with the one show state that does not
 // ask for the front.
+//
+// A call is any call through a selector naming ShellExecute, on either side of
+// the dot: pShellExecute.Call and windows.ShellExecute alike. Reaching one any
+// other way through a selector (taking its address, holding the method as a
+// value) fails too, since that is a call this test could not read. What it
+// cannot see is a procedure renamed to something without ShellExecute in it.
 func TestNothingIsStartedInFront(t *testing.T) {
 	calls := 0
 	for _, path := range goFiles(t) {
@@ -192,17 +220,38 @@ func TestNothingIsStartedInFront(t *testing.T) {
 		if err != nil {
 			t.Fatalf("parsing %s: %v", path, err)
 		}
+		called := map[*ast.SelectorExpr]bool{}
 		ast.Inspect(parsed, func(node ast.Node) bool {
 			call, ok := node.(*ast.CallExpr)
-			if !ok || !callsShellExecute(call) || len(call.Args) == 0 {
+			if !ok {
 				return true
 			}
+			selector, ok := call.Fun.(*ast.SelectorExpr)
+			if !ok || !namesShellExecute(selector) {
+				return true
+			}
+			if !strings.Contains(strings.ToLower(selector.Sel.Name), shellExecute) && selector.Sel.Name != "Call" {
+				return true
+			}
+			called[selector] = true
 			calls++
+			if len(call.Args) == 0 {
+				t.Errorf("%s calls %s with no show state (FR-077)", filepath.Base(path), selector.Sel.Name)
+				return true
+			}
 			shown, ok := call.Args[len(call.Args)-1].(*ast.Ident)
 			if !ok || shown.Name != launchShowState {
 				t.Errorf("%s starts an application with a show state other than %s: "+
 					"it would be refused the front and marked red (FR-077)",
 					filepath.Base(path), launchShowState)
+			}
+			return true
+		})
+		ast.Inspect(parsed, func(node ast.Node) bool {
+			selector, ok := node.(*ast.SelectorExpr)
+			if ok && namesShellExecute(selector) && !called[selector] {
+				t.Errorf("%s reaches ShellExecute through %s other than by calling it, "+
+					"which this test cannot hold to FR-077", filepath.Base(path), selector.Sel.Name)
 			}
 			return true
 		})
@@ -212,14 +261,17 @@ func TestNothingIsStartedInFront(t *testing.T) {
 	}
 }
 
-// callsShellExecute reports whether a call is pShellExecute.Call.
-func callsShellExecute(call *ast.CallExpr) bool {
-	selector, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok || selector.Sel.Name != "Call" {
-		return false
+// shellExecute is the procedure's name as this test looks for it, lowered.
+const shellExecute = "shellexecute"
+
+// namesShellExecute reports whether a selector names ShellExecute on either
+// side of its dot.
+func namesShellExecute(selector *ast.SelectorExpr) bool {
+	if strings.Contains(strings.ToLower(selector.Sel.Name), shellExecute) {
+		return true
 	}
 	receiver, ok := selector.X.(*ast.Ident)
-	return ok && receiver.Name == "pShellExecute"
+	return ok && strings.Contains(strings.ToLower(receiver.Name), shellExecute)
 }
 
 // stringLiterals returns every string literal in a file except the import

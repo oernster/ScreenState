@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 
@@ -49,13 +48,13 @@ func (store *Store) Directory() string { return store.directory }
 // A file that cannot be read is left out rather than allowed to stop the
 // listing: one unreadable profile costs the user that profile, never the rest.
 func (store *Store) Names(ctx context.Context) ([]string, error) {
-	profiles, _, err := store.readAll(ctx)
+	profiles, _, err := store.scan(ctx)
 	if err != nil {
 		return nil, err
 	}
 	names := make([]string, 0, len(profiles))
 	for _, profile := range profiles {
-		names = append(names, profile.Name)
+		names = append(names, profile.profile.Name)
 	}
 	sort.Slice(names, func(one, two int) bool {
 		return strings.ToLower(names[one]) < strings.ToLower(names[two])
@@ -67,45 +66,8 @@ func (store *Store) Names(ctx context.Context) ([]string, error) {
 // with the reason (NFR-REL-002, DATA-003). The manager states them and the log
 // names them once a run; the files themselves are never touched.
 func (store *Store) Unreadable(ctx context.Context) ([]application.UnreadableProfile, error) {
-	_, excluded, err := store.readAll(ctx)
+	_, excluded, err := store.scan(ctx)
 	return excluded, err
-}
-
-// readAll reads every file in the store, returning the profiles it could read
-// and the files it could not with the reason for each.
-func (store *Store) readAll(ctx context.Context) ([]domain.Profile, []application.UnreadableProfile, error) {
-	// Checked before the directory is read as well as within it. Checking only
-	// inside the loop let a cancelled call succeed over an empty store, which
-	// is the one store where the loop never runs.
-	if err := ctx.Err(); err != nil {
-		return nil, nil, err
-	}
-	entries, err := os.ReadDir(store.directory)
-	if err != nil {
-		return nil, nil, fmt.Errorf("reading the profile store: %w", err)
-	}
-	var profiles []domain.Profile
-	var excluded []application.UnreadableProfile
-	for _, entry := range entries {
-		if err := ctx.Err(); err != nil {
-			return nil, nil, err
-		}
-		if entry.IsDir() || !strings.EqualFold(filepath.Ext(entry.Name()), extension) {
-			continue
-		}
-		profile, err := store.read(filepath.Join(store.directory, entry.Name()))
-		if err != nil {
-			// Recorded, not narrated. This runs on every listing; a run
-			// that says the same thing three times teaches a reader to skim
-			// the log. The caller states it once; DATA-003 asks that it be
-			// stated, not that it be repeated.
-			excluded = append(excluded, application.UnreadableProfile{File: entry.Name(), Reason: err.Error()})
-			continue
-		}
-		profiles = append(profiles, profile)
-	}
-	sort.Slice(excluded, func(one, two int) bool { return excluded[one].File < excluded[two].File })
-	return profiles, excluded, nil
 }
 
 // read loads one file as a profile.
@@ -121,14 +83,14 @@ func (store *Store) read(path string) (domain.Profile, error) {
 // Load reads one profile by name, ignoring case, since two profiles differing
 // only in case would be one name to the user.
 func (store *Store) Load(ctx context.Context, name string) (domain.Profile, error) {
-	if err := ctx.Err(); err != nil {
+	profiles, _, err := store.scan(ctx)
+	if err != nil {
 		return domain.Profile{}, err
 	}
-	profile, err := store.read(store.pathFor(name))
-	if errors.Is(err, ErrUnreadable) && errors.Is(err, os.ErrNotExist) {
-		return domain.Profile{}, fmt.Errorf("%w: %q", application.ErrNoSuchProfile, name)
+	if found, ok := find(profiles, name); ok {
+		return found.profile, nil
 	}
-	return profile, err
+	return domain.Profile{}, store.unoffered(name)
 }
 
 // Save writes a profile, replacing one of the same name.
@@ -150,7 +112,15 @@ func (store *Store) Save(ctx context.Context, profile domain.Profile) error {
 	if err != nil {
 		return err
 	}
-	if err := store.write(store.pathFor(profile.Name), raw); err != nil {
+	profiles, _, err := store.scan(ctx)
+	if err != nil {
+		return err
+	}
+	path, err := store.target(profiles, profile.Name)
+	if err != nil {
+		return err
+	}
+	if err := store.write(path, raw); err != nil {
 		return err
 	}
 	if !profile.Default {
@@ -161,11 +131,12 @@ func (store *Store) Save(ctx context.Context, profile domain.Profile) error {
 
 // clearOtherDefaults unmarks every profile but the one just marked (FR-040).
 func (store *Store) clearOtherDefaults(ctx context.Context, keep string) error {
-	profiles, _, err := store.readAll(ctx)
+	profiles, _, err := store.scan(ctx)
 	if err != nil {
 		return err
 	}
-	for _, profile := range profiles {
+	for _, each := range profiles {
+		profile := each.profile
 		if !profile.Default || strings.EqualFold(profile.Name, keep) {
 			continue
 		}
@@ -173,7 +144,7 @@ func (store *Store) clearOtherDefaults(ctx context.Context, keep string) error {
 		if err != nil {
 			return err
 		}
-		if err := store.write(store.pathFor(profile.Name), raw); err != nil {
+		if err := store.write(each.path, raw); err != nil {
 			return err
 		}
 		store.log.Step(fmt.Sprintf("profile %q is no longer the default", profile.Name))
@@ -183,10 +154,15 @@ func (store *Store) clearOtherDefaults(ctx context.Context, keep string) error {
 
 // Delete removes a profile.
 func (store *Store) Delete(ctx context.Context, name string) error {
-	if err := ctx.Err(); err != nil {
+	profiles, _, err := store.scan(ctx)
+	if err != nil {
 		return err
 	}
-	if err := os.Remove(store.pathFor(name)); err != nil {
+	found, ok := find(profiles, name)
+	if !ok {
+		return store.unoffered(name)
+	}
+	if err := os.Remove(found.path); err != nil {
 		if errors.Is(err, os.ErrNotExist) {
 			return fmt.Errorf("%w: %q", application.ErrNoSuchProfile, name)
 		}
@@ -202,14 +178,14 @@ func (store *Store) Delete(ctx context.Context, name string) error {
 // store could still hold, the first by name wins and the disagreement is
 // recorded rather than passed over.
 func (store *Store) Default(ctx context.Context) (domain.Profile, bool, error) {
-	profiles, _, err := store.readAll(ctx)
+	profiles, _, err := store.scan(ctx)
 	if err != nil {
 		return domain.Profile{}, false, err
 	}
 	var marked []domain.Profile
-	for _, profile := range profiles {
-		if profile.Default {
-			marked = append(marked, profile)
+	for _, each := range profiles {
+		if each.profile.Default {
+			marked = append(marked, each.profile)
 		}
 	}
 	if len(marked) == 0 {

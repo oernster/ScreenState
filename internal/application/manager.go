@@ -147,8 +147,8 @@ func (service *ManagerService) Entries(ctx context.Context, name string) ([]Entr
 //
 // Two names differing only in case are one name to the user (FR-002), so a
 // rename that only changes case is a rewrite of the same profile and must not
-// delete anything afterwards: the store addresses a profile by its lowercased
-// name, so the old file IS the new file.
+// delete anything afterwards: the store writes a profile over the file it was
+// read from, so the old file IS the new file.
 func (service *ManagerService) Rename(ctx context.Context, from, to string) error {
 	profile, err := service.store.Load(ctx, from)
 	if err != nil {

@@ -92,6 +92,9 @@ type restoreState struct {
 	// needs (FR-075).
 	arranged []*placedWindow
 	launched []domain.ApplicationIdentity
+	// applications is every entry's application, satisfied or not, so a window
+	// one entry names exactly is never handed to another (S-4).
+	applications []domain.ApplicationIdentity
 	// displays is the reading taken at the last pass, kept so that a change
 	// part way through can be recorded rather than passed over (FR-057).
 	displays displaySet
@@ -110,6 +113,7 @@ func newRestoreState(profile domain.Profile, report *Report) *restoreState {
 	for _, entry := range profile.Entries {
 		report.Track(entry.Application)
 		state.pending = append(state.pending, &pendingEntry{entry: entry})
+		state.applications = append(state.applications, entry.Application)
 	}
 	return state
 }
@@ -252,20 +256,46 @@ func missingFrom(from, other displaySet) []Display {
 // agent first saw them, which is the order FR-037 matches placements in. A
 // packaged application's window is its own once an update has moved the path
 // (FR-071).
-func windowsOf(windows []Window, application domain.ApplicationIdentity) []Window {
+//
+// Two programs of one package share its model id, so one window can be
+// recognised by two entries (S-4). Each window is claimed once: a window an
+// entry names exactly belongs to that entry and to no entry recognising it by
+// the model id alone; a window this restore has placed for one entry is never
+// offered to another.
+func (state *restoreState) windowsOf(windows []Window, application domain.ApplicationIdentity) []Window {
 	var owned []Window
 	for _, window := range windows {
-		if window.Unreadable != "" {
+		if window.Unreadable != "" || !application.Recognises(window.Application) {
 			continue
 		}
-		if application.Recognises(window.Application) {
-			owned = append(owned, window)
+		if state.claimedElsewhere(window, application) {
+			continue
 		}
+		owned = append(owned, window)
 	}
 	sort.SliceStable(owned, func(one, two int) bool {
 		return owned[one].Created.Before(owned[two].Created)
 	})
 	return owned
+}
+
+// claimedElsewhere reports whether a window belongs to another entry: placed
+// for it already, else named by it exactly while this one only recognises it.
+func (state *restoreState) claimedElsewhere(window Window, application domain.ApplicationIdentity) bool {
+	for _, placed := range state.arranged {
+		if placed.id == window.ID && !placed.application.Equal(application) {
+			return true
+		}
+	}
+	if application.Equal(window.Application) {
+		return false
+	}
+	for _, other := range state.applications {
+		if !other.Equal(application) && other.Equal(window.Application) {
+			return true
+		}
+	}
+	return false
 }
 
 // visible returns the windows a placement can be applied to. A hidden window

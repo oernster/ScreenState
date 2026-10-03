@@ -67,6 +67,13 @@ func InstallDir() (string, error) {
 	return filepath.Join(base, installSubdir, InstallFolder), nil
 }
 
+// isInstalledAgent reports whether a running executable is the installed
+// agent: the file of that name inside the install folder, compared as Windows
+// compares paths, without regard to case.
+func isInstalledAgent(image, installDir, exeName string) bool {
+	return strings.EqualFold(filepath.Clean(image), filepath.Clean(filepath.Join(installDir, exeName)))
+}
+
 // localAppData is where Windows keeps a user's own application data.
 const localAppData = "LOCALAPPDATA"
 

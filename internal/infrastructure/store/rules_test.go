@@ -157,11 +157,11 @@ func TestABrokenFileCostsOnlyItself(t *testing.T) {
 	for name, contents := range map[string]string{
 		"broken.json":    `{"format":1,"name":"Broken",`,
 		"nameless.json":  `{"format":1,"name":"   ","entries":[]}`,
-		"badkind.json":   `{"format":1,"name":"Bad","entries":[{"application":{"kind":"registry","value":"x"}}]}`,
-		"badstate.json":  `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":"C:\\a.exe"},"placements":[{"display":"D","rect":{"x":0,"y":0,"width":1,"height":1},"state":"folded"}]}]}`,
-		"emptyrect.json": `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":"C:\\a.exe"},"placements":[{"display":"D","rect":{"x":0,"y":0,"width":0,"height":0},"state":"normal"}]}]}`,
-		"nodisplay.json": `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":"C:\\a.exe"},"placements":[{"display":"","rect":{"x":0,"y":0,"width":1,"height":1},"state":"normal"}]}]}`,
-		"novalue.json":   `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":""}}]}`,
+		"badkind.json":   `{"format":1,"name":"Bad","entries":[{"application":{"kind":"registry","value":"x"},"running":true}]}`,
+		"badstate.json":  `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":"C:\\a.exe"},"running":true,"placements":[{"display":"D","rect":{"x":0,"y":0,"width":1,"height":1},"state":"folded"}]}]}`,
+		"emptyrect.json": `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":"C:\\a.exe"},"running":true,"placements":[{"display":"D","rect":{"x":0,"y":0,"width":0,"height":0},"state":"normal"}]}]}`,
+		"nodisplay.json": `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":"C:\\a.exe"},"running":true,"placements":[{"display":"","rect":{"x":0,"y":0,"width":1,"height":1},"state":"normal"}]}]}`,
+		"novalue.json":   `{"format":1,"name":"Bad","entries":[{"application":{"kind":"path","value":""},"running":true}]}`,
 	} {
 		if err := os.WriteFile(filepath.Join(store.Directory(), name), []byte(contents), 0o644); err != nil {
 			t.Fatalf("planting %s: %v", name, err)

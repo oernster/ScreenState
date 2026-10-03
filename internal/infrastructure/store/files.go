@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/oernster/ScreenState/internal/product"
 )
@@ -38,19 +40,77 @@ func DefaultDirectory() (string, error) {
 // stored without inventing a directory or losing half its name.
 const safe = "abcdefghijklmnopqrstuvwxyz0123456789 -_()"
 
-// escape renders a profile name as a filename. It lowercases first, so that two
-// names differing only in case are one profile, which is how the user reads
-// them. The name as typed is kept inside the file, never derived back from the
-// filename.
+// The two escapes a filename may carry. A letter in the Basic Multilingual
+// Plane is four hex digits after the mark; one beyond it is six after the mark
+// and a plus sign, which no four-digit escape begins with. So no escape reads
+// as the start of another and a letter followed by a digit never reads as one
+// wider letter.
+const (
+	escapeBasic  = "%%%04X"
+	escapeAstral = "%%+%06X"
+	basicPlane   = 0xFFFF
+)
+
+// escape renders a profile name as a filename. Two names share a filename
+// exactly when strings.EqualFold says they are one name, which is the
+// comparison the manager makes before it refuses a name already in use
+// (FR-002). The name as typed is kept inside the file, never derived back from
+// the filename.
 func escape(name string) string {
+	var built strings.Builder
+	for _, letter := range strings.TrimSpace(name) {
+		letter = folded(letter)
+		switch {
+		case letter < utf8.RuneSelf && strings.ContainsRune(safe, letter):
+			built.WriteRune(letter)
+		case letter <= basicPlane:
+			built.WriteString(fmt.Sprintf(escapeBasic, letter))
+		default:
+			built.WriteString(fmt.Sprintf(escapeAstral, letter))
+		}
+	}
+	return built.String()
+}
+
+// folded returns the one letter standing for every letter strings.EqualFold
+// treats as this one: the lowest lower-case letter among them, else the lowest
+// of them. Each set of letters EqualFold joins gives one answer and no two sets
+// give the same one, since the sets do not overlap. ASCII letters fold to their
+// lower case, so the file of a profile with an ASCII name is named as before.
+func folded(letter rune) rune {
+	lowest, lowestLower := letter, rune(-1)
+	member := letter
+	for {
+		if member < lowest {
+			lowest = member
+		}
+		if unicode.IsLower(member) && (lowestLower < 0 || member < lowestLower) {
+			lowestLower = member
+		}
+		member = unicode.SimpleFold(member)
+		if member == letter {
+			break
+		}
+	}
+	if lowestLower >= 0 {
+		return lowestLower
+	}
+	return lowest
+}
+
+// legacyEscape is the filename builds up to 1.3.0 gave a profile: lowercased,
+// every other letter as a variable-width escape. It was not one to one (S-3),
+// so nothing is written under it any more; a file already named this way is
+// still recognised as the profile it holds and is replaced in place.
+func legacyEscape(name string) string {
 	lowered := strings.ToLower(strings.TrimSpace(name))
 	var built strings.Builder
 	for _, letter := range lowered {
-		if letter < 0x80 && strings.ContainsRune(safe, letter) {
+		if letter < utf8.RuneSelf && strings.ContainsRune(safe, letter) {
 			built.WriteRune(letter)
 			continue
 		}
-		built.WriteString(fmt.Sprintf("%%%04X", letter))
+		built.WriteString(fmt.Sprintf(escapeBasic, letter))
 	}
 	return built.String()
 }

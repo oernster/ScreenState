@@ -3,6 +3,7 @@ package application
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 )
@@ -160,15 +161,26 @@ func (service *UpdateService) Check(ctx context.Context, honourSkip bool) (Updat
 	if release == nil {
 		return status, nil
 	}
+	download := SelectAssetURL(release.Assets, service.platform)
+	if download == "" {
+		// No file for this machine is not a reason to say nothing: the release
+		// page is always somewhere the user can go.
+		download = release.PageURL
+	}
+	for _, link := range []string{release.PageURL, download} {
+		if !isWebLink(link) {
+			// Either link is opened in the user's browser, which hands any
+			// other scheme to whatever program claims it (S-10). It is the
+			// same as a feed that answered something unreadable.
+			service.log.Step(fmt.Sprintf(
+				"the release feed named a link that is not https, so it was passed over: %q", link))
+			return status, nil
+		}
+	}
 	status.Reached = true
 	status.Latest = release.Version
 	status.PageURL = release.PageURL
-	status.DownloadURL = SelectAssetURL(release.Assets, service.platform)
-	if status.DownloadURL == "" {
-		// No file for this machine is not a reason to say nothing: the release
-		// page is always somewhere the user can go.
-		status.DownloadURL = release.PageURL
-	}
+	status.DownloadURL = download
 	if !IsNewer(release.Version, service.current) {
 		return status, nil
 	}
@@ -196,6 +208,15 @@ func (service *UpdateService) Skip(version string) error {
 	}
 	service.log.Step(fmt.Sprintf("version %s will not be offered again", version))
 	return nil
+}
+
+// webScheme is the one scheme a link from the release feed may carry.
+const webScheme = "https"
+
+// isWebLink reports whether a link is an https address naming a host.
+func isWebLink(link string) bool {
+	parsed, err := url.Parse(link)
+	return err == nil && strings.EqualFold(parsed.Scheme, webScheme) && parsed.Host != ""
 }
 
 // SelectAssetURL returns the download whose name ends in the platform's suffix,
