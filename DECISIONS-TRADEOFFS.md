@@ -439,8 +439,8 @@ putting it back where it was among the others. First the restore waits until
 none of those windows has flashed for one full flash series. Any other
 restore does this only for applications it started.
 
-- **Rather than:** stopping the flash of each button, which measurement showed
-  was not what marked them; leaving the desktop marked.
+- **Rather than:** stopping the flash of each button, which was measured not to
+  clear the red a finished series leaves; leaving the desktop marked.
 - **Gains:** a desktop assembled at sign-in comes back unmarked, as it was
   recorded.
 - **Costs:** each window flickers once; the flash wait holds the end of the
