@@ -1,0 +1,33 @@
+/* ScreenState site: the What's New page only. The shared tokens and every
+   rule the pages have in common are in styles.css, linked first. */
+
+/* The release history: one card per release, newest first, in a single
+   column so the history reads top to bottom. The version sits in a pill above
+   each headline. */
+
+.changelog {
+    display: grid;
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.changelog .card { overflow-wrap: break-word; }
+
+.ver-tag {
+    display: inline-block;
+    margin-bottom: 10px;
+    border: 1px solid var(--border);
+    background: var(--raised);
+    border-radius: 999px;
+    padding: 3px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+.changelog .card li:last-child { margin-bottom: 0; }
+
+.changelog-more {
+    margin-top: 32px;
+    justify-content: center;
+}

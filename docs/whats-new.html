@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>What's new in ScreenState: release history</title>
+    <meta name="description" content="ScreenState's release history: profiles that do what the list says, a website with a page for each job, applications and displays named the way you know them, windows back in the order you left them and the first release.">
+    <meta name="theme-color" content="#0b0e14">
+    <link rel="icon" type="image/png" href="icon.png">
+    <link rel="apple-touch-icon" href="icon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="What's new in ScreenState: release history">
+    <meta property="og:description" content="Profiles that do what the list says, applications and displays named the way you know them, windows back in the order you left them and the first release.">
+    <meta property="og:image" content="https://ernster.dev/ScreenState/icon.png">
+    <meta property="og:url" content="https://ernster.dev/ScreenState/whats-new.html">
+    <link rel="canonical" href="https://ernster.dev/ScreenState/whats-new.html">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta property="og:site_name" content="ScreenState">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="256">
+    <meta property="og:image:height" content="256">
+    <meta property="og:image:alt" content="ScreenState app icon">
+    <meta property="og:locale" content="en_GB">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="What's new in ScreenState: release history">
+    <meta name="twitter:description" content="Profiles that do what the list says, applications and displays named the way you know them, windows back in the order you left them and the first release.">
+    <meta name="twitter:image" content="https://ernster.dev/ScreenState/icon.png">
+    <meta name="twitter:image:alt" content="ScreenState app icon">
+    <link rel="stylesheet" href="styles.css?v=9afb026b12">
+    <link rel="stylesheet" href="whats-new.css?v=3937db8996">
+    <script>
+        // Before first paint, so the page never flashes the wrong ground. Dark
+        // is the default; a choice made with the toggle wins. Storage can be
+        // refused, in which case the page stays dark.
+        (() => {
+            let chosen = null;
+            try { chosen = localStorage.getItem('screenstate-theme'); } catch (_) {}
+            document.documentElement.dataset.theme = chosen === 'light' ? 'light' : 'dark';
+        })();
+    </script>
+<script>window.goatcounter = {path: function (p) { return location.host + p }}</script>
+<script data-goatcounter="https://oernster.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+</head>
+<body>
+
+<header class="wrap site-head">
+    <a class="brand" href="./"><img src="icon.png" alt="" width="40" height="40"> ScreenState</a>
+    <nav aria-label="Pages">
+        <a href="features.html">Features</a>
+        <a href="whats-new.html" aria-current="page">What's New</a>
+        <a href="download.html">Install</a>
+        <a href="https://github.com/oernster/ScreenState">GitHub</a>
+        <button class="theme" id="theme" type="button" aria-label="Switch between light and dark">
+            <img id="theme-art" src="dark-mode.png" alt="" width="28" height="28">
+        </button>
+    </nav>
+</header>
+
+<main id="top">
+
+    <section class="wrap" id="whats-new">
+        <p class="kicker">Changelog</p>
+        <h2>What's new</h2>
+        <div class="prose">
+            <p>Recent releases have focused on making ScreenState trustworthy on a real
+                desktop: profiles that cannot quietly share a file or be applied without
+                being listed, windows that come back in the order you left them,
+                applications and displays named the way you know them. One release changed
+                only the website, giving it a page for each job.</p>
+        </div>
+
+        <div class="changelog">
+
+            <div class="card">
+                <div class="ver-tag">v<!--VERSION-->1.4.0<!--/VERSION--></div>
+                <h3>Profiles that do what the list says</h3>
+                <ul>
+                    <li>A profile file renamed or copied by hand in the profiles folder could be left out of the manager's list yet still be applied when you signed in. It is now named under the list with the reason; it is neither listed nor applied until it is put back under the file name the reason gives</li>
+                    <li>Every change you make to a profile acts on the file it was read from. Two profile names can no longer end up sharing one file; saving a new profile never writes over another. Profiles saved by earlier versions keep working as they are</li>
+                    <li>A profile edited by hand to drop its format is named as unreadable rather than guessed at; so is one that no longer says whether an application was running</li>
+                    <li>When a profile held two programs from one packaged application, a restore could place one window for both. Each window now goes to one entry only, preferring the entry that names its program exactly; a program left without a window is reported as such</li>
+                    <li>Setup recognises a running copy of ScreenState by its full path in the install folder before closing it, so a different program that shares the name is left alone</li>
+                    <li>The update check opens only secure (https) links in your browser. A release pointing anywhere else is passed over and noted in the log</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="ver-tag">v1.3.0</div>
+                <h3>A website with a page for each job</h3>
+                <ul>
+                    <li>The program itself is unchanged in this release</li>
+                    <li>The site is three pages instead of one long page: Home, Features and Install. Its address is now ernster.dev/ScreenState; the old address redirects there</li>
+                    <li>The Install page carries a Windows card whose button fetches the setup program straight from the newest release, so the link cannot go stale. It shows the version, the file's size and why Windows may show a SmartScreen warning</li>
+                    <li>Every section has its spacing back. Each page links its stylesheet by a fingerprint of its content, so a browser never pairs a new page with an old cached stylesheet</li>
+                    <li>DECISIONS-TRADEOFFS.md sets out the deliberate choices ScreenState rests on: what was chosen, what was given up and what each one costs</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="ver-tag">v1.2.0</div>
+                <h3>Applications and displays named the way you know them</h3>
+                <ul>
+                    <li>The manager lists each application by its name, with what the profile does with it underneath in quieter text, instead of leading with its whole executable path. The name is worked out from what was recorded: Discord rather than Update, Claude rather than claude.exe</li>
+                    <li>Nothing captured is hidden. Rest the pointer on an application for its whole path, how it is recognised and where each window was captured</li>
+                    <li>Displays are named by where they sit among those connected (top, left, centre and right) instead of the long identity Windows gives them. A restore keeps the names it started with even if a display comes or goes; the identities are still listed when you rest the pointer on the report's summary</li>
+                    <li>Pressing Apply no longer reshuffles which window is on top of which</li>
+                    <li>A capture records which window is in front of which. A restore puts them back in that order before saying the desktop is ready, so a window you keep behind another stays there after every reboot. Nothing is activated to do it; profiles captured earlier hold no order until you capture again</li>
+                    <li>With a dialog open in the manager, the title bar's cross, Alt+F4 and the taskbar button's Close do nothing until the dialog is closed. Quitting still quits</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="ver-tag">v1.1.0</div>
+                <h3>A new layout for the manager; a restore you can stop</h3>
+                <ul>
+                    <li>The main screen is three parts: the profiles down the left, what the selected profile arranges in the middle with every path shown whole, the buttons down the right. The settings moved to a dialog behind a new gear button</li>
+                    <li>How long a restore waits for windows that have not appeared is yours to set, from 1 to 60 minutes. It stays at 15 until you change it</li>
+                    <li>A restore applied from the manager can be stopped from the Applying panel; everything already placed stays where it is</li>
+                    <li>The tray icon's tooltip is brought up to date after every restore. A red badge marks a restore that left an application it could not start or place, until a later restore completes</li>
+                    <li>Starting ScreenState by hand opens the manager and moves nothing; only signing in arranges the desktop by itself</li>
+                    <li>Opening the manager closes the message that says the desktop is being prepared. A click on that message closes it without ending the restore</li>
+                    <li>A sign-in that closes windows now finishes on its own instead of waiting for your first key press, so taskbar buttons are no longer left red</li>
+                    <li>Maximised windows are placed without taking the keyboard from the window you are typing in</li>
+                    <li>A taskbar button that cannot be rebuilt is skipped on its own instead of stopping the rest</li>
+                    <li>A packaged application such as Claude is matched by its model id after an update moves its path, so it is placed without recapturing the profile</li>
+                    <li>A profile that cannot be read is named under the list with the reason instead of vanishing from it</li>
+                    <li>The log no longer holds window titles, since a title can say what you were working on. It keeps the last ten restores instead of starting afresh past 1 MB</li>
+                    <li>The donation button's tooltip now says first that ScreenState is free and stays free</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="ver-tag">v1.0.0</div>
+                <h3>The first release: sign in and the desktop arranges itself</h3>
+                <ul>
+                    <li>Capture the desktop as a profile: every application, where each window sits, which display it is on and whether it is maximised. Untick anything you want left out; nothing is written until you confirm</li>
+                    <li>Profiles can be renamed, deleted after a confirmation naming the profile and marked as the default, which is the one applied after you sign in</li>
+                    <li>At sign-in ScreenState starts every application the profile records as running and places each window the moment it appears. A message on every display says the desktop is being prepared, then that it is ready</li>
+                    <li>Two monitors of the same model are never confused. A display that has gone sends its windows to the primary one</li>
+                    <li>Nothing takes the keyboard and the taskbar comes back clean. Windows a profile does not name are minimised (or closed at sign-in, if you turn that on)</li>
+                    <li>ScreenState never ends a program and never asks for administrator rights. A report of the last restore names each application it could not satisfy and why</li>
+                    <li>One setup file installs, updates, goes back a version, repairs, reinstalls and uninstalls for your account alone. Uninstalling leaves your profiles unless you tick the box that removes them</li>
+                    <li>An update check once per run carries nothing about you; turn it off and ScreenState makes no network connection at all</li>
+                </ul>
+            </div>
+
+        </div>
+
+        <div class="cta changelog-more">
+            <a class="btn" href="https://github.com/oernster/ScreenState/releases">View all releases on GitHub</a>
+        </div>
+    </section>
+
+</main>
+
+<footer class="wrap site-foot">
+    <span>&copy; Oliver Ernster. GPL-3.0.
+        <a href="https://ernster.dev/commercial-licensing.html">Commercial licences</a> available.</span>
+    <span><a href="./">Home</a> &middot;
+        <a href="features.html">Features</a> &middot;
+        <a href="whats-new.html">What's New</a> &middot;
+        <a href="download.html">Install</a> &middot;
+        <a href="https://github.com/oernster/ScreenState">Source</a> &middot;
+        <a href="https://ernster.dev">More of my work</a></span>
+</footer>
+
+<script>
+(() => {
+    'use strict';
+    // The toggle wears the product's own sun and moon and shows the appearance
+    // it would switch TO, as the manager's does.
+    const root = document.documentElement;
+    const art = document.getElementById('theme-art');
+    const show = () => {
+        art.src = root.dataset.theme === 'dark' ? 'light-mode.png' : 'dark-mode.png';
+    };
+    show();
+    document.getElementById('theme').addEventListener('click', () => {
+        root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem('screenstate-theme', root.dataset.theme); } catch (_) {}
+        show();
+    });
+})();
+</script>
+
+</body>
+</html>
